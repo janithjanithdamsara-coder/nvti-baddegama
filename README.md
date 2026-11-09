@@ -13,16 +13,55 @@ The system caters to the real operational structure with:
 
 ---
 
-## 🔑 Default Login Credentials (One-Click Demo Available)
+## 🔑 Administrative & Academic Credentials
 
-| Role | Account / Shift | Email | Password |
+| Role | Name / Shift | Email | Default Password |
 | :--- | :--- | :--- | :--- |
-| **Admin** | System Administrator | `admin@nvti.edu.lk` | `AdminPassword123!` |
+| **Master Admin** | System Administrator | `admin@nvti.edu.lk` | `AdminPassword123!` |
+| **Academic Admin**| U.G.P.K. Nishantha Sir | `nishantha@nvti.edu.lk` | `nvtiadmin123` |
+| **Academic Admin**| Gayan Sir | `gayan@nvti.edu.lk` | `nvtiadmin123` |
 | **Teacher 01** | Morning Lecturer (09:00 - 12:00) | `teacher1@nvti.edu.lk` | `TeacherPassword123!` |
 | **Teacher 02** | Afternoon Lecturer (13:00 - 16:00) | `teacher2@nvti.edu.lk` | `TeacherPassword123!` |
 | **Student** | Kasun Madushanka | `student@nvti.edu.lk` | `StudentPassword123!` |
 
-*(On the Login page, you can also click the quick-fill buttons for immediate evaluation).*
+---
+
+## 🗺️ System Architecture & Deployment Roadmap
+
+```mermaid
+flowchart TD
+    subgraph Client["End Users (Any Device)"]
+        A1[Students] -->|Mobile / Laptop Browser| WAF[HTTP / HTTPS Port 80 & 443]
+        A2[Lecturers] -->|Portal Login| WAF
+        A3[System Administrators] -->|Management & Analytics| WAF
+    end
+
+    subgraph Cloud["Oracle Cloud Always Free VPS (213.35.126.82)"]
+        WAF --> APACHE[Apache HTTP Server / httpd]
+        APACHE --> PHP[PHP 8.2 FPM Engine]
+        PHP --> CORE[EduCore LMS MVC Application]
+        CORE --> SEC[Security Layer: CSRF / Bcrypt / Prepared Statements]
+        SEC --> DB[(MariaDB Database: educore_lms)]
+        CORE --> STORAGE[Secure File Storage: uploads / materials / papers]
+    end
+
+    subgraph DevOps["CI/CD & Version Control"]
+        DEV[Local Development / VS Code] -->|git commit & push| GITHUB[GitHub Repository]
+        GITHUB -->|git pull in /var/www/html| Cloud
+    end
+```
+
+---
+
+## 🚀 Production Deployment & Continuous Git Updates
+
+### Updating the Live Server via Git:
+Whenever changes are made and pushed to GitHub, simply SSH into the server and run:
+```bash
+cd /var/www/html
+git pull origin main
+```
+The live instance updates in seconds!
 
 ---
 
