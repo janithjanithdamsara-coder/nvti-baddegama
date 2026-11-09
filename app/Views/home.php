@@ -58,12 +58,6 @@ foreach ($cbtModulesDb as $row) {
     <div class="row justify-content-center">
       <div class="col-12 col-lg-10 py-4 py-md-5 my-md-3">
 
-        <!-- NVTI & VTA Badge -->
-        <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill bg-white bg-opacity-90 text-dark border shadow-sm mb-3">
-          <span class="badge bg-primary rounded-pill px-2 py-1 small">NVQ Level 5</span>
-          <span class="small fw-bold text-uppercase tracking-wider" style="color: #0f172a;">NVTI Baddegama &bull; VTA</span>
-        </div>
-
         <!-- Course Title (Responsive Typography) -->
         <h1 class="hero-title fw-bold font-serif text-white text-uppercase tracking-wider mb-2">
           National Diploma - Information &amp; Communication Technology

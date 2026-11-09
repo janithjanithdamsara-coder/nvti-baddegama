@@ -131,7 +131,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
         <!-- Top Branding Header -->
         <div class="login-brand-header">
           <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
-            <img src="assets/images/logo/NVTI_logo.png" onerror="this.onerror=null; this.src='https://nvtibaddegama.site/images/logo/NVTI_logo.png';" alt="NVTI Logo" class="login-brand-logo">
+            <img src="assets/images/logo/NVTI_logo_dark.png" onerror="this.onerror=null; this.src='assets/images/logo/NVTI_logo.png';" alt="NVTI Logo" class="login-brand-logo" style="height: 54px; width: auto; object-fit: contain;">
           </div>
           <div>
             <span class="login-badge-nvq">
