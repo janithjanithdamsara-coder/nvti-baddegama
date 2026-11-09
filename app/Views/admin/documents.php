@@ -103,11 +103,27 @@ $baseDocsPage = ($currentRole === 'teacher') ? 'teacher_documents' : 'admin_docu
         </div>
       </div>
 
+      <!-- Cohort Switcher Tabs & Filter Card -->
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="btn-group p-1 bg-white border rounded-pill shadow-xs" role="group">
+          <a href="index.php?page=<?= e($baseDocsPage) ?>&batch_status=active" class="btn btn-sm rounded-pill px-3 fw-bold <?= ($batchStatusFilter === 'active') ? 'btn-danger shadow-xs' : 'btn-light text-secondary' ?>" style="<?= ($batchStatusFilter === 'active') ? 'background: #7A1418; border-color: #7A1418;' : '' ?>">
+            <i class="bi bi-broadcast me-1"></i> Active Cohorts
+          </a>
+          <a href="index.php?page=<?= e($baseDocsPage) ?>&batch_status=archived" class="btn btn-sm rounded-pill px-3 fw-bold <?= ($batchStatusFilter === 'archived') ? 'btn-dark shadow-xs' : 'btn-light text-secondary' ?>">
+            <i class="bi bi-archive-fill me-1"></i> Old Batches (Alumni)
+          </a>
+          <a href="index.php?page=<?= e($baseDocsPage) ?>&batch_status=all" class="btn btn-sm rounded-pill px-3 fw-bold <?= ($batchStatusFilter === 'all') ? 'btn-secondary text-white' : 'btn-light text-secondary' ?>">
+            <i class="bi bi-collection me-1"></i> All Records
+          </a>
+        </div>
+      </div>
+
       <!-- Filter & Search Card -->
       <div class="card border rounded-4 shadow-sm bg-white mb-4">
         <div class="card-body p-3">
           <form action="index.php" method="GET" class="row g-2 align-items-center">
             <input type="hidden" name="page" value="<?= e($baseDocsPage) ?>">
+            <input type="hidden" name="batch_status" value="<?= e($batchStatusFilter) ?>">
 
             <div class="col-12 col-md-4">
               <div class="input-group input-group-sm">
@@ -129,9 +145,11 @@ $baseDocsPage = ($currentRole === 'teacher') ? 'teacher_documents' : 'admin_docu
 
             <div class="col-6 col-md-3">
               <select name="class_id" class="form-select form-select-sm border-secondary-subtle" onchange="this.form.submit()">
-                <option value="">All Batches / Classes</option>
+                <option value="">All Batches (Filtered by Cohort)</option>
                 <?php foreach ($classes as $c): ?>
-                  <option value="<?= $c['id'] ?>" <?= ($classFilter == $c['id']) ? 'selected' : '' ?>><?= e($c['class_name']) ?></option>
+                  <option value="<?= $c['id'] ?>" <?= ($classFilter == $c['id']) ? 'selected' : '' ?>>
+                    <?= e($c['class_name']) ?> (<?= ($c['status'] === 'archived') ? 'Archived' : 'Active' ?>)
+                  </option>
                 <?php endforeach; ?>
               </select>
             </div>

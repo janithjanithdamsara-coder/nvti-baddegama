@@ -178,11 +178,22 @@ class AdminController {
             $b = $batch->fetch();
 
             if ($b) {
+                // 1. Mark batch as archived
                 $stmt = $db->prepare("UPDATE classes SET status = 'archived' WHERE id = ?");
                 $stmt->execute([$classId]);
 
-                Auth::logAudit(Auth::id(), 'ARCHIVE_BATCH', "Archived batch ID $classId: {$b['class_name']}");
-                Flash::success("Batch \"{$b['class_name']}\" has been archived and moved to Old Batches. All student records, attendance, and documents are preserved.");
+                // 2. Automatically suspend all student accounts in this graduated batch so they cannot log into active LMS
+                $suspendStmt = $db->prepare("
+                    UPDATE users u
+                    JOIN student_profiles sp ON u.id = sp.user_id
+                    SET u.status = 'suspended'
+                    WHERE sp.class_id = ? AND u.role = 'student'
+                ");
+                $suspendStmt->execute([$classId]);
+                $suspendedCount = $suspendStmt->rowCount();
+
+                Auth::logAudit(Auth::id(), 'ARCHIVE_BATCH', "Archived batch ID $classId: {$b['class_name']}. Suspended $suspendedCount student accounts.");
+                Flash::success("Batch \"{$b['class_name']}\" moved to Old Batches. {$suspendedCount} student account(s) have been suspended to prevent active LMS login. All student records, attendance, and documents are 100% preserved.");
             }
         }
         header('Location: index.php?page=admin_students&batch_status=archived');
@@ -198,8 +209,18 @@ class AdminController {
             $stmt = $db->prepare("UPDATE classes SET status = 'active' WHERE id = ?");
             $stmt->execute([$classId]);
 
-            Auth::logAudit(Auth::id(), 'RESTORE_BATCH', "Restored batch ID $classId to active");
-            Flash::success("Batch restored to active status.");
+            // Reactivate students in this batch
+            $reactivateStmt = $db->prepare("
+                UPDATE users u
+                JOIN student_profiles sp ON u.id = sp.user_id
+                SET u.status = 'active'
+                WHERE sp.class_id = ? AND u.role = 'student'
+            ");
+            $reactivateStmt->execute([$classId]);
+            $reactivatedCount = $reactivateStmt->rowCount();
+
+            Auth::logAudit(Auth::id(), 'RESTORE_BATCH', "Restored batch ID $classId to active. Reactivated $reactivatedCount students.");
+            Flash::success("Batch restored to active status and {$reactivatedCount} student accounts have been reactivated.");
         }
         header('Location: index.php?page=admin_students&batch_status=active');
         exit;
@@ -1166,13 +1187,15 @@ class AdminController {
         require_once __DIR__ . '/../Helpers/DocumentManager.php';
 
         $db = Database::getConnection();
-        $classes = $db->query("SELECT id, class_name FROM classes ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $classes = $db->query("SELECT id, class_name, status FROM classes ORDER BY status ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC);
 
         $classFilter = isset($_GET['class_id']) && $_GET['class_id'] !== '' ? (int)$_GET['class_id'] : null;
+        $batchStatusFilter = trim($_GET['batch_status'] ?? 'active');
         $statusFilter = trim($_GET['status'] ?? 'all');
         $search = trim($_GET['search'] ?? '');
 
-        $students = DocumentManager::getStudentsDocDirectory($classFilter);
+        // By default, only show students from currently active cohorts (clears archived batch docs)
+        $students = DocumentManager::getStudentsDocDirectory($classFilter, $batchStatusFilter);
         $docTypes = DocumentManager::getDocTypes();
 
         // Metrics
@@ -1246,6 +1269,19 @@ class AdminController {
         }
 
         header("Location: $returnUrl");
+        exit;
+    }
+
+    /**
+     * AJAX Endpoint: Get documents of a specific student for viewing in Old Batches / Student Management
+     */
+    public function getStudentDocumentsJson(): void {
+        Auth::requireRole(['admin', 'teacher']);
+        require_once __DIR__ . '/../Helpers/DocumentManager.php';
+        $studentId = (int)($_GET['student_id'] ?? 0);
+        $docs = DocumentManager::getStudentDocsWithMeta($studentId);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'documents' => $docs]);
         exit;
     }
 

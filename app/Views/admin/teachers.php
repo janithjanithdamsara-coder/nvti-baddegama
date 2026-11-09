@@ -12,11 +12,12 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
       <!-- Header Banner (Official NVTI Maroon) -->
       <div class="card border-0 shadow-sm rounded-4 mb-4 text-white overflow-hidden position-relative" style="background: linear-gradient(135deg, #7A1418 0%, #991b1b 100%); padding: 1.85rem 2.25rem;">
-        <div class="position-absolute end-0 top-50 translate-middle-y me-4 opacity-10 pointer-events-none d-none d-md-block" style="font-size: 8rem; line-height: 0;">
+        <!-- Watermark Background Crest (Subtle Opacity to avoid button overlap) -->
+        <div class="position-absolute end-0 top-50 translate-middle-y me-2 pointer-events-none d-none d-xl-block" style="font-size: 7rem; line-height: 0; opacity: 0.05 !important;">
           <i class="bi bi-shield-lock-fill text-white"></i>
         </div>
 
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 position-relative" style="z-index: 3;">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 position-relative" style="z-index: 5;">
           <div>
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
               <span class="badge rounded-pill font-monospace px-3 py-1.5 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">

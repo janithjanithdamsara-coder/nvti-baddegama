@@ -211,6 +211,9 @@ switch ($page) {
     case 'admin_verify_document':
         (new AdminController())->verifyDocument();
         break;
+    case 'admin_get_student_documents':
+        (new AdminController())->getStudentDocumentsJson();
+        break;
     case 'admin_logs':
         (new AdminController())->logs();
         break;

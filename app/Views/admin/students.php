@@ -16,12 +16,12 @@ $search = trim($_GET['search'] ?? '');
 
       <!-- Header Banner (NVTI Maroon Hub Aesthetic) -->
       <div class="card border-0 shadow-sm rounded-4 mb-4 text-white overflow-hidden position-relative" style="background: linear-gradient(135deg, #7A1418 0%, #991b1b 100%); padding: 1.85rem 2.25rem;">
-        <!-- Watermark Background Crest -->
-        <div class="position-absolute end-0 top-50 translate-middle-y me-4 opacity-10 pointer-events-none d-none d-md-block" style="font-size: 8rem; line-height: 0;">
+        <!-- Watermark Background Crest (Subtle Opacity to avoid button overlap) -->
+        <div class="position-absolute end-0 top-50 translate-middle-y me-2 pointer-events-none d-none d-xl-block" style="font-size: 7rem; line-height: 0; opacity: 0.05 !important;">
           <i class="bi bi-people-fill text-white"></i>
         </div>
 
-        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 position-relative" style="z-index: 3;">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 position-relative" style="z-index: 5;">
           <div class="pe-lg-3">
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
               <span class="badge rounded-pill font-monospace px-3 py-1.5 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
@@ -256,7 +256,14 @@ $search = trim($_GET['search'] ?? '');
                           <?= strtoupper(substr($st['name'], 0, 1)) ?>
                         </div>
                         <div>
-                          <div class="fw-bold text-dark" style="font-size: 0.92rem;"><?= e($st['name']) ?></div>
+                          <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 0.92rem;">
+                            <a href="javascript:void(0)" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['student_code'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')" class="text-dark text-decoration-none" title="Click to view documents">
+                              <?= e($st['name']) ?>
+                            </a>
+                            <button type="button" class="btn btn-xs rounded-pill px-2 py-0.5 text-primary border border-primary-subtle bg-primary-subtle" style="font-size: 0.68rem; font-weight: 600;" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['student_code'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')" title="View Verification Documents">
+                              <i class="bi bi-file-earmark-check me-0.5"></i> Docs
+                            </button>
+                          </div>
                           <small class="text-muted font-monospace" style="font-size: 0.74rem;">NIC: <?= e($st['nic'] ?? 'N/A') ?></small>
                         </div>
                       </div>
@@ -314,6 +321,12 @@ $search = trim($_GET['search'] ?? '');
                           Manage
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+                          <li>
+                            <button type="button" class="dropdown-item py-1.5 fw-semibold text-primary" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['student_code'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')">
+                              <i class="bi bi-file-earmark-check me-2"></i>Verification Docs
+                            </button>
+                          </li>
+                          <li><hr class="dropdown-divider my-1"></li>
                           <?php if ($st['status'] !== 'active'): ?>
                             <li>
                               <form action="index.php?page=admin_update_student_status" method="POST">
@@ -513,36 +526,176 @@ $search = trim($_GET['search'] ?? '');
         </div>
 
         <div class="modal-body p-4">
-          <p class="text-secondary small mb-3">
-            Select the active batch you wish to conclude. Once archived:
-          </p>
-          <ul class="text-secondary small ps-3 mb-3" style="font-size: 0.8rem; line-height: 1.6;">
-            <li>All students in this batch will be moved to the <strong>"Old / Archived Batches"</strong> directory.</li>
-            <li>Their past attendance percentages, examination marks, and verification documents are <strong>100% preserved forever</strong>.</li>
-            <li>The active portal will be ready for the new student intake.</li>
-          </ul>
+          <!-- Clear Security & Archival Warning Box -->
+          <div class="alert alert-warning border-0 rounded-3 p-3 mb-3 d-flex align-items-start gap-2.5" style="background: #fffbeb;">
+            <i class="bi bi-exclamation-triangle-fill text-warning fs-5 flex-shrink-0 mt-0.5"></i>
+            <div class="small text-secondary lh-base">
+              <strong class="text-dark d-block mb-1">Important: Account Suspension &amp; Data Safety</strong>
+              Once graduated, all student user accounts in this batch will be <strong>automatically suspended</strong> so they can no longer log in to active courses on the LMS.
+            </div>
+          </div>
+
+          <div class="card border rounded-3 p-3 mb-3 bg-light">
+            <h6 class="fw-bold text-dark small mb-2"><i class="bi bi-shield-check text-success me-1"></i> What happens during archival:</h6>
+            <ul class="text-secondary small ps-3 mb-0" style="font-size: 0.8rem; line-height: 1.6;">
+              <li>All students move to the <strong>"Old / Archived Batches"</strong> directory.</li>
+              <li>Attendance histories, past assignments, and verification documents are <strong>100% permanently preserved</strong>.</li>
+              <li>The active LMS stream will clear and be ready for the new student intake.</li>
+            </ul>
+          </div>
 
           <div class="mb-3">
-            <label class="form-label fw-bold text-dark small mb-1">Select Batch to Archive <span class="text-danger">*</span></label>
-            <select name="class_id" class="form-select" required>
+            <label class="form-label fw-bold text-dark small mb-1">Select Batch to Graduate &amp; Archive <span class="text-danger">*</span></label>
+            <select name="class_id" class="form-select rounded-3 py-2" required>
               <?php foreach ($activeBatches as $ab): ?>
                 <option value="<?= (int)$ab['id'] ?>">
-                  <?= e($ab['class_name']) ?> (<?= $ab['student_count'] ?> Students)
+                  <?= e($ab['class_name']) ?> (<?= $ab['student_count'] ?> Active Students)
                 </option>
               <?php endforeach; ?>
             </select>
+          </div>
+
+          <div class="form-check mt-3 pt-2 border-top">
+            <input class="form-check-input" type="checkbox" id="confirmArchiveConsent" required>
+            <label class="form-check-label small text-secondary fw-semibold" for="confirmArchiveConsent">
+              I confirm the graduation of this batch and acknowledge that these student accounts will be suspended from LMS login.
+            </label>
           </div>
         </div>
 
         <div class="modal-footer bg-light px-4 py-3 border-top">
           <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold" style="background: #7A1418; border-color: #7A1418;" onclick="return confirm('Confirm graduation and archival of this batch? All records will be preserved in Old Batches.');">
-            <i class="bi bi-mortarboard me-1"></i> Confirm Archival
+          <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" style="background: #7A1418; border-color: #7A1418;">
+            <i class="bi bi-mortarboard-fill me-1"></i> Graduate Batch &amp; Suspend Access
           </button>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+<!-- ================= STUDENT VERIFICATION DOCUMENTS MODAL ================= -->
+<div class="modal fade" id="studentDocsModal" tabindex="-1" aria-labelledby="studentDocsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 rounded-4 shadow">
+      <div class="modal-header border-bottom py-3 px-4 bg-light">
+        <div class="d-flex align-items-center gap-2.5">
+          <div class="rounded-circle p-2 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+            <i class="bi bi-folder2-open fs-5"></i>
+          </div>
+          <div>
+            <h6 class="modal-title fw-bold text-dark mb-0" id="docsModalStudentName">Student Documents</h6>
+            <small class="text-muted" id="docsModalStudentMeta"></small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-4">
+        <div id="docsModalLoading" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="text-muted small mt-2">Loading student verification files...</p>
+        </div>
+
+        <div id="docsModalContent" class="d-none">
+          <div class="list-group list-group-flush border rounded-3 overflow-hidden" id="docsModalList">
+            <!-- Populated via JavaScript -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer bg-light px-4 py-2.5 border-top">
+        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function loadStudentDocs(studentId, studentName, studentCode, className) {
+  document.getElementById('docsModalStudentName').textContent = studentName + (studentCode ? ' (' + studentCode + ')' : '');
+  document.getElementById('docsModalStudentMeta').textContent = (className ? className + ' • ' : '') + 'Student ID #' + studentId;
+  
+  const loading = document.getElementById('docsModalLoading');
+  const content = document.getElementById('docsModalContent');
+  const list = document.getElementById('docsModalList');
+  
+  loading.classList.remove('d-none');
+  content.classList.add('d-none');
+  list.innerHTML = '';
+
+  const modal = new bootstrap.Modal(document.getElementById('studentDocsModal'));
+  modal.show();
+
+  fetch('index.php?page=admin_get_student_documents&student_id=' + studentId)
+    .then(res => res.json())
+    .then(data => {
+      loading.classList.add('d-none');
+      content.classList.remove('d-none');
+
+      if (!data.success || !data.documents) {
+        list.innerHTML = '<div class="p-4 text-center text-muted">Failed to retrieve documents.</div>';
+        return;
+      }
+
+      let html = '';
+      for (const [key, item] of Object.entries(data.documents)) {
+        const meta = item.meta;
+        const isUploaded = item.uploaded && item.doc;
+        const doc = item.doc;
+
+        let statusBadge = '';
+        let actionBtn = '';
+
+        if (!isUploaded) {
+          statusBadge = '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2.5 py-1">Missing / Not Uploaded</span>';
+          actionBtn = '<span class="text-muted small fst-italic">No file</span>';
+        } else if (doc.status === 'verified') {
+          statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1"><i class="bi bi-patch-check-fill me-1"></i> Verified</span>';
+          actionBtn = `<a href="index.php?page=view_student_document&id=${doc.id}" target="_blank" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold">
+                        <i class="bi bi-eye me-1"></i> View Document
+                       </a>`;
+        } else if (doc.status === 'rejected') {
+          statusBadge = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1"><i class="bi bi-x-circle-fill me-1"></i> Rejected</span>';
+          actionBtn = `<a href="index.php?page=view_student_document&id=${doc.id}" target="_blank" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-semibold">
+                        <i class="bi bi-eye me-1"></i> Inspect
+                       </a>`;
+        } else {
+          statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1"><i class="bi bi-clock-fill me-1"></i> Pending Review</span>';
+          actionBtn = `<a href="index.php?page=view_student_document&id=${doc.id}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">
+                        <i class="bi bi-eye me-1"></i> Inspect File
+                       </a>`;
+        }
+
+        html += `
+          <div class="list-group-item p-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-3 p-2 d-flex align-items-center justify-content-center text-primary bg-light" style="width: 42px; height: 42px;">
+                <i class="bi ${meta.icon} fs-5"></i>
+              </div>
+              <div>
+                <div class="fw-bold text-dark small">${meta.title}</div>
+                <div class="text-muted" style="font-size: 0.72rem;">${isUploaded ? doc.original_filename : 'Required for NVQ Level 5 Verification'}</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 justify-content-between justify-content-sm-end">
+              ${statusBadge}
+              ${actionBtn}
+            </div>
+          </div>
+        `;
+      }
+
+      list.innerHTML = html;
+    })
+    .catch(err => {
+      loading.classList.add('d-none');
+      content.classList.remove('d-none');
+      list.innerHTML = '<div class="p-4 text-center text-danger">Error connecting to server.</div>';
+    });
+}
+</script>
 
 <?php require_once __DIR__ . '/../layouts/footer.php'; ?>

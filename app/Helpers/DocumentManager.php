@@ -139,12 +139,12 @@ class DocumentManager {
     /**
      * Get directory of all students with their document completion status
      */
-    public static function getStudentsDocDirectory(?int $classId = null): array {
+    public static function getStudentsDocDirectory(?int $classId = null, string $batchStatus = 'active'): array {
         $db = Database::getConnection();
         $sql = "
             SELECT u.id as user_id, u.name, u.email,
                    sp.phone, sp.student_code, sp.mis_number, sp.nic, sp.class_id,
-                   c.class_name
+                   c.class_name, c.status as class_status
             FROM users u
             JOIN student_profiles sp ON u.id = sp.user_id
             LEFT JOIN classes c ON sp.class_id = c.id
@@ -154,6 +154,10 @@ class DocumentManager {
         if ($classId !== null) {
             $sql .= " AND sp.class_id = ?";
             $params[] = $classId;
+        } elseif ($batchStatus === 'active') {
+            $sql .= " AND (c.status = 'active' OR c.status IS NULL)";
+        } elseif ($batchStatus === 'archived') {
+            $sql .= " AND c.status = 'archived'";
         }
         $sql .= " ORDER BY sp.student_code ASC, u.name ASC";
 
@@ -338,5 +342,37 @@ class DocumentManager {
         $stmt->execute([$docId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    /**
+     * Get documents for a specific student with status and metadata (for Old Batches & student modals)
+     */
+    public static function getStudentDocsWithMeta(int $studentUserId): array {
+        $db = Database::getConnection();
+        $types = self::getDocTypes();
+
+        $stmt = $db->prepare("
+            SELECT id, doc_type, status, original_filename, file_size_bytes, uploaded_at, verified_at, admin_notes
+            FROM student_documents
+            WHERE student_id = ?
+        ");
+        $stmt->execute([$studentUserId]);
+        $docs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $docsByType = [];
+        foreach ($docs as $d) {
+            $docsByType[$d['doc_type']] = $d;
+        }
+
+        $list = [];
+        foreach ($types as $key => $meta) {
+            $uploaded = $docsByType[$key] ?? null;
+            $list[$key] = [
+                'meta'     => $meta,
+                'uploaded' => $uploaded !== null,
+                'doc'      => $uploaded
+            ];
+        }
+        return $list;
     }
 }
