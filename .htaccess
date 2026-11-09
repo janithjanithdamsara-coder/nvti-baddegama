@@ -1,0 +1,35 @@
+# ==============================================================================
+# NVTI Baddegama National Diploma - Apache Web Server Security Hardening
+# ==============================================================================
+
+# 1. Disable Directory Listing / Directory Browsing
+Options -Indexes
+
+# 2. Block Access to Hidden Files & Sensitive Directories
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 3. Block Sensitive File Extensions (.env, .sql, .log, .sh, .bak, .git)
+<FilesMatch "(^#.*#|\.(bak|config|dist|fla|inc|ini|log|psd|sh|sql|sw[op]|env|git.*|md))$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 4. Protect Internal Backend Folders from Direct Web Access
+RedirectMatch 403 ^/config/.*$
+RedirectMatch 403 ^/database/.*$
+RedirectMatch 403 ^/storage/logs/.*$
+
+# 5. Global Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>
+
+# 6. Request Limit (25 MB max body size)
+LimitRequestBody 26214400

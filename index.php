@@ -85,6 +85,12 @@ switch ($page) {
     case 'forgot_password_process':
         (new AuthController())->handleForgotPassword();
         break;
+    case 'reset_password':
+        (new AuthController())->showResetPassword();
+        break;
+    case 'reset_password_process':
+        (new AuthController())->handleResetPassword();
+        break;
     case 'logout':
         (new AuthController())->logout();
         break;

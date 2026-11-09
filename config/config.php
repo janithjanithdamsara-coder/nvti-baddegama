@@ -4,9 +4,26 @@
  * NVTI Baddegama National Diploma Portal
  */
 
-// Error Reporting (adjust for production)
-error_reporting(E_ALL);
-ini_set('display_errors', '1');
+// Error Reporting (Hide raw error output in Linux/production)
+if (PHP_OS_FAMILY === 'Linux' && getenv('APP_DEBUG') !== 'true') {
+    error_reporting(0);
+    ini_set('display_errors', '0');
+} else {
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
+}
+
+// Global Security Response Headers
+if (!headers_sent()) {
+    header("X-Content-Type-Options: nosniff");
+    header("X-Frame-Options: SAMEORIGIN");
+    header("X-XSS-Protection: 1; mode=block");
+    header("Referrer-Policy: strict-origin-when-cross-origin");
+    header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
+    }
+}
 
 // App Details
 define('APP_NAME', 'NVTI Baddegama National Diploma');
@@ -63,5 +80,21 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
     ini_set('session.cookie_samesite', 'Lax');
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        ini_set('session.cookie_secure', 1);
+    }
     session_start();
+}
+
+// Session Inactivity / Idle Timeout (2 Hours = 7200 seconds)
+if (isset($_SESSION['user_id'])) {
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 7200)) {
+        $_SESSION = [];
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+        header("Location: " . BASE_URL . "index.php?page=login&timeout=1");
+        exit;
+    }
+    $_SESSION['last_activity'] = time();
 }

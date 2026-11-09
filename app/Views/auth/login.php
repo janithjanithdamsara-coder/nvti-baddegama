@@ -118,6 +118,13 @@ require_once __DIR__ . '/../layouts/navbar.php';
   <div class="row justify-content-center">
     <div class="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
 
+      <?php if (!empty($_GET['timeout'])): ?>
+        <div class="alert alert-warning alert-dismissible fade show rounded-3 small" role="alert">
+          <i class="bi bi-clock-history me-1"></i> Your session has expired due to inactivity. Please log in again.
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      <?php endif; ?>
+
       <?= Flash::render() ?>
 
       <div class="login-auth-card mb-4">

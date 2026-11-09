@@ -32,6 +32,13 @@ class AuthController {
             exit;
         }
 
+        // Brute-force & Rate Limiting: Lock out after 5 failed attempts within 15 minutes
+        if ($this->isRateLimited($loginInput)) {
+            Flash::error('Too many failed login attempts detected. For security purposes, access is temporarily locked. Please wait 15 minutes before trying again.');
+            header('Location: index.php?page=login');
+            exit;
+        }
+
         $db = Database::getConnection();
         // Allow login by Email, or Student MIS Number, or NIC, or Student Code!
         $stmt = $db->prepare("
@@ -174,8 +181,9 @@ class AuthController {
             exit;
         }
 
-        if (strlen($password) < 6) {
-            Flash::error('Password must be at least 6 characters long.');
+        $passCheck = Sanitizer::validatePassword($password);
+        if (!$passCheck['valid']) {
+            Flash::error($passCheck['message']);
             header('Location: index.php?page=register');
             exit;
         }
@@ -281,8 +289,9 @@ class AuthController {
             exit;
         }
 
-        if (strlen($newPass) < 6) {
-            Flash::error('New password must be at least 6 characters long.');
+        $passCheck = Sanitizer::validatePassword($newPass);
+        if (!$passCheck['valid']) {
+            Flash::error($passCheck['message']);
             header('Location: index.php?page=change_password');
             exit;
         }
@@ -294,7 +303,7 @@ class AuthController {
         }
 
         $db = Database::getConnection();
-        $stmt = $db->prepare("SELECT password FROM users WHERE id = ?");
+        $stmt = $db->prepare("SELECT email, name, password FROM users WHERE id = ?");
         $stmt->execute([Auth::id()]);
         $user = $stmt->fetch();
 
@@ -309,6 +318,21 @@ class AuthController {
         $upStmt->execute([$newHash, Auth::id()]);
 
         Auth::logAudit(Auth::id(), 'PASSWORD_CHANGE', 'User changed their account password.');
+
+        // Dispatch security notification email to user
+        if (!empty($user['email'])) {
+            $alertHtml = "
+            <div style='background-color: #f8fafc; padding: 25px; font-family: sans-serif;'>
+                <div style='max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 10px; padding: 24px; border: 1px solid #e2e8f0;'>
+                    <h3 style='color: #7A1418; margin-top: 0;'>&#x1F512; Security Notice: Password Changed</h3>
+                    <p>Dear <strong>" . htmlspecialchars($user['name']) . "</strong>,</p>
+                    <p>Your portal account password was successfully updated on <strong>" . date('Y-m-d H:i:s') . "</strong>.</p>
+                    <p style='color: #e11d48; font-size: 13px;'>* If you did not perform this change, please inform the NVTI administration immediately to secure your account.</p>
+                </div>
+            </div>";
+            Mailer::send($user['email'], "Security Alert: Password Changed - NVTI Baddegama", $alertHtml, $user['name']);
+        }
+
         Flash::success('Password has been successfully changed!');
         header('Location: index.php?page=change_password');
         exit;
@@ -362,6 +386,109 @@ class AuthController {
 
         header('Location: index.php?page=forgot_password');
         exit;
+    }
+
+    public function showResetPassword(): void {
+        $token = trim($_GET['token'] ?? '');
+        if (empty($token)) {
+            Flash::error('Invalid or missing password reset token.');
+            header('Location: index.php?page=forgot_password');
+            exit;
+        }
+
+        $db = Database::getConnection();
+        $tokenHash = hash('sha256', $token);
+        $stmt = $db->prepare("SELECT * FROM password_resets WHERE token_hash = ? AND used = 0 AND expires_at > NOW() LIMIT 1");
+        $stmt->execute([$tokenHash]);
+        $reset = $stmt->fetch();
+
+        if (!$reset) {
+            Flash::error('This password reset link is invalid, has expired, or has already been used.');
+            header('Location: index.php?page=forgot_password');
+            exit;
+        }
+
+        $pageTitle = "Set New Password";
+        require_once __DIR__ . '/../Views/auth/reset_password.php';
+    }
+
+    public function handleResetPassword(): void {
+        Csrf::checkOrAbort();
+        $token = trim($_POST['token'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+
+        if (empty($token)) {
+            Flash::error('Invalid password reset session.');
+            header('Location: index.php?page=forgot_password');
+            exit;
+        }
+
+        $passVal = Sanitizer::validatePassword($password);
+        if (!$passVal['valid']) {
+            Flash::error($passVal['message']);
+            header("Location: index.php?page=reset_password&token=" . urlencode($token));
+            exit;
+        }
+
+        if ($password !== $confirmPassword) {
+            Flash::error('Passwords do not match.');
+            header("Location: index.php?page=reset_password&token=" . urlencode($token));
+            exit;
+        }
+
+        $db = Database::getConnection();
+        $tokenHash = hash('sha256', $token);
+        $stmt = $db->prepare("SELECT * FROM password_resets WHERE token_hash = ? AND used = 0 AND expires_at > NOW() LIMIT 1");
+        $stmt->execute([$tokenHash]);
+        $reset = $stmt->fetch();
+
+        if (!$reset) {
+            Flash::error('This reset request is invalid, has expired, or was already used.');
+            header('Location: index.php?page=forgot_password');
+            exit;
+        }
+
+        // Update user password
+        $newHash = password_hash($password, PASSWORD_BCRYPT);
+        $up = $db->prepare("UPDATE users SET password = ? WHERE email = ?");
+        $up->execute([$newHash, $reset['email']]);
+
+        // Invalidate token (Single-use token protection)
+        $db->prepare("UPDATE password_resets SET used = 1 WHERE id = ?")->execute([$reset['id']]);
+
+        // Security confirmation email
+        $alertHtml = "
+        <div style='background-color: #f8fafc; padding: 25px; font-family: sans-serif;'>
+            <div style='max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 10px; padding: 24px; border: 1px solid #e2e8f0;'>
+                <h3 style='color: #10b981; margin-top: 0;'>&#x2705; Password Reset Completed</h3>
+                <p>Your password for the <strong>NVTI Baddegama National Diploma Portal</strong> has been reset successfully.</p>
+                <p>You can now sign in securely with your new password.</p>
+            </div>
+        </div>";
+        Mailer::send($reset['email'], "Password Reset Confirmation - NVTI Baddegama", $alertHtml);
+
+        Flash::success('Your password has been successfully reset! You can now log in.');
+        header('Location: index.php?page=login');
+        exit;
+    }
+
+    private function isRateLimited(string $loginInput): bool {
+        try {
+            $db = Database::getConnection();
+            $ip = $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN';
+            $stmt = $db->prepare("
+                SELECT COUNT(*) 
+                FROM login_logs 
+                WHERE (ip_address = ? OR email = ?) 
+                  AND status = 'failed' 
+                  AND created_at >= (NOW() - INTERVAL 15 MINUTE)
+            ");
+            $stmt->execute([$ip, $loginInput]);
+            return (int)$stmt->fetchColumn() >= 5;
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     public function logout(): void {

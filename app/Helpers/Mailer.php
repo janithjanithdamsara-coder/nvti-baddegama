@@ -274,7 +274,7 @@ class Mailer {
      * Send Password Reset Email Template
      */
     public static function sendPasswordReset(string $toEmail, string $name, string $resetToken): array {
-        $resetUrl = rtrim(BASE_URL, '/') . '/index.php?page=forgot_password&token=' . urlencode($resetToken);
+        $resetUrl = rtrim(BASE_URL, '/') . '/index.php?page=reset_password&token=' . urlencode($resetToken);
         $appName  = defined('APP_NAME') ? APP_NAME : 'NVTI Baddegama National Diploma';
         $subTitle = defined('APP_SUBTITLE') ? APP_SUBTITLE : 'ICT NVQ Level 5';
 
