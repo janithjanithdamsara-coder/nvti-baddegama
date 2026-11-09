@@ -1,0 +1,3 @@
+# Deny direct browser access to files in storage directory
+# All downloads must be validated and streamed through index.php?page=download_...
+Deny from all
