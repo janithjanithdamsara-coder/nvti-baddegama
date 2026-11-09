@@ -45,6 +45,18 @@ define('DB_CHARSET', 'utf8mb4');
 define('MAX_UPLOAD_SIZE', 25 * 1024 * 1024); // 25 MB
 define('ALLOWED_FILE_EXTENSIONS', ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'rar', 'jpg', 'jpeg', 'png', 'txt']);
 
+// Gmail / SMTP Mail Configuration
+define('MAIL_ENABLED', true);
+define('MAIL_DRIVER', getenv('MAIL_DRIVER') ?: 'smtp'); 
+define('SMTP_HOST', getenv('SMTP_HOST') ?: 'smtp.gmail.com');
+define('SMTP_PORT', (int)(getenv('SMTP_PORT') ?: 465)); // 465 (SSL)
+define('SMTP_ENCRYPTION', getenv('SMTP_ENCRYPTION') ?: 'ssl'); // 'ssl'
+define('SMTP_USER', getenv('SMTP_USER') ?: 'sahashrajanith@gmail.com');
+define('SMTP_PASS', getenv('SMTP_PASS') ?: 'pvmeelqjvicjbqcf');
+define('BREVO_API_KEY', getenv('BREVO_API_KEY') ?: '');
+define('MAIL_FROM_EMAIL', getenv('MAIL_FROM_EMAIL') ?: 'sahashrajanith@gmail.com');
+define('MAIL_FROM_NAME', getenv('MAIL_FROM_NAME') ?: 'NVTI Baddegama - ICT Diploma');
+
 // Session Configuration (Strict & Secure with unique project session name)
 if (session_status() === PHP_SESSION_NONE) {
     session_name('EDUCORE_NVTI_LMS_SESSION');

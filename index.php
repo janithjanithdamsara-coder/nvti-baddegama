@@ -11,6 +11,7 @@ require_once __DIR__ . '/app/Helpers/Sanitizer.php';
 require_once __DIR__ . '/app/Helpers/Csrf.php';
 require_once __DIR__ . '/app/Helpers/Flash.php';
 require_once __DIR__ . '/app/Helpers/Uploader.php';
+require_once __DIR__ . '/app/Helpers/Mailer.php';
 
 require_once __DIR__ . '/app/Controllers/AuthController.php';
 require_once __DIR__ . '/app/Controllers/AdminController.php';
@@ -206,6 +207,12 @@ switch ($page) {
         break;
     case 'admin_logs':
         (new AdminController())->logs();
+        break;
+    case 'admin_email_settings':
+        (new AdminController())->showEmailSettings();
+        break;
+    case 'admin_test_email':
+        (new AdminController())->testEmail();
         break;
 
     // ---------------- TEACHER ROUTES ----------------

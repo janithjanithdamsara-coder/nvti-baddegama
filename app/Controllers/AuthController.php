@@ -343,8 +343,19 @@ class AuthController {
             $ins->execute([$email, $tokenHash, $expires]);
 
             Auth::logAudit($user['id'], 'PASSWORD_RESET_REQUEST', "Requested password reset token");
-            // In a development environment without real SMTP, we display a helpful demo reset banner
-            Flash::info("Password reset token generated: <code>$token</code>. (In live production with SMTP, a reset link is emailed).");
+            
+            // Send Password Reset Email via Brevo / Mailer
+            if (defined('SMTP_PASS') && SMTP_PASS !== 'YOUR_BREVO_MASTER_SMTP_KEY') {
+                $mailResult = Mailer::sendPasswordReset($email, $user['name'], $token);
+                if ($mailResult['success']) {
+                    Flash::success("A password reset link has been dispatched to your email address (<strong>" . htmlspecialchars($email) . "</strong>). Please check your inbox.");
+                } else {
+                    Flash::warning("Password reset token generated: <code>$token</code>. (Email delivery error: " . htmlspecialchars($mailResult['message']) . ")");
+                }
+            } else {
+                // Helpful notice when SMTP credentials have not been configured yet
+                Flash::info("Password reset token generated: <code>$token</code>. (Configure Brevo SMTP in <code>config/config.php</code> to dispatch real emails).");
+            }
         } else {
             Flash::info("If an account exists with this email, reset instructions have been generated.");
         }

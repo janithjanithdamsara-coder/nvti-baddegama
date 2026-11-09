@@ -1481,4 +1481,53 @@ class AdminController {
         header("Location: $redirectUrl");
         exit;
     }
+
+    /**
+     * Show Brevo / SMTP Email Settings & Diagnostics
+     */
+    public function showEmailSettings(): void {
+        $pageTitle = "Email & Brevo SMTP Configuration";
+        require_once __DIR__ . '/../Views/admin/email_settings.php';
+    }
+
+    /**
+     * Handle Sending a Test Email
+     */
+    public function testEmail(): void {
+        Csrf::checkOrAbort();
+        $targetEmail = trim($_POST['test_email'] ?? '');
+
+        if (empty($targetEmail) || !filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
+            Flash::error("Please provide a valid destination email address for the test.");
+            header("Location: index.php?page=admin_email_settings");
+            exit;
+        }
+
+        $subject = "Brevo SMTP Test Connection - " . APP_NAME;
+        $html = "
+        <div style='background-color: #f1f5f9; padding: 30px 15px; font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;'>
+            <div style='max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 10px; padding: 25px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
+                <h2 style='color: #10b981; margin-top: 0;'>&#x2705; Brevo SMTP Working Perfectly!</h2>
+                <p style='color: #334155;'>Congratulations! Your Brevo SMTP email configuration is functioning 100% properly on <strong>" . APP_NAME . "</strong>.</p>
+                <div style='background: #f8fafc; border-left: 4px solid #10b981; padding: 12px 16px; margin: 18px 0; font-size: 13px; color: #475569;'>
+                    <strong>Server:</strong> " . SMTP_HOST . ":" . SMTP_PORT . "<br>
+                    <strong>Sender:</strong> " . MAIL_FROM_NAME . " &lt;" . MAIL_FROM_EMAIL . "&gt;<br>
+                    <strong>Timestamp:</strong> " . date('Y-m-d H:i:s') . "
+                </div>
+                <p style='font-size: 13px; color: #64748b; margin-bottom: 0;'>Your EduCore LMS can now securely dispatch password resets, student welcome emails, and application notices.</p>
+            </div>
+        </div>";
+
+        $res = Mailer::send($targetEmail, $subject, $html, 'LMS Administrator');
+        if ($res['success']) {
+            Auth::logAudit(Auth::id(), 'TEST_EMAIL_SUCCESS', "Sent test email to $targetEmail via Brevo");
+            Flash::success("Awesome! Test email was successfully sent to <strong>" . htmlspecialchars($targetEmail) . "</strong>. Please check your inbox!");
+        } else {
+            Auth::logAudit(Auth::id(), 'TEST_EMAIL_FAILED', "Failed sending test email to $targetEmail: " . $res['message']);
+            Flash::error("Email delivery failed: " . htmlspecialchars($res['message']));
+        }
+
+        header("Location: index.php?page=admin_email_settings");
+        exit;
+    }
 }

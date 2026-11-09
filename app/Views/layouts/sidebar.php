@@ -87,6 +87,10 @@ $roleBadgeText = match ($role) {
         <i data-lucide="shield" class="sidebar-icon"></i>
         <span class="sidebar-link-text">Security &amp; Audit Logs</span>
       </a>
+      <a href="index.php?page=admin_email_settings" class="sidebar-link <?= $currentRoute === 'admin_email_settings' ? 'active' : '' ?>" title="Email &amp; SMTP Settings">
+        <i data-lucide="mail" class="sidebar-icon"></i>
+        <span class="sidebar-link-text">Email &amp; SMTP Settings</span>
+      </a>
 
     <!-- ================= TEACHER NAVIGATION ================= -->
     <?php elseif ($role === 'teacher'): ?>
