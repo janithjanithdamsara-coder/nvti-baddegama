@@ -1,7 +1,7 @@
 <?php
 /**
  * Admin Learning Materials & Google Classroom Hub View
- * EduCore LMS - NVTI Baddegama
+ * NVTI Baddegama National Diploma Portal
  */
 
 require_once __DIR__ . '/../layouts/header.php';

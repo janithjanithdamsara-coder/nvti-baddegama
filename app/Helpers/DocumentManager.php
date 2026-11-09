@@ -1,7 +1,7 @@
 <?php
 /**
  * Student Verification Document Manager Helper
- * EduCore LMS - NVTI Baddegama
+ * NVTI Baddegama National Diploma Portal
  */
 
 require_once __DIR__ . '/../../config/database.php';

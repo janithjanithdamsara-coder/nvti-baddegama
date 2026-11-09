@@ -95,7 +95,7 @@ class Auth {
             <html lang='en'>
             <head>
                 <meta charset='UTF-8'>
-                <title>403 Access Denied | EduCore LMS</title>
+                <title>403 Access Denied | NVTI Baddegama National Diploma</title>
                 <link href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css' rel='stylesheet'>
                 <link href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css' rel='stylesheet'>
             </head>

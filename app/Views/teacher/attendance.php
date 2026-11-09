@@ -1,7 +1,7 @@
 <?php
 /**
  * Teacher Attendance & Monitor Management View
- * EduCore LMS - NVTI Baddegama
+ * NVTI Baddegama National Diploma Portal
  */
 
 require_once __DIR__ . '/../layouts/header.php';

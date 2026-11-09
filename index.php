@@ -1,7 +1,7 @@
 <?php
 /**
  * Main Front Controller & Router
- * EduCore LMS - NVTI Baddegama Diploma (ICT NVQ Level 5)
+ * NVTI Baddegama National Diploma Portal (ICT NVQ Level 5)
  */
 
 require_once __DIR__ . '/config/config.php';

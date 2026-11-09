@@ -1,7 +1,7 @@
 <?php
 /**
  * Teacher Controller
- * EduCore LMS
+ * NVTI Baddegama National Diploma Portal
  */
 
 require_once __DIR__ . '/../../config/database.php';
@@ -179,7 +179,20 @@ class TeacherController {
         $stmt->execute([$teacherId, $classId, $subjectId, $categoryId, $title, $description, $materialType, $filePath, $origName, $url, $fileSize]);
 
         Auth::logAudit($teacherId, 'UPLOAD_MATERIAL', "Uploaded material: $title ($materialType)");
-        Flash::success("Study material '$title' published successfully!");
+
+        // Google Classroom style: Notify all enrolled students via email
+        $subStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
+        $subStmt->execute([$subjectId]);
+        $subRow = $subStmt->fetch();
+        $subName = $subRow['subject_name'] ?? 'Diploma Module';
+        $teacherName = Auth::user()['name'] ?? 'Lecturer';
+        $notified = Mailer::notifyNewMaterial($classId, $title, $subName, $teacherName, $description, $materialType);
+
+        if ($notified > 0) {
+            Flash::success("Study material '$title' published and $notified students were notified via Email!");
+        } else {
+            Flash::success("Study material '$title' published successfully!");
+        }
         header('Location: index.php?page=teacher_materials');
         exit;
     }
@@ -280,7 +293,20 @@ class TeacherController {
         $stmt->execute([$teacherId, $classId, $subjectId, $title, $instructions, $refFile, $totalMarks, $deadline]);
 
         Auth::logAudit($teacherId, 'CREATE_ASSIGNMENT', "Created assignment: $title with deadline $deadline");
-        Flash::success("Assignment '$title' created successfully!");
+
+        // Google Classroom style: Notify all enrolled students via email
+        $subStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
+        $subStmt->execute([$subjectId]);
+        $subRow = $subStmt->fetch();
+        $subName = $subRow['subject_name'] ?? 'Diploma Module';
+        $teacherName = Auth::user()['name'] ?? 'Lecturer';
+        $notified = Mailer::notifyNewAssignment($classId, $title, $subName, $teacherName, $deadline, (int)$totalMarks, $instructions);
+
+        if ($notified > 0) {
+            Flash::success("Assignment '$title' created and $notified students were notified via Email!");
+        } else {
+            Flash::success("Assignment '$title' created successfully!");
+        }
         header('Location: index.php?page=teacher_assignments');
         exit;
     }

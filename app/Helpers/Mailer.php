@@ -2,7 +2,7 @@
 /**
  * Mailer Helper
  * Supports Brevo SMTP (SSL Port 465 / TLS Port 587) and Brevo REST API
- * EduCore LMS - NVTI Baddegama Diploma
+ * NVTI Baddegama National Diploma Portal
  */
 
 class Mailer {
@@ -186,7 +186,7 @@ class Mailer {
             "To: {$recipientHeader}",
             "Subject: {$subjectHeader}",
             "Message-ID: {$msgId}",
-            "X-Mailer: EduCore-LMS-Brevo",
+            "X-Mailer: NVTI-Baddegama-Diploma-Mailer",
             "MIME-Version: 1.0",
             "Content-Type: text/html; charset=UTF-8",
             "Content-Transfer-Encoding: base64"
@@ -275,26 +275,26 @@ class Mailer {
      */
     public static function sendPasswordReset(string $toEmail, string $name, string $resetToken): array {
         $resetUrl = rtrim(BASE_URL, '/') . '/index.php?page=forgot_password&token=' . urlencode($resetToken);
-        $appName  = defined('APP_NAME') ? APP_NAME : 'EduCore LMS';
-        $subTitle = defined('APP_SUBTITLE') ? APP_SUBTITLE : 'NVTI Baddegama';
+        $appName  = defined('APP_NAME') ? APP_NAME : 'NVTI Baddegama National Diploma';
+        $subTitle = defined('APP_SUBTITLE') ? APP_SUBTITLE : 'ICT NVQ Level 5';
 
         $html = "
         <div style='background-color: #f1f5f9; padding: 35px 15px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;'>
             <div style='max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;'>
-                <div style='background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); padding: 28px 24px; text-align: center; color: #ffffff;'>
+                <div style='background: linear-gradient(135deg, #7A1418 0%, #991b1b 100%); padding: 28px 24px; text-align: center; color: #ffffff;'>
                     <h1 style='margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.5px;'>{$appName}</h1>
                     <p style='margin: 6px 0 0; font-size: 13px; opacity: 0.9;'>{$subTitle}</p>
                 </div>
                 <div style='padding: 32px 28px; color: #334155; line-height: 1.6;'>
                     <h2 style='margin-top: 0; font-size: 18px; color: #0f172a;'>Password Reset Request</h2>
                     <p>Hello <strong>" . htmlspecialchars($name) . "</strong>,</p>
-                    <p>We received a request to reset your password for your EduCore account. Click the button below to proceed:</p>
+                    <p>We received a request to reset your password for your portal account. Click the button below to proceed:</p>
                     <div style='text-align: center; margin: 30px 0;'>
-                        <a href='{$resetUrl}' style='display: inline-block; background: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 28px; font-weight: 600; font-size: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);'>Reset My Password</a>
+                        <a href='{$resetUrl}' style='display: inline-block; background: #7A1418; color: #ffffff; text-decoration: none; padding: 12px 28px; font-weight: 600; font-size: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(122, 20, 24, 0.3);'>Reset My Password</a>
                     </div>
                     <p style='font-size: 13px; color: #64748b; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px dashed #cbd5e1;'>
                         Or copy and paste your reset token manually:<br>
-                        <strong style='font-family: monospace; font-size: 15px; color: #4f46e5;'>{$resetToken}</strong>
+                        <strong style='font-family: monospace; font-size: 15px; color: #7A1418;'>{$resetToken}</strong>
                     </p>
                     <p style='font-size: 13px; color: #94a3b8; margin-top: 24px;'>This link and token will expire in 1 hour. If you did not request this reset, you can safely ignore this email.</p>
                 </div>
@@ -312,24 +312,24 @@ class Mailer {
      */
     public static function sendWelcomeEmail(string $toEmail, string $name, string $username, string $password, string $role = 'student'): array {
         $loginUrl = rtrim(BASE_URL, '/') . '/index.php?page=login';
-        $appName  = defined('APP_NAME') ? APP_NAME : 'EduCore LMS';
+        $appName  = defined('APP_NAME') ? APP_NAME : 'NVTI Baddegama National Diploma';
 
         $html = "
         <div style='background-color: #f1f5f9; padding: 35px 15px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;'>
             <div style='max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;'>
-                <div style='background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 28px 24px; text-align: center; color: #ffffff;'>
+                <div style='background: linear-gradient(135deg, #7A1418 0%, #991b1b 100%); padding: 28px 24px; text-align: center; color: #ffffff;'>
                     <h1 style='margin: 0; font-size: 22px; font-weight: 700;'>Welcome to {$appName}!</h1>
                     <p style='margin: 6px 0 0; font-size: 13px; opacity: 0.9;'>NVTI Baddegama - ICT NVQ Level 5</p>
                 </div>
                 <div style='padding: 32px 28px; color: #334155; line-height: 1.6;'>
                     <p>Dear <strong>" . htmlspecialchars($name) . "</strong>,</p>
-                    <p>Your account has been successfully created as a <strong>" . ucfirst($role) . "</strong> on the EduCore Diploma Portal.</p>
+                    <p>Your account has been successfully created as a <strong>" . ucfirst($role) . "</strong> on the National Diploma Portal.</p>
                     <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin: 20px 0;'>
-                        <p style='margin: 0 0 8px; font-size: 14px;'><strong>Login Email / Username:</strong> <span style='color: #4f46e5;'>" . htmlspecialchars($username) . "</span></p>
+                        <p style='margin: 0 0 8px; font-size: 14px;'><strong>Login Email / Username:</strong> <span style='color: #7A1418; font-weight: 600;'>" . htmlspecialchars($username) . "</span></p>
                         <p style='margin: 0; font-size: 14px;'><strong>Password:</strong> <span style='font-family: monospace; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;'>" . htmlspecialchars($password) . "</span></p>
                     </div>
                     <div style='text-align: center; margin: 25px 0;'>
-                        <a href='{$loginUrl}' style='display: inline-block; background: #10b981; color: #ffffff; text-decoration: none; padding: 12px 28px; font-weight: 600; font-size: 15px; border-radius: 8px;'>Login to Portal</a>
+                        <a href='{$loginUrl}' style='display: inline-block; background: #7A1418; color: #ffffff; text-decoration: none; padding: 12px 28px; font-weight: 600; font-size: 15px; border-radius: 8px;'>Login to Portal</a>
                     </div>
                     <p style='font-size: 13px; color: #e11d48;'>* For security reasons, please change your password immediately after your first sign-in.</p>
                 </div>
@@ -340,5 +340,211 @@ class Mailer {
         </div>";
 
         return self::send($toEmail, "Welcome to {$appName} - Your Account Credentials", $html, $name);
+    }
+
+    /**
+     * Google Classroom Style: Notify All Registered Class Students of New Study Material
+     */
+    public static function notifyNewMaterial(int $classId, string $materialTitle, string $subjectName, string $teacherName, string $description = '', string $type = 'file'): int {
+        require_once __DIR__ . '/../../config/database.php';
+        $db = Database::getConnection();
+
+        $sql = "SELECT u.name, u.email 
+                FROM users u 
+                JOIN student_profiles sp ON u.id = sp.user_id 
+                WHERE u.role = 'student' AND u.status = 'active'";
+        $params = [];
+
+        if ($classId > 0) {
+            $sql .= " AND (sp.class_id = ? OR sp.class_id IS NULL)";
+            $params[] = $classId;
+        }
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($students)) {
+            return 0;
+        }
+
+        $portalUrl = rtrim(BASE_URL, '/') . '/index.php?page=student_materials';
+        $appName   = defined('APP_NAME') ? APP_NAME : 'NVTI Baddegama National Diploma';
+        $typeLabel = ucfirst($type);
+        $notifiedCount = 0;
+
+        foreach ($students as $student) {
+            $firstName = explode(' ', trim($student['name']))[0] ?? $student['name'];
+            
+            $html = "
+            <div style='background-color: #f1f5f9; padding: 30px 15px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;'>
+                <div style='max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;'>
+                    <!-- Header -->
+                    <div style='background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 22px 24px; color: #ffffff;'>
+                        <div style='font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 600;'>NVTI Baddegama &bull; ICT NVQ Level 5</div>
+                        <h2 style='margin: 4px 0 0; font-size: 19px; font-weight: 700; color: #ffffff;'>{$appName}</h2>
+                    </div>
+
+                    <!-- Material Card (Google Classroom Style) -->
+                    <div style='padding: 28px 24px;'>
+                        <div style='display: flex; align-items: center; margin-bottom: 16px;'>
+                            <span style='background: #e0e7ff; color: #4338ca; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; text-transform: uppercase;'>
+                                &#x1F4D8; New {$typeLabel} Material
+                            </span>
+                            <span style='margin-left: 10px; color: #64748b; font-size: 12px;'>" . date('F j, Y') . "</span>
+                        </div>
+
+                        <h3 style='margin: 0 0 12px; font-size: 20px; color: #0f172a; line-height: 1.4;'>" . htmlspecialchars($materialTitle) . "</h3>
+                        
+                        <div style='background: #f8fafc; border-left: 4px solid #4338ca; padding: 14px 16px; border-radius: 6px; margin: 16px 0;'>
+                            <table style='width: 100%; border-collapse: collapse; font-size: 13px; color: #334155;'>
+                                <tr>
+                                    <td style='padding: 3px 0; font-weight: 600; width: 85px;'>Subject:</td>
+                                    <td style='padding: 3px 0;'>" . htmlspecialchars($subjectName) . "</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 3px 0; font-weight: 600;'>Lecturer:</td>
+                                    <td style='padding: 3px 0;'>" . htmlspecialchars($teacherName) . "</td>
+                                </tr>
+                            </table>
+                        </div>";
+
+            if (!empty($description)) {
+                $html .= "<div style='color: #475569; font-size: 14px; line-height: 1.6; margin: 16px 0; padding: 12px; background: #fafafa; border-radius: 6px;'>
+                            " . nl2br(htmlspecialchars($description)) . "
+                          </div>";
+            }
+
+            $html .= "
+                        <p style='color: #64748b; font-size: 13px; margin: 20px 0 24px;'>
+                            Hi <strong>" . htmlspecialchars($firstName) . "</strong>, a new learning resource has been uploaded for your diploma module. Click below to view and download it from the student portal:
+                        </p>
+
+                        <div style='text-align: center; margin: 26px 0;'>
+                            <a href='{$portalUrl}' style='display: inline-block; background: #7A1418; color: #ffffff; text-decoration: none; padding: 12px 28px; font-weight: 600; font-size: 14px; border-radius: 8px; box-shadow: 0 2px 4px rgba(122,20,24,0.25);'>
+                                View Material in Portal &rarr;
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style='background: #f8fafc; padding: 14px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;'>
+                        Sent automatically by NVTI Baddegama National Diploma Notification Service &bull; Do not reply to this email.
+                    </div>
+                </div>
+            </div>";
+
+            $res = self::send($student['email'], "New Material: " . $materialTitle . " (" . $subjectName . ")", $html, $student['name']);
+            if ($res['success']) {
+                $notifiedCount++;
+            }
+        }
+
+        return $notifiedCount;
+    }
+
+    /**
+     * Google Classroom Style: Notify All Registered Class Students of New Assignment
+     */
+    public static function notifyNewAssignment(int $classId, string $assignmentTitle, string $subjectName, string $teacherName, string $dueDate = '', int $maxMarks = 100, string $instructions = ''): int {
+        require_once __DIR__ . '/../../config/database.php';
+        $db = Database::getConnection();
+
+        $sql = "SELECT u.name, u.email 
+                FROM users u 
+                JOIN student_profiles sp ON u.id = sp.user_id 
+                WHERE u.role = 'student' AND u.status = 'active'";
+        $params = [];
+
+        if ($classId > 0) {
+            $sql .= " AND (sp.class_id = ? OR sp.class_id IS NULL)";
+            $params[] = $classId;
+        }
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($students)) {
+            return 0;
+        }
+
+        $portalUrl = rtrim(BASE_URL, '/') . '/index.php?page=student_assignments';
+        $appName   = defined('APP_NAME') ? APP_NAME : 'NVTI Baddegama National Diploma';
+        $formattedDue = !empty($dueDate) ? date('l, F j, Y - h:i A', strtotime($dueDate)) : 'Announced in Class';
+        $notifiedCount = 0;
+
+        foreach ($students as $student) {
+            $firstName = explode(' ', trim($student['name']))[0] ?? $student['name'];
+            
+            $html = "
+            <div style='background-color: #f1f5f9; padding: 30px 15px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;'>
+                <div style='max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;'>
+                    <!-- Header -->
+                    <div style='background: linear-gradient(135deg, #7A1418 0%, #991b1b 100%); padding: 22px 24px; color: #ffffff;'>
+                        <div style='font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #fecaca; font-weight: 600;'>NVTI Baddegama &bull; ICT NVQ Level 5</div>
+                        <h2 style='margin: 4px 0 0; font-size: 19px; font-weight: 700; color: #ffffff;'>{$appName}</h2>
+                    </div>
+
+                    <!-- Assignment Card (Google Classroom Style) -->
+                    <div style='padding: 28px 24px;'>
+                        <div style='display: flex; align-items: center; margin-bottom: 16px;'>
+                            <span style='background: #fee2e2; color: #991b1b; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 6px; text-transform: uppercase;'>
+                                &#x1F4CB; New Assignment Posted
+                            </span>
+                            <span style='margin-left: 10px; color: #64748b; font-size: 12px;'>Max Marks: " . $maxMarks . "</span>
+                        </div>
+
+                        <h3 style='margin: 0 0 12px; font-size: 20px; color: #0f172a; line-height: 1.4;'>" . htmlspecialchars($assignmentTitle) . "</h3>
+                        
+                        <div style='background: #fff1f2; border-left: 4px solid #e11d48; padding: 14px 16px; border-radius: 6px; margin: 16px 0;'>
+                            <table style='width: 100%; border-collapse: collapse; font-size: 13px; color: #334155;'>
+                                <tr>
+                                    <td style='padding: 3px 0; font-weight: 600; width: 90px;'>Subject:</td>
+                                    <td style='padding: 3px 0;'>" . htmlspecialchars($subjectName) . "</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 3px 0; font-weight: 600;'>Lecturer:</td>
+                                    <td style='padding: 3px 0;'>" . htmlspecialchars($teacherName) . "</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 3px 0; font-weight: 600; color: #e11d48;'>Deadline:</td>
+                                    <td style='padding: 3px 0; font-weight: 600; color: #e11d48;'>" . htmlspecialchars($formattedDue) . "</td>
+                                </tr>
+                            </table>
+                        </div>";
+
+            if (!empty($instructions)) {
+                $html .= "<div style='color: #475569; font-size: 14px; line-height: 1.6; margin: 16px 0; padding: 12px; background: #fafafa; border-radius: 6px;'>
+                            <strong>Instructions:</strong><br>" . nl2br(htmlspecialchars($instructions)) . "
+                          </div>";
+            }
+
+            $html .= "
+                        <p style='color: #64748b; font-size: 13px; margin: 20px 0 24px;'>
+                            Hi <strong>" . htmlspecialchars($firstName) . "</strong>, please check the requirements and ensure your submission is uploaded to the student portal prior to the deadline.
+                        </p>
+
+                        <div style='text-align: center; margin: 26px 0;'>
+                            <a href='{$portalUrl}' style='display: inline-block; background: #7A1418; color: #ffffff; text-decoration: none; padding: 12px 28px; font-weight: 600; font-size: 14px; border-radius: 8px; box-shadow: 0 2px 4px rgba(122,20,24,0.25);'>
+                                Open Assignment in Portal &rarr;
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style='background: #f8fafc; padding: 14px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;'>
+                        Sent automatically by NVTI Baddegama National Diploma Notification Service &bull; Do not reply to this email.
+                    </div>
+                </div>
+            </div>";
+
+            $res = self::send($student['email'], "New Assignment: " . $assignmentTitle . " (Due: " . $formattedDue . ")", $html, $student['name']);
+            if ($res['success']) {
+                $notifiedCount++;
+            }
+        }
+
+        return $notifiedCount;
     }
 }

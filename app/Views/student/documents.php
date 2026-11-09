@@ -1,7 +1,7 @@
 <?php
 /**
  * Student Verification Documents & Certificates Portal View
- * EduCore LMS - NVTI Baddegama
+ * NVTI Baddegama National Diploma Portal
  */
 
 require_once __DIR__ . '/../layouts/header.php';

@@ -1,7 +1,7 @@
 <?php
 /**
  * Student Controller
- * EduCore LMS
+ * NVTI Baddegama National Diploma Portal
  */
 
 require_once __DIR__ . '/../../config/database.php';

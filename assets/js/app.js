@@ -1,5 +1,5 @@
 /**
- * EduCore LMS Application JavaScript
+ * NVTI Baddegama National Diploma Portal JavaScript
  */
 
 document.addEventListener('DOMContentLoaded', function () {

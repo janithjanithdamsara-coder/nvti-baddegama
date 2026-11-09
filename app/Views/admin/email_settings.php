@@ -113,7 +113,7 @@ $mailService = (strpos(SMTP_HOST, 'gmail') !== false) ? 'Google Gmail SMTP' : 'B
                 <li>Log in to your <strong><a href="https://app.brevo.com" target="_blank" class="text-primary text-decoration-none fw-semibold">Brevo Account <i class="bi bi-box-arrow-up-right small"></i></a></strong>.</li>
                 <li>In top right profile menu, click <strong>SMTP &amp; API</strong>.</li>
                 <li>Go to the <strong>SMTP</strong> tab. You will see your <strong>SMTP Server</strong> (<code>smtp-relay.brevo.com</code>), <strong>Port</strong> (<code>465</code> / <code>587</code>), and <strong>Login</strong> email.</li>
-                <li>Click <strong>&quot;Generate a new SMTP key&quot;</strong>, name it (e.g. <code>EduCore LMS</code>), and copy the generated key.</li>
+                <li>Click <strong>&quot;Generate a new SMTP key&quot;</strong>, name it (e.g. <code>NVTI Diploma</code>), and copy the generated key.</li>
                 <li>Go to <strong>Senders, Domains &amp; Dedicated IPs</strong> in Brevo and verify that your Sender Email (e.g. your email or <code>noreply@nvtibaddegama.site</code>) is listed as an <strong>Active / Verified Sender</strong>.</li>
                 <li>Open <code>config/config.php</code> in this project and paste your Brevo login and SMTP key!</li>
               </ol>
@@ -153,7 +153,7 @@ $mailService = (strpos(SMTP_HOST, 'gmail') !== false) ? 'Google Gmail SMTP' : 'B
             </div>
           </div>
 
-          <!-- Where are emails sent in EduCore -->
+          <!-- Where are emails sent in National Diploma Portal -->
           <div class="card border-0 shadow-sm rounded-4 bg-light">
             <div class="card-body p-4">
               <h6 class="fw-bold text-dark mb-2"><i class="bi bi-lightning-charge-fill text-warning me-2"></i>Automated Emails in LMS</h6>

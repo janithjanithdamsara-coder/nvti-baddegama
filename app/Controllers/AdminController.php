@@ -1,7 +1,7 @@
 <?php
 /**
  * Admin Controller
- * EduCore LMS
+ * NVTI Baddegama National Diploma Portal
  */
 
 require_once __DIR__ . '/../../config/database.php';
@@ -846,7 +846,20 @@ class AdminController {
         $stmt->execute([$teacherId, $classId, $subjectId, $categoryId, $title, $description, $materialType, $filePath, $origName, $url, $fileSize]);
 
         Auth::logAudit($adminId, 'ADMIN_UPLOAD_MATERIAL', "Admin uploaded material: $title for subject $subjectId");
-        Flash::success("Study material '{$title}' posted successfully to the classroom stream!");
+
+        // Google Classroom style: Notify all enrolled students via email
+        $subStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
+        $subStmt->execute([$subjectId]);
+        $subRow = $subStmt->fetch();
+        $subName = $subRow['subject_name'] ?? 'Diploma Module';
+        $posterName = Auth::user()['name'] ?? 'Course Administrator';
+        $notified = Mailer::notifyNewMaterial($classId, $title, $subName, $posterName, $description, $materialType);
+
+        if ($notified > 0) {
+            Flash::success("Study material '{$title}' posted successfully and $notified students were notified via Email!");
+        } else {
+            Flash::success("Study material '{$title}' posted successfully to the classroom stream!");
+        }
         header("Location: index.php?page=admin_materials&subject_id=$subjectId");
         exit;
     }
@@ -890,7 +903,20 @@ class AdminController {
         $stmt->execute([$teacherId, $classId, $subjectId, $title, $instructions, $refFile, $totalMarks, $deadline]);
 
         Auth::logAudit($adminId, 'ADMIN_CREATE_ASSIGNMENT', "Admin created assignment: $title with deadline $deadline");
-        Flash::success("Assignment '{$title}' posted successfully! Students can now submit their coursework.");
+
+        // Google Classroom style: Notify all enrolled students via email
+        $subStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
+        $subStmt->execute([$subjectId]);
+        $subRow = $subStmt->fetch();
+        $subName = $subRow['subject_name'] ?? 'Diploma Module';
+        $posterName = Auth::user()['name'] ?? 'Course Administrator';
+        $notified = Mailer::notifyNewAssignment($classId, $title, $subName, $posterName, $deadline, (int)$totalMarks, $instructions);
+
+        if ($notified > 0) {
+            Flash::success("Assignment '{$title}' posted successfully and $notified students were notified via Email!");
+        } else {
+            Flash::success("Assignment '{$title}' posted successfully! Students can now submit their coursework.");
+        }
         header("Location: index.php?page=admin_materials&subject_id=$subjectId");
         exit;
     }
@@ -1507,20 +1533,20 @@ class AdminController {
         $html = "
         <div style='background-color: #f1f5f9; padding: 30px 15px; font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;'>
             <div style='max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 10px; padding: 25px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
-                <h2 style='color: #10b981; margin-top: 0;'>&#x2705; Brevo SMTP Working Perfectly!</h2>
-                <p style='color: #334155;'>Congratulations! Your Brevo SMTP email configuration is functioning 100% properly on <strong>" . APP_NAME . "</strong>.</p>
+                <h2 style='color: #10b981; margin-top: 0;'>&#x2705; SMTP Mailer Working Perfectly!</h2>
+                <p style='color: #334155;'>Congratulations! Your SMTP email configuration is functioning 100% properly on <strong>" . APP_NAME . "</strong>.</p>
                 <div style='background: #f8fafc; border-left: 4px solid #10b981; padding: 12px 16px; margin: 18px 0; font-size: 13px; color: #475569;'>
                     <strong>Server:</strong> " . SMTP_HOST . ":" . SMTP_PORT . "<br>
                     <strong>Sender:</strong> " . MAIL_FROM_NAME . " &lt;" . MAIL_FROM_EMAIL . "&gt;<br>
                     <strong>Timestamp:</strong> " . date('Y-m-d H:i:s') . "
                 </div>
-                <p style='font-size: 13px; color: #64748b; margin-bottom: 0;'>Your EduCore LMS can now securely dispatch password resets, student welcome emails, and application notices.</p>
+                <p style='font-size: 13px; color: #64748b; margin-bottom: 0;'>Your NVTI Baddegama National Diploma Portal can now securely dispatch password resets, student welcome emails, and study material notifications.</p>
             </div>
         </div>";
 
-        $res = Mailer::send($targetEmail, $subject, $html, 'LMS Administrator');
+        $res = Mailer::send($targetEmail, $subject, $html, 'Portal Administrator');
         if ($res['success']) {
-            Auth::logAudit(Auth::id(), 'TEST_EMAIL_SUCCESS', "Sent test email to $targetEmail via Brevo");
+            Auth::logAudit(Auth::id(), 'TEST_EMAIL_SUCCESS', "Sent test email to $targetEmail via SMTP");
             Flash::success("Awesome! Test email was successfully sent to <strong>" . htmlspecialchars($targetEmail) . "</strong>. Please check your inbox!");
         } else {
             Auth::logAudit(Auth::id(), 'TEST_EMAIL_FAILED', "Failed sending test email to $targetEmail: " . $res['message']);

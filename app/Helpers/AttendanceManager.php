@@ -1,7 +1,7 @@
 <?php
 /**
  * Attendance Manager Helper & Service
- * EduCore LMS - NVTI Baddegama
+ * NVTI Baddegama National Diploma Portal
  */
 
 require_once __DIR__ . '/../../config/database.php';

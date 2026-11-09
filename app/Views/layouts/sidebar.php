@@ -1,7 +1,7 @@
 <?php
 /**
  * Modern Clean Full-Height Sidebar (Lucide Icons + Maroon Theme)
- * NVTI Baddegama - EduCore LMS
+ * NVTI Baddegama - National Diploma Portal
  */
 
 $currentRoute = $_GET['page'] ?? 'dashboard';
@@ -18,7 +18,7 @@ $roleBadgeText = match ($role) {
   <!-- Top Brand Box with Official NVTI Crest & Logo -->
   <div class="sidebar-brand-box mb-3 pb-2.5 border-bottom">
     <div class="d-flex align-items-center justify-content-between gap-2">
-      <a href="index.php?page=dashboard" class="d-flex align-items-center gap-2.5 text-decoration-none min-w-0 flex-grow-1" title="EduCore LMS - NVTI Baddegama">
+      <a href="index.php?page=dashboard" class="d-flex align-items-center gap-2.5 text-decoration-none min-w-0 flex-grow-1" title="NVTI Baddegama National Diploma">
         <img src="assets/images/logo/NVTI_logo.png" onerror="this.onerror=null; this.src='https://nvtibaddegama.site/images/logo/NVTI_logo.png';" alt="NVTI Logo" class="sidebar-brand-logo" style="height: 40px; width: auto; object-fit: contain;">
         <div class="lh-sm sidebar-brand-text min-w-0">
           <div class="fw-bold text-dark fs-6 sidebar-brand-title text-truncate">NVTI Baddegama</div>

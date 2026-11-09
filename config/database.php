@@ -1,7 +1,7 @@
 <?php
 /**
  * Database Connection Helper (PDO)
- * EduCore LMS
+ * NVTI Baddegama National Diploma Portal
  */
 
 require_once __DIR__ . '/config.php';

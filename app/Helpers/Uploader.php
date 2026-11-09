@@ -1,7 +1,7 @@
 <?php
 /**
  * Secure File Uploader & Streamer Helper
- * EduCore LMS
+ * NVTI Baddegama National Diploma Portal
  */
 
 require_once __DIR__ . '/../../config/config.php';

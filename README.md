@@ -1,10 +1,10 @@
-# EduCore LMS - Secure Online Learning Management System
-### NVTI Baddegama - ICT NVQ Level 5 Diploma Project
+# NVTI Baddegama National Diploma - Online Academic Portal
+### National Diploma in ICT (NVQ Level 5) Project
 
 ---
 
 ## 🎯 Overview
-**EduCore LMS** is a full-featured, secure, and responsive web-based Learning Management System specially engineered for the **National Diploma in Information & Communication Technology (NVQ Level 5)** at **NVTI Baddegama**.
+**NVTI Baddegama National Diploma Portal** is a full-featured, secure, and responsive web-based Academic Portal specially engineered for the **National Diploma in Information & Communication Technology (NVQ Level 5)** at **NVTI Baddegama**.
 
 The system caters to the real operational structure with:
 - **Teacher 01 (Morning Shift: 09:00 AM – 12:00 PM)**
@@ -39,7 +39,7 @@ flowchart TD
     subgraph Cloud["Oracle Cloud Always Free VPS (213.35.126.82)"]
         WAF --> APACHE[Apache HTTP Server / httpd]
         APACHE --> PHP[PHP 8.2 FPM Engine]
-        PHP --> CORE[EduCore LMS MVC Application]
+        PHP --> CORE[NVTI Baddegama National Diploma MVC Application]
         CORE --> SEC[Security Layer: CSRF / Bcrypt / Prepared Statements]
         SEC --> DB[(MariaDB Database: educore_lms)]
         CORE --> STORAGE[Secure File Storage: uploads / materials / papers]

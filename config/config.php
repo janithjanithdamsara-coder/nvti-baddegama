@@ -1,7 +1,7 @@
 <?php
 /**
  * Application Configuration
- * EduCore LMS - NVTI Baddegama Diploma
+ * NVTI Baddegama National Diploma Portal
  */
 
 // Error Reporting (adjust for production)
@@ -9,8 +9,8 @@ error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
 // App Details
-define('APP_NAME', 'EduCore LMS');
-define('APP_SUBTITLE', 'NVTI Baddegama - ICT Level 5 Diploma');
+define('APP_NAME', 'NVTI Baddegama National Diploma');
+define('APP_SUBTITLE', 'National Diploma in ICT (NVQ Level 5)');
 define('APP_VERSION', '1.0.0');
 
 // Paths
@@ -55,11 +55,11 @@ define('SMTP_USER', getenv('SMTP_USER') ?: 'sahashrajanith@gmail.com');
 define('SMTP_PASS', getenv('SMTP_PASS') ?: 'pvmeelqjvicjbqcf');
 define('BREVO_API_KEY', getenv('BREVO_API_KEY') ?: '');
 define('MAIL_FROM_EMAIL', getenv('MAIL_FROM_EMAIL') ?: 'sahashrajanith@gmail.com');
-define('MAIL_FROM_NAME', getenv('MAIL_FROM_NAME') ?: 'NVTI Baddegama - ICT Diploma');
+define('MAIL_FROM_NAME', getenv('MAIL_FROM_NAME') ?: 'NVTI Baddegama National Diploma');
 
 // Session Configuration (Strict & Secure with unique project session name)
 if (session_status() === PHP_SESSION_NONE) {
-    session_name('EDUCORE_NVTI_LMS_SESSION');
+    session_name('NVTI_BADDEGAMA_DIPLOMA_SESSION');
     ini_set('session.cookie_httponly', 1);
     ini_set('session.use_only_cookies', 1);
     ini_set('session.cookie_samesite', 'Lax');
