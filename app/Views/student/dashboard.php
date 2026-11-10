@@ -281,7 +281,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                       <?php endif; ?>
                     </td>
                     <td>
-                      <?= ($a['marks'] !== null) ? '<strong>' . e($a['marks']) . '</strong> / ' . e($a['max_marks']) : '<span class="text-muted">-</span>' ?>
+                      <?= ($a['marks'] !== null) ? '<strong>' . e($a['marks']) . '</strong> / ' . e($a['total_marks'] ?? $a['max_marks'] ?? 100) : '<span class="text-muted">-</span>' ?>
                     </td>
                     <td class="text-end">
                       <a href="index.php?page=student_assignments" class="btn btn-sm btn-outline-primary rounded-pill px-3">

@@ -17,9 +17,27 @@ class StudentController {
         Auth::requireRole('student');
     }
 
+    /**
+     * Ensure materials.is_hidden exists (self-healing guard for un-migrated DBs)
+     */
+    private function ensureMaterialsVisibilityColumn(PDO $db): bool {
+        try {
+            $chk = $db->query("SHOW COLUMNS FROM `materials` LIKE 'is_hidden'")->fetch();
+            if ($chk) {
+                return true;
+            }
+            $db->exec("ALTER TABLE `materials` ADD COLUMN `is_hidden` TINYINT(1) NOT NULL DEFAULT 0 AFTER `download_count`");
+            return true;
+        } catch (Exception $e) {
+            error_log("materials.is_hidden check/add failed: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function dashboard(): void {
         $db = Database::getConnection();
         $studentId = Auth::id();
+        $hasVisibilityCol = $this->ensureMaterialsVisibilityColumn($db);
 
         // Student Profile & Enrolled Class
         $stmt = $db->prepare("
@@ -44,13 +62,14 @@ class StudentController {
         $subjects = $subStmt->fetchAll();
 
         // Recent Materials for this class
+        $hiddenFilter = $hasVisibilityCol ? " AND m.is_hidden = 0" : "";
         $matStmt = $db->prepare("
             SELECT m.*, cat.category_name, cat.icon as category_icon, s.subject_name, u.name as teacher_name
             FROM materials m
             JOIN categories cat ON m.category_id = cat.id
             JOIN subjects s ON m.subject_id = s.id
             JOIN users u ON m.teacher_id = u.id
-            WHERE m.class_id = ? AND m.is_hidden = 0
+            WHERE m.class_id = ? {$hiddenFilter}
             ORDER BY m.created_at DESC LIMIT 5
         ");
         $matStmt->execute([$classId]);
@@ -94,9 +113,14 @@ class StudentController {
         $attended = (int)($attData['attended'] ?? 0);
         $attendanceRate = $totalAtt > 0 ? round(($attended / $totalAtt) * 100, 1) : 100.0;
 
-        // Student Verification Documents summary
-        require_once __DIR__ . '/../Helpers/DocumentManager.php';
-        $docSummary = DocumentManager::getStudentSummary($studentId);
+        // Student Verification Documents summary (safe fallback)
+        try {
+            require_once __DIR__ . '/../Helpers/DocumentManager.php';
+            $docSummary = DocumentManager::getStudentSummary($studentId);
+        } catch (Exception $e) {
+            error_log("DocumentManager summary error: " . $e->getMessage());
+            $docSummary = null;
+        }
 
         $pageTitle = "Student Dashboard";
         require_once __DIR__ . '/../Views/student/dashboard.php';
@@ -105,6 +129,8 @@ class StudentController {
     public function materials(): void {
         $db = Database::getConnection();
         $studentId = Auth::id();
+        $hasVisibilityCol = $this->ensureMaterialsVisibilityColumn($db);
+        $hiddenFilter = $hasVisibilityCol ? " AND m.is_hidden = 0" : "";
 
         // Get student's class
         $st = $db->prepare("SELECT class_id FROM student_profiles WHERE user_id = ?");
@@ -141,7 +167,7 @@ class StudentController {
             JOIN categories cat ON m.category_id = cat.id
             JOIN subjects s ON m.subject_id = s.id
             JOIN users u ON m.teacher_id = u.id
-            WHERE m.class_id = ? AND m.is_hidden = 0 AND m.is_hidden = 0
+            WHERE m.class_id = ? {$hiddenFilter}
         ";
         $params = [$classId];
 
@@ -188,7 +214,7 @@ class StudentController {
             JOIN categories cat ON m.category_id = cat.id
             JOIN subjects s ON m.subject_id = s.id
             JOIN users u ON m.teacher_id = u.id
-            WHERE m.class_id = ? AND m.is_hidden = 0 AND m.is_hidden = 0
+            WHERE m.class_id = ? {$hiddenFilter}
             ORDER BY m.created_at DESC LIMIT 15
         ");
         $feedMat->execute([$classId]);

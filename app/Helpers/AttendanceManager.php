@@ -54,22 +54,37 @@ class AttendanceManager {
      * Check if a student is an active monitor for an active class
      */
     public static function getActiveMonitorStatus(int $userId, int $classId = 0): ?array {
-        if ($classId <= 0) {
-            $classId = self::getActiveClassId();
+        try {
+            $db = Database::getConnection();
+            if ($classId > 0) {
+                $stmt = $db->prepare("
+                    SELECT am.*, u.name as student_name, sp.student_code, sp.mis_number
+                    FROM attendance_monitors am
+                    JOIN users u ON am.student_id = u.id
+                    JOIN student_profiles sp ON u.id = sp.user_id
+                    JOIN classes c ON am.class_id = c.id
+                    WHERE am.student_id = ? AND am.class_id = ? AND am.status = 'active' AND u.status = 'active' AND c.status = 'active'
+                    LIMIT 1
+                ");
+                $stmt->execute([$userId, $classId]);
+            } else {
+                $stmt = $db->prepare("
+                    SELECT am.*, u.name as student_name, sp.student_code, sp.mis_number
+                    FROM attendance_monitors am
+                    JOIN users u ON am.student_id = u.id
+                    JOIN student_profiles sp ON u.id = sp.user_id
+                    JOIN classes c ON am.class_id = c.id
+                    WHERE am.student_id = ? AND am.class_id = sp.class_id AND am.status = 'active' AND u.status = 'active' AND c.status = 'active'
+                    LIMIT 1
+                ");
+                $stmt->execute([$userId]);
+            }
+            $res = $stmt->fetch();
+            return $res ?: null;
+        } catch (Exception $e) {
+            error_log("getActiveMonitorStatus error: " . $e->getMessage());
+            return null;
         }
-        $db = Database::getConnection();
-        $stmt = $db->prepare("
-            SELECT am.*, u.name as student_name, sp.student_code, sp.mis_number
-            FROM attendance_monitors am
-            JOIN users u ON am.student_id = u.id
-            JOIN student_profiles sp ON u.id = sp.user_id
-            JOIN classes c ON am.class_id = c.id
-            WHERE am.student_id = ? AND am.class_id = ? AND am.status = 'active' AND u.status = 'active' AND c.status = 'active'
-            LIMIT 1
-        ");
-        $stmt->execute([$userId, $classId]);
-        $res = $stmt->fetch();
-        return $res ?: null;
     }
 
     /**
