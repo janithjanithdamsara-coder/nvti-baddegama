@@ -14,7 +14,6 @@ require_once __DIR__ . '/../layouts/navbar.php';
       <div class="card border rounded-4 mb-4 p-4 bg-white shadow-sm">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
           <div>
-            <span class="badge bg-primary-subtle text-primary fw-bold mb-2 px-3 py-1.5 rounded-pill"><i class="bi bi-shield-check me-1"></i> Admin Control Center</span>
             <h3 class="fw-bold mb-1 text-dark">Welcome, <?= e(Auth::name()) ?></h3>
             <p class="mb-0 text-muted">NVTI Baddegama Diploma in ICT &bull; Academic Year 2026</p>
           </div>

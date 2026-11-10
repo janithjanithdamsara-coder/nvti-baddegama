@@ -58,14 +58,6 @@ function getPaperTheme($paper, $palettes) {
 
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 position-relative" style="z-index: 3;">
           <div class="pe-md-3">
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <span class="badge rounded-pill font-monospace px-3 py-1.5 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
-                <i class="bi bi-award-fill me-1"></i> NVQ Level 5 Diploma Exam Bank
-              </span>
-              <span class="badge rounded-pill px-3 py-1.5 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
-                <i class="bi bi-shield-check me-1"></i> TVEC Accredited
-              </span>
-            </div>
             <h3 class="fw-bold mb-1.5 text-white" style="letter-spacing: -0.3px;">Past Examination &amp; Model Question Papers</h3>
             <p class="mb-0 text-white opacity-85 small" style="max-width: 680px;">Upload, categorize by semester, and manage official past papers, model questions, and marking schemes for NVTI Diploma students.</p>
           </div>

@@ -24,14 +24,6 @@ $baseDocsPage = ($currentRole === 'teacher') ? 'teacher_documents' : 'admin_docu
         <div class="card-body p-4">
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
             <div>
-              <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-semibold">
-                  <i class="bi bi-shield-lock-fill me-1"></i> Verification Officer Portal
-                </span>
-                <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1">
-                  <?= ($currentRole === 'teacher') ? 'Lecturer / Sir View' : 'Administrator View' ?>
-                </span>
-              </div>
               <h3 class="fw-bold text-dark mb-1">Student Certificates &amp; Verification Documents</h3>
               <p class="text-muted small mb-0">
                 Manage, inspect, and officially verify student enrollment documents (O/L, A/L, GN, Character, School Leaving, Birth &amp; NIC).

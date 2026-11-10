@@ -23,14 +23,6 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 position-relative" style="z-index: 5;">
           <div>
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <span class="badge rounded-pill font-monospace px-3 py-1 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
-                <i class="bi bi-cloud-arrow-down-fill me-1"></i> nvtibaddegama.site API
-              </span>
-              <span class="badge rounded-pill px-3 py-1 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
-                <i class="bi bi-mortarboard-fill me-1"></i> NVQ Level 5 Intake
-              </span>
-            </div>
             <h3 class="fw-bold mb-1 text-white" style="letter-spacing: -0.3px;">Candidate Applications Hub</h3>
             <p class="mb-0 text-white opacity-85 small" style="max-width: 680px;">
               Review admission applications submitted via <strong>nvtibaddegama.site</strong>, inspect O/L &amp; A/L qualifications, shortlist for interviews, and 1-click enroll students into Batch 2026.

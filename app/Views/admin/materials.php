@@ -27,23 +27,6 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
           <div class="card-body p-4">
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
               <div>
-                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-semibold">
-                    <i class="bi bi-mortarboard-fill me-1"></i> Google Classroom Hub
-                  </span>
-                  <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1">
-                    NVQ Level 5 CBT
-                  </span>
-                  <?php if (($selectedBatch['status'] ?? 'active') === 'active'): ?>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-semibold">
-                      <i class="bi bi-check-circle-fill me-1"></i> Active Batch: <?= e($selectedBatch['class_name'] ?? 'Current Cohort') ?>
-                    </span>
-                  <?php else: ?>
-                    <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1 fw-semibold">
-                      <i class="bi bi-archive-fill me-1"></i> Archived Batch: <?= e($selectedBatch['class_name'] ?? 'Archived Cohort') ?>
-                    </span>
-                  <?php endif; ?>
-                </div>
                 <h3 class="fw-bold text-dark mb-1">Subject Classes &amp; Learning Modules</h3>
                 <p class="text-muted small mb-0">
                   Select a class to manage study notes, stream postings, coursework assignments, and deadlines for students in this cohort.
@@ -344,9 +327,6 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                 </option>
               <?php endforeach; ?>
             </select>
-            <span class="badge bg-light text-dark border px-2.5 py-1 rounded-pill">
-              <i class="bi bi-shield-check text-primary me-1"></i> Administrator Mode
-            </span>
           </div>
         </div>
 
@@ -354,9 +334,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
         <div class="card border-0 rounded-4 shadow-sm mb-4 text-white overflow-hidden position-relative" style="background: linear-gradient(135deg, #1967d2 0%, #1558b0 100%); min-height: 180px;">
           <div class="card-body p-4 p-md-5 d-flex flex-column justify-content-between">
             <div>
-              <span class="badge bg-white bg-opacity-25 text-white mb-2 px-3 py-1 rounded-pill fw-semibold">
-                <?= e($currentSubject['subject_code']) ?> &bull; NVQ Level 5 CBT
-              </span>
+              <div class="text-white-50 font-monospace small fw-semibold mb-1"><?= e($currentSubject['subject_code']) ?></div>
               <h2 class="fw-bold mb-1 text-white"><?= e($currentSubject['subject_name']) ?></h2>
               <p class="text-white-50 mb-0">Lecturer: <strong><?= e($currentSubject['teacher_name'] ?? 'U.G.P.K. Nishantha') ?></strong> &bull; <?= e($currentSubject['class_name']) ?></p>
             </div>

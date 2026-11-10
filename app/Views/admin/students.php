@@ -23,19 +23,6 @@ $search = trim($_GET['search'] ?? '');
 
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 position-relative" style="z-index: 5;">
           <div class="pe-lg-3">
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <span class="badge rounded-pill font-monospace px-3 py-1.5 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
-                <i class="bi bi-mortarboard-fill me-1"></i> NVQ Level 5 Diploma
-              </span>
-              <span class="badge rounded-pill px-3 py-1.5 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
-                <i class="bi bi-shield-check me-1"></i> TVEC Accredited Batches
-              </span>
-              <?php if (!empty($currentActiveBatch)): ?>
-                <span class="badge rounded-pill px-3 py-1.5 fw-bold shadow-xs bg-success text-white border border-success-subtle" style="font-size: 0.74rem;">
-                  <i class="bi bi-broadcast me-1"></i> Live: <?= e($currentActiveBatch['class_name']) ?>
-                </span>
-              <?php endif; ?>
-            </div>
             <h3 class="fw-bold mb-1.5 text-white" style="letter-spacing: -0.3px;">Student &amp; Batch Management</h3>
             <p class="mb-0 text-white opacity-85 small" style="max-width: 680px;">Manage currently enrolled active batches, transition graduated cohorts to alumni archives, and view comprehensive student records.</p>
           </div>

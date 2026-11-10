@@ -19,14 +19,6 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 position-relative" style="z-index: 5;">
           <div>
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <span class="badge rounded-pill font-monospace px-3 py-1.5 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
-                <i class="bi bi-shield-check me-1"></i> Staff &amp; Administration
-              </span>
-              <span class="badge rounded-pill px-3 py-1.5 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
-                <i class="bi bi-mortarboard me-1"></i> NVQ Level 5 Faculty
-              </span>
-            </div>
             <h3 class="fw-bold mb-1.5 text-white" style="letter-spacing: -0.3px;">Faculty &amp; Administrator Accounts</h3>
             <p class="mb-0 text-white opacity-85 small" style="max-width: 680px;">Managing dedicated administrator accounts, lecturer shift allocations (09:00-12:00 &amp; 13:00-16:00), and academic modules.</p>
           </div>

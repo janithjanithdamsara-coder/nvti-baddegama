@@ -20,70 +20,54 @@ $activeTab = $tab ?? 'daily';
       <!-- Header Banner -->
       <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
         <div class="card-body p-4">
-          <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 flex-wrap">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 flex-wrap">
             <div>
-              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fw-semibold">
-                  <i class="bi bi-calendar2-check-fill me-1"></i> Academic Attendance Portal
-                </span>
-                
-                <!-- Dynamic Batch Selector Dropdown -->
-                <div class="dropdown d-inline-block">
-                  <button class="btn btn-sm btn-outline-dark dropdown-toggle rounded-pill px-3 py-0.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.82rem;">
-                    <i class="bi bi-mortarboard-fill text-danger"></i>
-                    <span><?= htmlspecialchars($className ?? 'NVTI Diploma Batch') ?></span>
-                    <?php if (!empty($isBatchArchived)): ?>
-                      <span class="badge bg-secondary text-white rounded-pill ms-1" style="font-size: 0.65rem;">Old Batch (Archived)</span>
-                    <?php else: ?>
-                      <span class="badge bg-success text-white rounded-pill ms-1" style="font-size: 0.65rem;">Active Batch</span>
-                    <?php endif; ?>
-                  </button>
-                  <ul class="dropdown-menu shadow border-0 rounded-3 py-1 small">
-                    <li><h6 class="dropdown-header small text-uppercase" style="font-size: 0.68rem;">Switch Academic Batch</h6></li>
-                    <?php if (!empty($allBatches)): ?>
-                      <?php foreach ($allBatches as $b): 
-                        $bId = (int)$b['id'];
-                        $isCur = ($bId === (int)$classId);
-                        $isBArchived = ($b['status'] === 'archived');
-                      ?>
-                        <li>
-                          <a class="dropdown-item py-1.5 d-flex align-items-center justify-content-between gap-3 <?= $isCur ? 'active fw-bold' : '' ?>" 
-                             href="index.php?page=teacher_attendance&class_id=<?= $bId ?>&tab=<?= urlencode($activeTab) ?>&date=<?= urlencode($selectedDate) ?>">
-                            <span><?= e($b['class_name']) ?></span>
-                            <span class="badge <?= $isBArchived ? 'bg-secondary' : 'bg-success' ?> text-white rounded-pill" style="font-size: 0.62rem;">
-                              <?= $isBArchived ? 'Archived' : 'Active' ?>
-                            </span>
-                          </a>
-                        </li>
-                      <?php endforeach; ?>
-                    <?php endif; ?>
-                  </ul>
-                </div>
-              </div>
               <h3 class="fw-bold text-dark mb-1">Attendance &amp; Class Monitors</h3>
               <p class="text-muted small mb-0">
                 <?= htmlspecialchars($className ?? 'NVTI Baddegama National Diploma') ?> &bull; Instructor: <strong><?= e(Auth::user()['name']) ?></strong>
               </p>
             </div>
 
-            <!-- Quick Nav Tabs -->
-            <ul class="nav nav-pills bg-light p-1.5 rounded-3 border flex-wrap" role="tablist">
-              <li class="nav-item">
-                <a class="nav-link <?= ($activeTab === 'daily') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=daily&date=<?= urlencode($selectedDate) ?>">
-                  <i class="bi bi-calendar-day me-1"></i> Daily Sheet
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link <?= ($activeTab === 'monitors') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=monitors">
-                  <i class="bi bi-people-fill me-1"></i> Class Monitors
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link <?= ($activeTab === 'monthly') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=monthly&month=<?= urlencode($selectedMonth) ?>">
-                  <i class="bi bi-grid-3x3-gap-fill me-1"></i> Monthly Matrix &amp; Export
-                </a>
-              </li>
-            </ul>
+            <div class="d-flex flex-column align-items-stretch align-items-lg-end gap-2">
+              <?php if (!empty($allBatches)): ?>
+                <div class="d-flex align-items-center gap-2">
+                  <label for="attendanceBatchSelect" class="small fw-bold text-secondary text-nowrap mb-0">
+                    <i class="bi bi-layers me-1"></i> Batch:
+                  </label>
+                  <select id="attendanceBatchSelect" class="form-select form-select-sm rounded-pill fw-semibold border-secondary-subtle shadow-xs" style="min-width: 230px;"
+                          onchange="window.location.href='index.php?page=teacher_attendance&class_id=' + this.value + '&tab=<?= urlencode($activeTab) ?>&date=<?= urlencode($selectedDate) ?>'">
+                    <?php foreach ($allBatches as $b):
+                      $bId = (int)$b['id'];
+                      $isCur = ($bId === (int)$classId);
+                      $isBArchived = ($b['status'] === 'archived');
+                    ?>
+                      <option value="<?= $bId ?>" <?= $isCur ? 'selected' : '' ?>>
+                        <?= e($b['class_name']) ?> (<?= $isBArchived ? 'Archived' : 'Active' ?>)
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+              <?php endif; ?>
+
+              <!-- Quick Nav Tabs -->
+              <ul class="nav nav-pills bg-light p-1.5 rounded-3 border flex-wrap" role="tablist">
+                <li class="nav-item">
+                  <a class="nav-link <?= ($activeTab === 'daily') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=daily&date=<?= urlencode($selectedDate) ?>">
+                    <i class="bi bi-calendar-day me-1"></i> Daily Sheet
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link <?= ($activeTab === 'monitors') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=monitors">
+                    <i class="bi bi-people-fill me-1"></i> Class Monitors
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link <?= ($activeTab === 'monthly') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=monthly&month=<?= urlencode($selectedMonth) ?>">
+                    <i class="bi bi-grid-3x3-gap-fill me-1"></i> Monthly Matrix &amp; Export
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
