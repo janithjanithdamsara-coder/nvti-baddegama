@@ -204,102 +204,71 @@ require_once __DIR__ . '/../layouts/navbar.php';
           </div>
         <?php else: ?>
 
-          <!-- ================= 1. DESKTOP VIEW: CLEAN STREAMLINED TABLE ================= -->
+          <!-- ================= 1. DESKTOP VIEW: MINIMAL EXECUTIVE TABLE (IDEA 1) ================= -->
           <div class="table-responsive d-none d-lg-block">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.86rem;">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
               <thead class="table-light text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">
                 <tr>
-                  <th style="width: 40px;" class="text-center py-2.5">#</th>
-                  <th style="width: 25%;" class="py-2.5">Candidate Details</th>
-                  <th style="width: 17%;" class="py-2.5">NIC &amp; Contacts</th>
-                  <th style="width: 18%;" class="py-2.5">Qualifications</th>
-                  <th style="width: 20%;" class="py-2.5">Course Preferences</th>
-                  <th style="width: 10%;" class="text-center py-2.5">Status</th>
-                  <th style="width: 10%;" class="text-end pe-3 py-2.5">Actions</th>
+                  <th style="width: 50px;" class="text-center py-3">#</th>
+                  <th style="width: 32%;" class="py-3">Candidate</th>
+                  <th style="width: 28%;" class="py-3">Stream &amp; Course</th>
+                  <th style="width: 16%;" class="py-3">Contact</th>
+                  <th style="width: 12%;" class="text-center py-3">Status</th>
+                  <th style="width: 12%;" class="text-end pe-3 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <?php $idx = 1; foreach ($applications as $app): 
                   $appId = (int)$app['id'];
                   $status = $app['status'];
-                  $cleanPhone = preg_replace('/[^0-9]/', '', $app['whatsapp_no'] ?: $app['contact_no']);
-                  if (str_starts_with($cleanPhone, '0')) {
-                    $waNumber = '94' . substr($cleanPhone, 1);
-                  } else {
-                    $waNumber = $cleanPhone;
-                  }
+                  $appJson = htmlspecialchars(json_encode($app), ENT_QUOTES, 'UTF-8');
                 ?>
-                  <tr>
+                  <tr style="transition: background-color 0.15s ease;">
                     <td class="text-center text-muted fw-bold"><?= $idx++ ?></td>
 
                     <!-- Candidate Name & Reference -->
                     <td>
-                      <div class="d-flex align-items-center gap-2.5">
+                      <div class="d-flex align-items-center gap-3">
                         <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0 shadow-xs" 
-                             style="width: 38px; height: 38px; font-size: 0.92rem; background: linear-gradient(135deg, #7A1418, #991b1b);">
+                             style="width: 40px; height: 40px; font-size: 0.95rem; background: linear-gradient(135deg, #7A1418, #991b1b);">
                           <?= strtoupper(substr($app['full_name'], 0, 1)) ?>
                         </div>
                         <div class="min-w-0">
-                          <div class="fw-bold text-dark mb-0 lh-sm"><?= e($app['full_name']) ?></div>
-                          <div class="text-muted small font-monospace mt-1" style="font-size: 0.73rem;">
-                            <span class="badge bg-light text-dark border font-monospace py-0.5 px-1.5"><?= e($app['student_id']) ?></span>
-                            <span class="ms-1">&bull; <?= date('M d, Y', strtotime($app['application_date'])) ?></span>
+                          <a href="javascript:void(0)" onclick='openDossierModal(<?= $appJson ?>)' class="fw-bold text-dark text-decoration-none hover-primary mb-0 d-block text-truncate" style="max-width: 300px;">
+                            <?= e($app['full_name']) ?>
+                          </a>
+                          <div class="text-muted small font-monospace mt-0.5" style="font-size: 0.74rem;">
+                            <span class="text-secondary fw-semibold"><?= e($app['student_id']) ?></span>
+                            <span class="mx-1 text-muted">&bull;</span>
+                            <span><?= date('M d, Y', strtotime($app['application_date'])) ?></span>
                           </div>
                         </div>
                       </div>
                     </td>
 
-                    <!-- NIC & Contact Channels -->
+                    <!-- Stream & Applied Course -->
                     <td>
-                      <div class="d-flex align-items-center gap-1.5 mb-1">
-                        <span class="badge bg-light text-dark border font-monospace px-2 py-0.5" style="font-size: 0.74rem;"><?= e($app['nic']) ?></span>
-                        <?php if (!empty($app['dob'])): ?>
-                          <?php $age = (new DateTime($app['dob']))->diff(new DateTime())->y; ?>
-                          <span class="text-muted small" style="font-size: 0.72rem;">(<?= $age ?> yrs)</span>
-                        <?php endif; ?>
+                      <div class="fw-semibold text-dark lh-sm text-truncate mb-1" style="max-width: 280px;" title="<?= e($app['course_option_one']) ?>">
+                        <?= e($app['course_option_one']) ?>
                       </div>
-                      <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <a href="tel:<?= e($app['contact_no']) ?>" class="text-decoration-none text-secondary small font-monospace d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
-                          <i class="bi bi-telephone text-primary"></i> <?= e($app['contact_no']) ?>
-                        </a>
-                        <?php if (!empty($app['whatsapp_no'])): ?>
-                          <a href="https://wa.me/<?= $waNumber ?>?text=<?= urlencode("Hello " . $app['full_name'] . ", regarding your NVTI Baddegama ICT NVQ Level 5 Diploma application:") ?>" target="_blank" rel="noopener noreferrer" class="badge rounded-pill text-white px-2 py-0.5 text-decoration-none d-inline-flex align-items-center gap-1 shadow-xs" style="background: #25D366; font-size: 0.68rem;">
-                            <i class="bi bi-whatsapp"></i> Chat
-                          </a>
-                        <?php endif; ?>
-                      </div>
-                    </td>
-
-                    <!-- Qualifications: O/L & A/L -->
-                    <td>
-                      <div class="d-flex align-items-center gap-1.5 mb-1 flex-wrap">
-                        <?php if ($app['ol_pass_status'] === 'Yes'): ?>
-                          <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 0.68rem;">O/L Passed</span>
-                        <?php else: ?>
-                          <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" style="font-size: 0.68rem;">O/L Failed</span>
-                        <?php endif; ?>
-
-                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill text-capitalize" style="font-size: 0.68rem;">
+                      <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill text-capitalize px-2 py-0.5" style="font-size: 0.68rem;">
                           A/L <?= e($app['al_category']) ?>
                         </span>
-                      </div>
-                      <div class="text-muted small font-monospace" style="font-size: 0.72rem;">
-                        Eng: <strong><?= e($app['ol_english_grade'] ?: '-') ?></strong> &bull; 
-                        Math: <strong><?= e($app['ol_maths_grade'] ?: '-') ?></strong> &bull; 
-                        Sci: <strong><?= e($app['ol_science_grade'] ?: '-') ?></strong>
+                        <?php if ($app['ol_pass_status'] === 'Yes'): ?>
+                          <span class="badge bg-light text-muted border rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">
+                            O/L Passed
+                          </span>
+                        <?php endif; ?>
                       </div>
                     </td>
 
-                    <!-- Course Preferences -->
+                    <!-- Contact Phone -->
                     <td>
-                      <div class="small fw-semibold text-dark lh-sm">
-                        1. <?= e($app['course_option_one']) ?>
-                      </div>
-                      <?php if (!empty($app['course_option_two'])): ?>
-                        <div class="text-muted small mt-0.5 lh-sm" style="font-size: 0.74rem;">
-                          2. <?= e($app['course_option_two']) ?>
-                        </div>
-                      <?php endif; ?>
+                      <a href="tel:<?= e($app['contact_no']) ?>" class="text-decoration-none text-dark fw-semibold font-monospace d-inline-flex align-items-center gap-1.5 py-1 px-2 rounded-2 bg-light border border-secondary-subtle" style="font-size: 0.8rem;">
+                        <i class="bi bi-telephone-fill text-danger" style="font-size: 0.75rem;"></i>
+                        <?= e($app['contact_no']) ?>
+                      </a>
                     </td>
 
                     <!-- Status Badge -->
@@ -329,15 +298,15 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
                     <!-- Actions -->
                     <td class="text-end pe-3">
-                      <div class="d-flex align-items-center justify-content-end gap-1">
-                        <!-- Inspect Modal -->
-                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="View Candidate Dossier" onclick='openDossierModal(<?= json_encode($app) ?>)'>
-                          <i class="bi bi-eye"></i>
+                      <div class="d-flex align-items-center justify-content-end gap-1.5">
+                        <!-- Inspect / View Details Button -->
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1 shadow-xs" style="font-size: 0.75rem;" title="View Complete Candidate Dossier" onclick='openDossierModal(<?= $appJson ?>)'>
+                          <i class="bi bi-eye"></i> View
                         </button>
 
                         <?php if ($status !== 'enrolled'): ?>
                           <!-- 1-Click Enroll Modal Button -->
-                          <button type="button" class="btn btn-sm btn-success rounded-pill px-2.5 py-1 fw-bold d-inline-flex align-items-center gap-1 shadow-xs" style="font-size: 0.74rem;" onclick='openEnrollModal(<?= json_encode($app) ?>)' title="Convert applicant into active LMS student">
+                          <button type="button" class="btn btn-sm btn-success rounded-pill px-2.5 py-1 fw-bold d-inline-flex align-items-center gap-1 shadow-xs" style="font-size: 0.75rem;" onclick='openEnrollModal(<?= $appJson ?>)' title="Convert applicant into active LMS student">
                             <i class="bi bi-person-plus-fill"></i> Enroll
                           </button>
                         <?php else: ?>
@@ -402,24 +371,19 @@ require_once __DIR__ . '/../layouts/navbar.php';
               <?php foreach ($applications as $app): 
                 $appId = (int)$app['id'];
                 $status = $app['status'];
-                $cleanPhone = preg_replace('/[^0-9]/', '', $app['whatsapp_no'] ?: $app['contact_no']);
-                if (str_starts_with($cleanPhone, '0')) {
-                  $waNumber = '94' . substr($cleanPhone, 1);
-                } else {
-                  $waNumber = $cleanPhone;
-                }
+                $appJson = htmlspecialchars(json_encode($app), ENT_QUOTES, 'UTF-8');
               ?>
                 <div class="col-12 col-md-6">
-                  <div class="card border rounded-4 bg-white shadow-sm p-3.5 h-100 position-relative">
+                  <div class="card border rounded-4 bg-white shadow-sm p-3 h-100 position-relative">
                     <!-- Top Row: Avatar + Name + Status -->
-                    <div class="d-flex align-items-start justify-content-between gap-2 mb-2.5">
+                    <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
                       <div class="d-flex align-items-center gap-2.5 min-w-0">
                         <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0 shadow-xs" 
-                             style="width: 42px; height: 42px; font-size: 1rem; background: linear-gradient(135deg, #7A1418, #991b1b);">
+                             style="width: 40px; height: 40px; font-size: 0.95rem; background: linear-gradient(135deg, #7A1418, #991b1b);">
                           <?= strtoupper(substr($app['full_name'], 0, 1)) ?>
                         </div>
                         <div class="min-w-0">
-                          <h6 class="fw-bold text-dark mb-0 lh-sm"><?= e($app['full_name']) ?></h6>
+                          <h6 class="fw-bold text-dark mb-0 lh-sm text-truncate" style="max-width: 190px;"><?= e($app['full_name']) ?></h6>
                           <div class="text-muted small font-monospace" style="font-size: 0.72rem;">
                             <?= e($app['student_id']) ?> &bull; <?= date('M d, Y', strtotime($app['application_date'])) ?>
                           </div>
@@ -442,50 +406,34 @@ require_once __DIR__ . '/../layouts/navbar.php';
                       </div>
                     </div>
 
-                    <!-- Middle Info Details -->
+                    <!-- Middle Info Details: Clean Course & Stream -->
                     <div class="bg-light rounded-3 p-2.5 mb-2.5 border small">
-                      <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="text-muted">NIC:</span>
-                        <span class="font-monospace fw-bold text-dark"><?= e($app['nic']) ?></span>
+                      <div class="fw-semibold text-dark text-truncate mb-1" title="<?= e($app['course_option_one']) ?>">
+                        <?= e($app['course_option_one']) ?>
                       </div>
-                      <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="text-muted">Qualifications:</span>
-                        <span>
-                          <span class="badge bg-<?= ($app['ol_pass_status'] === 'Yes') ? 'success' : 'danger' ?>-subtle text-<?= ($app['ol_pass_status'] === 'Yes') ? 'success' : 'danger' ?> rounded-pill" style="font-size: 0.65rem;">O/L <?= e($app['ol_pass_status']) ?></span>
-                          <span class="badge bg-primary-subtle text-primary rounded-pill text-capitalize" style="font-size: 0.65rem;">A/L <?= e($app['al_category']) ?></span>
+                      <div class="d-flex align-items-center justify-content-between flex-wrap gap-1">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill text-capitalize px-2 py-0.5" style="font-size: 0.68rem;">
+                          A/L <?= e($app['al_category']) ?>
                         </span>
-                      </div>
-                      <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">1st Choice:</span>
-                        <span class="fw-semibold text-dark text-truncate ms-2" style="max-width: 65%;"><?= e($app['course_option_one']) ?></span>
-                      </div>
-                    </div>
-
-                    <!-- Mobile Contact Actions -->
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                      <a href="tel:<?= e($app['contact_no']) ?>" class="btn btn-outline-secondary btn-sm rounded-pill flex-grow-1 py-1 d-inline-flex align-items-center justify-content-center gap-1.5" style="font-size: 0.78rem;">
-                        <i class="bi bi-telephone text-primary"></i> Call <?= e($app['contact_no']) ?>
-                      </a>
-                      <?php if (!empty($app['whatsapp_no'])): ?>
-                        <a href="https://wa.me/<?= $waNumber ?>?text=<?= urlencode("Hello " . $app['full_name'] . ", regarding your NVTI Baddegama ICT NVQ Level 5 Diploma application:") ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm rounded-pill text-white flex-grow-1 py-1 d-inline-flex align-items-center justify-content-center gap-1.5 shadow-xs" style="background: #25D366; font-size: 0.78rem;">
-                          <i class="bi bi-whatsapp"></i> WhatsApp
+                        <a href="tel:<?= e($app['contact_no']) ?>" class="text-decoration-none text-dark fw-semibold font-monospace small d-inline-flex align-items-center gap-1">
+                          <i class="bi bi-telephone-fill text-danger" style="font-size: 0.72rem;"></i> <?= e($app['contact_no']) ?>
                         </a>
-                      <?php endif; ?>
+                      </div>
                     </div>
 
                     <!-- Mobile Bottom Buttons -->
-                    <div class="pt-2.5 border-top d-flex align-items-center justify-content-between gap-2 mt-auto">
-                      <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1 fw-semibold" style="font-size: 0.75rem;" onclick='openDossierModal(<?= json_encode($app) ?>)'>
-                        <i class="bi bi-eye me-1"></i> View Dossier
+                    <div class="pt-2 border-top d-flex align-items-center justify-content-between gap-2 mt-auto">
+                      <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;" onclick='openDossierModal(<?= $appJson ?>)'>
+                        <i class="bi bi-eye"></i> View Profile
                       </button>
 
                       <?php if ($status !== 'enrolled'): ?>
-                        <button type="button" class="btn btn-success btn-sm rounded-pill px-3 py-1 fw-bold shadow-xs" style="font-size: 0.75rem;" onclick='openEnrollModal(<?= json_encode($app) ?>)'>
-                          <i class="bi bi-person-plus-fill me-1"></i> Enroll to Batch
+                        <button type="button" class="btn btn-success btn-sm rounded-pill px-3 py-1 fw-bold shadow-xs d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;" onclick='openEnrollModal(<?= $appJson ?>)'>
+                          <i class="bi bi-person-plus-fill"></i> Enroll
                         </button>
                       <?php else: ?>
                         <span class="badge bg-light text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.72rem;">
-                          <i class="bi bi-check-all me-1"></i> Enrolled (#<?= e($app['enrolled_user_id'] ?? '') ?>)
+                          <i class="bi bi-check-all me-1"></i> Enrolled
                         </span>
                       <?php endif; ?>
                     </div>
