@@ -190,12 +190,6 @@ foreach ($cbtModulesDb as $row) {
                     <?php endif; ?>
                   </div>
                 </div>
-
-                <div class="d-grid gap-2">
-                  <a href="index.php?page=login" class="btn btn-outline-primary fw-semibold py-2 rounded-pill">
-                    <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Instructor Portal
-                  </a>
-                </div>
               </div>
             </div>
           </div>

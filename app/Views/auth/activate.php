@@ -36,7 +36,10 @@ require_once __DIR__ . '/../layouts/navbar.php';
               <label for="password" class="form-label fw-semibold text-secondary small">Create Your Portal Password *</label>
               <div class="input-group">
                 <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-lock-fill"></i></span>
-                <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="At least 8 characters" minlength="8" required>
+                <input type="password" class="form-control border-start-0 border-end-0" id="password" name="password" placeholder="At least 8 characters" minlength="8" required>
+                <button class="btn btn-light border border-start-0 text-secondary" type="button" data-toggle-password tabindex="-1" title="Show/Hide Password" aria-label="Show password">
+                  <i class="bi bi-eye"></i>
+                </button>
               </div>
             </div>
 
@@ -44,7 +47,10 @@ require_once __DIR__ . '/../layouts/navbar.php';
               <label for="confirm_password" class="form-label fw-semibold text-secondary small">Confirm Password *</label>
               <div class="input-group">
                 <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-shield-lock-fill"></i></span>
-                <input type="password" class="form-control border-start-0" id="confirm_password" name="confirm_password" placeholder="Re-type your password" minlength="8" required>
+                <input type="password" class="form-control border-start-0 border-end-0" id="confirm_password" name="confirm_password" placeholder="Re-type your password" minlength="8" required>
+                <button class="btn btn-light border border-start-0 text-secondary" type="button" data-toggle-password tabindex="-1" title="Show/Hide Password" aria-label="Show password">
+                  <i class="bi bi-eye"></i>
+                </button>
               </div>
             </div>
 

@@ -133,11 +133,6 @@ require_once __DIR__ . '/../layouts/navbar.php';
           <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
             <img src="assets/images/logo/NVTI_logo_dark.png" onerror="this.onerror=null; this.src='assets/images/logo/NVTI_logo.png';" alt="NVTI Logo" class="login-brand-logo" style="height: 54px; width: auto; object-fit: contain;">
           </div>
-          <div>
-            <span class="login-badge-nvq">
-              <i class="bi bi-patch-check-fill me-1 text-danger"></i> NVQ Level 5 &bull; ICT Diploma Portal
-            </span>
-          </div>
           <h4 class="fw-bold mb-1 text-dark">Portal Sign In</h4>
           <p class="text-muted small mb-0">National Vocational Training Institute &bull; Baddegama</p>
         </div>
@@ -210,9 +205,6 @@ require_once __DIR__ . '/../layouts/navbar.php';
                   Remember this device
                 </label>
               </div>
-              <span class="badge bg-light text-secondary border small fw-normal">
-                <i class="bi bi-lock-fill me-1 text-success"></i> Secure SSL
-              </span>
             </div>
 
             <!-- Submit Button -->
@@ -238,14 +230,6 @@ require_once __DIR__ . '/../layouts/navbar.php';
                 <i class="bi bi-person-plus me-1"></i> Register Here
               </a>
             </div>
-          </div>
-
-          <!-- Secondary Activation Link (For Students pre-entered by Admin) -->
-          <div class="d-flex align-items-center justify-content-between mt-3 pt-2 border-top px-1">
-            <span class="text-muted small" style="font-size: 0.78rem;">Pre-enrolled by NVTI?</span>
-            <a href="index.php?page=activate" class="text-decoration-none small fw-semibold text-primary" style="font-size: 0.8rem;">
-              <i class="bi bi-key me-1"></i> Activate with MIS / NIC &rarr;
-            </a>
           </div>
 
         </div>

@@ -158,4 +158,23 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
+
+  // Global show/hide password eye icon toggle for any [data-toggle-password] button
+  document.addEventListener('click', function (e) {
+    const toggleBtn = e.target.closest('[data-toggle-password]');
+    if (!toggleBtn) return;
+
+    const group = toggleBtn.closest('.input-group');
+    const input = group ? group.querySelector('input[type="password"], input[type="text"]') : null;
+    if (!input) return;
+
+    const icon = toggleBtn.querySelector('i');
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    toggleBtn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    if (icon) {
+      icon.classList.toggle('bi-eye', !isHidden);
+      icon.classList.toggle('bi-eye-slash', isHidden);
+    }
+  });
 });

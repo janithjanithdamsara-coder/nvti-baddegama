@@ -314,7 +314,12 @@ require_once __DIR__ . '/../layouts/navbar.php';
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold small text-secondary">Initial Password *</label>
-            <input type="password" name="password" class="form-control" value="TeacherPassword123!" required>
+            <div class="input-group">
+              <input type="password" name="password" class="form-control border-end-0" value="TeacherPassword123!" required>
+              <button class="btn btn-light border border-start-0 text-secondary" type="button" data-toggle-password tabindex="-1" title="Show/Hide Password" aria-label="Show password">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
           </div>
         </div>
         <div class="modal-footer bg-light py-2 px-4">

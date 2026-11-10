@@ -22,17 +22,32 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
             <div class="mb-3">
               <label class="form-label fw-semibold small text-secondary">Current Password *</label>
-              <input type="password" name="current_password" class="form-control" placeholder="••••••••" required>
+              <div class="input-group">
+                <input type="password" name="current_password" class="form-control border-end-0" placeholder="••••••••" required>
+                <button class="btn btn-light border border-start-0 text-secondary" type="button" data-toggle-password tabindex="-1" title="Show/Hide Password" aria-label="Show password">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
             </div>
 
             <div class="mb-3">
               <label class="form-label fw-semibold small text-secondary">New Password *</label>
-              <input type="password" name="new_password" class="form-control" placeholder="At least 6 characters" required>
+              <div class="input-group">
+                <input type="password" name="new_password" class="form-control border-end-0" placeholder="At least 6 characters" required>
+                <button class="btn btn-light border border-start-0 text-secondary" type="button" data-toggle-password tabindex="-1" title="Show/Hide Password" aria-label="Show password">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
             </div>
 
             <div class="mb-4">
               <label class="form-label fw-semibold small text-secondary">Confirm New Password *</label>
-              <input type="password" name="confirm_password" class="form-control" placeholder="Re-type new password" required>
+              <div class="input-group">
+                <input type="password" name="confirm_password" class="form-control border-end-0" placeholder="Re-type new password" required>
+                <button class="btn btn-light border border-start-0 text-secondary" type="button" data-toggle-password tabindex="-1" title="Show/Hide Password" aria-label="Show password">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
             </div>
 
             <div class="d-flex justify-content-end gap-2">
