@@ -958,12 +958,15 @@ class AdminController {
 
     public function createTeacher(): void {
         Csrf::checkOrAbort();
-        $name          = trim($_POST['name'] ?? '');
-        $email         = trim($_POST['email'] ?? '');
-        $phone         = trim($_POST['phone'] ?? '');
-        $qualification = trim($_POST['qualification'] ?? '');
-        $slot          = $_POST['preferred_slot'] ?? 'Morning (09:00 - 12:00)';
-        $password      = $_POST['password'] ?? 'TeacherPassword123!';
+        require_once __DIR__ . '/../Helpers/Uploader.php';
+
+        $name           = trim($_POST['name'] ?? '');
+        $email          = trim($_POST['email'] ?? '');
+        $phone          = trim($_POST['phone'] ?? '');
+        $qualification  = trim($_POST['qualification'] ?? '');
+        $specialization = trim($_POST['specialization'] ?? '');
+        $slot           = $_POST['preferred_slot'] ?? 'Morning (09:00 - 12:00)';
+        $password       = $_POST['password'] ?? 'TeacherPassword123!';
 
         if (empty($name) || empty($email) || empty($password)) {
             Flash::error("Name, email and password are required.");
@@ -971,17 +974,29 @@ class AdminController {
             exit;
         }
 
+        $profileImage = null;
+        if (!empty($_FILES['profile_photo']['name'])) {
+            $upload = Uploader::uploadImage($_FILES['profile_photo'], 'teachers');
+            if ($upload['success']) {
+                $profileImage = $upload['path'];
+            } else {
+                Flash::error("Photo upload error: " . $upload['error']);
+                header('Location: index.php?page=admin_teachers');
+                exit;
+            }
+        }
+
         $db = Database::getConnection();
         try {
             $db->beginTransaction();
             $hash = password_hash($password, PASSWORD_BCRYPT);
-            $uStmt = $db->prepare("INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, 'teacher', 'active')");
-            $uStmt->execute([$name, $email, $hash]);
+            $uStmt = $db->prepare("INSERT INTO users (name, email, password, role, status, profile_image) VALUES (?, ?, ?, 'teacher', 'active', ?)");
+            $uStmt->execute([$name, $email, $hash, $profileImage]);
             $userId = (int)$db->lastInsertId();
 
             $teacherCode = 'NVTI-TCH-' . str_pad($userId, 3, '0', STR_PAD_LEFT);
-            $pStmt = $db->prepare("INSERT INTO teacher_profiles (user_id, teacher_code, phone, qualification, preferred_slot) VALUES (?, ?, ?, ?, ?)");
-            $pStmt->execute([$userId, $teacherCode, $phone, $qualification, $slot]);
+            $pStmt = $db->prepare("INSERT INTO teacher_profiles (user_id, teacher_code, phone, qualification, specialization, preferred_slot) VALUES (?, ?, ?, ?, ?, ?)");
+            $pStmt->execute([$userId, $teacherCode, $phone, $qualification, $specialization, $slot]);
 
             $db->commit();
             Auth::logAudit(Auth::id(), 'CREATE_TEACHER', "Created Teacher $name ($teacherCode)");
@@ -996,6 +1011,8 @@ class AdminController {
 
     public function updateTeacher(): void {
         Csrf::checkOrAbort();
+        require_once __DIR__ . '/../Helpers/Uploader.php';
+
         $id             = (int)($_POST['teacher_id'] ?? 0);
         $name           = trim($_POST['name'] ?? '');
         $email          = trim($_POST['email'] ?? '');
@@ -1011,6 +1028,20 @@ class AdminController {
             exit;
         }
 
+        $db = Database::getConnection();
+
+        $curStmt = $db->prepare("SELECT email, profile_image FROM users WHERE id = ? AND role = 'teacher' LIMIT 1");
+        $curStmt->execute([$id]);
+        $existingTeacher = $curStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$existingTeacher) {
+            Flash::error("Instructor account not found.");
+            header('Location: index.php?page=admin_teachers');
+            exit;
+        }
+        if (empty($email)) {
+            $email = $existingTeacher['email'];
+        }
+
         // Handle file upload if provided
         if (!empty($_FILES['profile_photo']['name'])) {
             $upload = Uploader::uploadImage($_FILES['profile_photo'], 'teachers');
@@ -1023,7 +1054,6 @@ class AdminController {
             }
         }
 
-        $db = Database::getConnection();
         try {
             $db->beginTransaction();
             if (!empty($profileImage)) {
@@ -1034,16 +1064,27 @@ class AdminController {
                 $uStmt->execute([$name, $email, $id]);
             }
 
-            $pStmt = $db->prepare("
-                UPDATE teacher_profiles 
-                SET phone = ?, qualification = ?, specialization = ?, preferred_slot = ? 
-                WHERE user_id = ?
-            ");
-            $pStmt->execute([$phone, $qualification, $specialization, $slot, $id]);
+            $chkProf = $db->prepare("SELECT id FROM teacher_profiles WHERE user_id = ? LIMIT 1");
+            $chkProf->execute([$id]);
+            if ($chkProf->fetchColumn()) {
+                $pStmt = $db->prepare("
+                    UPDATE teacher_profiles 
+                    SET phone = ?, qualification = ?, specialization = ?, preferred_slot = ? 
+                    WHERE user_id = ?
+                ");
+                $pStmt->execute([$phone, $qualification, $specialization, $slot, $id]);
+            } else {
+                $teacherCode = 'NVTI-TCH-' . str_pad($id, 3, '0', STR_PAD_LEFT);
+                $pStmt = $db->prepare("
+                    INSERT INTO teacher_profiles (user_id, teacher_code, phone, qualification, specialization, preferred_slot)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ");
+                $pStmt->execute([$id, $teacherCode, $phone, $qualification, $specialization, $slot]);
+            }
 
             $db->commit();
             Auth::logAudit(Auth::id(), 'UPDATE_TEACHER', "Updated instructor details for $name (ID $id)");
-            Flash::success("Instructor $name details and profile photo updated successfully.");
+            Flash::success("Instructor <strong>" . htmlspecialchars($name) . "</strong> details and profile photo updated successfully.");
         } catch (Exception $e) {
             $db->rollBack();
             Flash::error("Failed to update teacher: " . $e->getMessage());

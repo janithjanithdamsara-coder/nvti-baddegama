@@ -110,14 +110,19 @@ require_once __DIR__ . '/../layouts/navbar.php';
         <?php foreach ($teachers as $idx => $tch): ?>
           <?php
             $isMorning = str_contains(strtolower($tch['preferred_slot'] ?? ''), 'morning') || $idx === 0;
+            $tchPhoto = !empty($tch['profile_image'])
+              ? $tch['profile_image']
+              : ($idx === 0 ? 'assets/images/teachers/nishantha.jpg' : 'assets/images/teachers/lakshman.jpg');
           ?>
           <div class="col-lg-6">
             <div class="card border rounded-4 shadow-sm h-100 overflow-hidden bg-white">
               <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
                 <div class="d-flex align-items-center gap-3">
-                  <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow-sm" style="width: 44px; height: 44px; background: <?= $isMorning ? '#d97706' : '#4f46e5' ?>;">
-                    <i class="bi <?= $isMorning ? 'bi-sun-fill' : 'bi-sunset-fill' ?>"></i>
-                  </div>
+                  <img src="<?= e($tchPhoto) ?>"
+                       onerror="this.onerror=null; this.src='assets/images/software_developer_logo.png';"
+                       alt="<?= e($tch['name']) ?>"
+                       class="rounded-circle border shadow-sm flex-shrink-0"
+                       style="width: 48px; height: 48px; object-fit: cover;">
                   <div>
                     <h5 class="fw-bold mb-0 text-dark"><?= e($tch['name']) ?></h5>
                     <span class="badge bg-light text-dark border small font-monospace"><?= e($tch['teacher_code'] ?? 'TCH') ?></span>
@@ -174,8 +179,8 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
               <div class="card-footer bg-light px-4 py-2.5 d-flex justify-content-between align-items-center">
                 <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Status: <?= ucfirst($tch['status']) ?></span>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editTeacherModal<?= $tch['id'] ?>">
-                  <i class="bi bi-pencil-square me-1"></i> Edit Shifts &amp; Details
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#editTeacherModal<?= $tch['id'] ?>">
+                  <i class="bi bi-pencil-square me-1"></i> Edit Details &amp; Photo
                 </button>
               </div>
             </div>
@@ -189,10 +194,36 @@ require_once __DIR__ . '/../layouts/navbar.php';
                   <h6 class="modal-title fw-bold">Edit Lecturer: <?= e($tch['name']) ?></h6>
                   <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="index.php?page=admin_update_teacher" method="POST">
+                <form action="index.php?page=admin_update_teacher" method="POST" enctype="multipart/form-data">
                   <?= Csrf::field() ?>
                   <input type="hidden" name="teacher_id" value="<?= $tch['id'] ?>">
                   <div class="modal-body p-4">
+                    <div class="d-flex align-items-center gap-3 p-3 bg-light rounded-3 border mb-3">
+                      <img src="<?= e($tchPhoto) ?>"
+                           id="teacherPreviewImg<?= $tch['id'] ?>"
+                           onerror="this.onerror=null; this.src='assets/images/software_developer_logo.png';"
+                           alt="<?= e($tch['name']) ?>"
+                           class="rounded-3 border shadow-xs flex-shrink-0"
+                           style="width: 68px; height: 78px; object-fit: cover;">
+                      <div class="flex-grow-1 min-w-0">
+                        <label class="form-label fw-semibold small text-dark mb-1">Profile Photo (Home &amp; Portal Card)</label>
+                        <input type="file" name="profile_photo" class="form-control form-control-sm" accept=".jpg,.jpeg,.png,.webp,.gif"
+                               onchange="previewTeacherPhoto(this, 'teacherPreviewImg<?= $tch['id'] ?>')">
+                        <small class="text-muted d-block mt-1" style="font-size: 0.7rem;">JPG, PNG, WEBP up to 5MB. Leave empty to keep current image.</small>
+                      </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                      <div class="col-sm-6">
+                        <label class="form-label fw-semibold small text-secondary">Full Name *</label>
+                        <input type="text" name="name" class="form-control" value="<?= e($tch['name']) ?>" required>
+                      </div>
+                      <div class="col-sm-6">
+                        <label class="form-label fw-semibold small text-secondary">Email Address *</label>
+                        <input type="email" name="email" class="form-control" value="<?= e($tch['email']) ?>" required>
+                      </div>
+                    </div>
+
                     <div class="mb-3">
                       <label class="form-label fw-semibold small text-secondary">Preferred Teaching Shift</label>
                       <select name="preferred_slot" class="form-select">
@@ -285,7 +316,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
         <h5 class="modal-title fw-bold"><i class="bi bi-person-plus-fill me-2 text-warning"></i>Register Lecturer</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form action="index.php?page=admin_create_teacher" method="POST">
+      <form action="index.php?page=admin_create_teacher" method="POST" enctype="multipart/form-data">
         <?= Csrf::field() ?>
         <div class="modal-body p-4">
           <div class="mb-3">
@@ -313,6 +344,14 @@ require_once __DIR__ . '/../layouts/navbar.php';
             <textarea name="qualification" class="form-control" rows="2" placeholder="e.g. BSc in IT, CCNA, NVQ Assessor"></textarea>
           </div>
           <div class="mb-3">
+            <label class="form-label fw-semibold small text-secondary">Specialization</label>
+            <input type="text" name="specialization" class="form-control" placeholder="e.g. Software Engineering & Web Development">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small text-secondary">Profile Photo (Optional)</label>
+            <input type="file" name="profile_photo" class="form-control" accept=".jpg,.jpeg,.png,.webp,.gif">
+          </div>
+          <div class="mb-3">
             <label class="form-label fw-semibold small text-secondary">Initial Password *</label>
             <div class="input-group">
               <input type="password" name="password" class="form-control border-end-0" value="TeacherPassword123!" required>
@@ -330,5 +369,16 @@ require_once __DIR__ . '/../layouts/navbar.php';
     </div>
   </div>
 </div>
+
+<script>
+function previewTeacherPhoto(input, imgId) {
+  const img = document.getElementById(imgId);
+  if (img && input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function (e) { img.src = e.target.result; };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
 
 <?php require_once __DIR__ . '/../layouts/footer.php'; ?>
