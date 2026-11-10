@@ -173,12 +173,14 @@ require_once __DIR__ . '/../layouts/navbar.php';
           <!-- Form Body -->
           <div class="p-4 p-md-5">
             <?php $old = $oldReg ?? []; ?>
-            <div id="regClientAlert" class="alert alert-danger border-0 rounded-4 shadow-sm d-none mb-4 small" role="alert">
-              <div class="d-flex align-items-start gap-2">
-                <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+            <div id="regClientAlert" class="alert alert-danger rounded-4 shadow-sm d-none mb-4 p-3 small" role="alert" style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #dc2626; color: #991b1b;">
+              <div class="d-flex align-items-start gap-2.5">
+                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-0.5" style="width: 32px; height: 32px; background: #fee2e2; color: #dc2626;">
+                  <i class="bi bi-exclamation-octagon-fill fs-6"></i>
+                </div>
                 <div>
-                  <strong class="d-block mb-0.5">Please fix the following before submitting:</strong>
-                  <span id="regClientAlertMsg"></span>
+                  <strong class="d-block mb-0.5">Action Required</strong>
+                  <span id="regClientAlertMsg" class="text-dark"></span>
                 </div>
               </div>
             </div>
@@ -236,6 +238,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                       <span class="input-group-text"><i class="bi bi-card-heading"></i></span>
                       <input type="text" name="nic" id="regNic" class="form-control text-uppercase" placeholder="e.g. 200112345678 or 991234567V" value="<?= e($old['nic'] ?? '') ?>" required>
                     </div>
+                    <div id="nicLiveStatus" class="small mt-1 d-none" style="font-size: 0.76rem;"></div>
                     <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">12-digit new NIC or 9-digit old NIC with V/X.</small>
                   </div>
 
@@ -246,6 +249,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                       <span class="input-group-text"><i class="bi bi-telephone-fill"></i></span>
                       <input type="tel" name="phone" id="phoneInput" class="form-control" placeholder="e.g. 0771234567" value="<?= e($old['phone'] ?? '') ?>" required>
                     </div>
+                    <div id="phoneLiveStatus" class="small mt-1 d-none" style="font-size: 0.76rem;"></div>
                   </div>
 
                   <!-- WhatsApp Number -->
@@ -285,6 +289,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                       <span class="input-group-text"><i class="bi bi-envelope-at-fill"></i></span>
                       <input type="email" name="email" id="regEmail" class="form-control" placeholder="e.g. student@gmail.com" value="<?= e($old['email'] ?? '') ?>" required>
                     </div>
+                    <div id="emailLiveStatus" class="small mt-1 d-none" style="font-size: 0.76rem;"></div>
                     <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">Approval notification and login details will be sent to this email.</small>
                   </div>
 
@@ -447,6 +452,89 @@ function checkPasswordMatch() {
   }
 }
 
+const duplicateState = {
+  nic: { exists: false, message: '' },
+  phone: { exists: false, message: '' },
+  email: { exists: false, message: '' }
+};
+
+function setupLiveDuplicateCheck(inputId, statusId, fieldKey, isReadyFn) {
+  const input = document.getElementById(inputId);
+  const statusEl = document.getElementById(statusId);
+  if (!input || !statusEl) return;
+
+  let timer = null;
+  let lastChecked = '';
+
+  function renderStatus(state, text) {
+    if (state === 'idle') {
+      statusEl.className = 'small mt-1 d-none';
+      statusEl.textContent = '';
+      input.classList.remove('is-invalid', 'is-valid');
+      return;
+    }
+    if (state === 'error') {
+      statusEl.className = 'small mt-1.5 px-2.5 py-1.5 rounded-3 d-flex align-items-start gap-1.5 fw-semibold';
+      statusEl.style.cssText = 'font-size: 0.76rem; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;';
+      statusEl.innerHTML = '<i class="bi bi-x-circle-fill flex-shrink-0 mt-0.5"></i><span>' + text + '</span>';
+      input.classList.add('is-invalid');
+      input.classList.remove('is-valid');
+      return;
+    }
+    if (state === 'ok') {
+      statusEl.className = 'small mt-1 d-flex align-items-center gap-1 text-success fw-semibold';
+      statusEl.style.cssText = 'font-size: 0.74rem;';
+      statusEl.innerHTML = '<i class="bi bi-check-circle-fill"></i><span>Available</span>';
+      input.classList.remove('is-invalid');
+      input.classList.add('is-valid');
+    }
+  }
+
+  async function runCheck() {
+    const val = input.value.trim();
+    if (!val || !isReadyFn(val)) {
+      duplicateState[fieldKey] = { exists: false, message: '' };
+      lastChecked = '';
+      renderStatus('idle', '');
+      return;
+    }
+    if (val === lastChecked) return;
+    lastChecked = val;
+
+    try {
+      const resp = await fetch('index.php?page=ajax_check_register&field=' + encodeURIComponent(fieldKey) + '&value=' + encodeURIComponent(val));
+      const data = await resp.json();
+      if (input.value.trim() !== val) return;
+
+      if (data && data.exists) {
+        duplicateState[fieldKey] = { exists: true, message: data.message };
+        renderStatus('error', data.message);
+      } else {
+        duplicateState[fieldKey] = { exists: false, message: '' };
+        renderStatus('ok', '');
+      }
+    } catch (err) {
+      duplicateState[fieldKey] = { exists: false, message: '' };
+    }
+  }
+
+  input.addEventListener('input', function () {
+    clearTimeout(timer);
+    timer = setTimeout(runCheck, 350);
+  });
+  input.addEventListener('blur', function () {
+    clearTimeout(timer);
+    runCheck();
+  });
+  if (input.value.trim()) {
+    runCheck();
+  }
+}
+
+setupLiveDuplicateCheck('regNic', 'nicLiveStatus', 'nic', (v) => /^([0-9]{9}[VvXx]|[0-9]{12})$/.test(v.toUpperCase()));
+setupLiveDuplicateCheck('phoneInput', 'phoneLiveStatus', 'phone', (v) => v.replace(/[^0-9]/g, '').length >= 9);
+setupLiveDuplicateCheck('regEmail', 'emailLiveStatus', 'email', (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
+
 // Client-side validation to prevent page refresh & lost inputs!
 document.getElementById('studentRegisterForm')?.addEventListener('submit', function (e) {
   const alertBox = document.getElementById('regClientAlert');
@@ -470,14 +558,23 @@ document.getElementById('studentRegisterForm')?.addEventListener('submit', funct
   if (!nicVal || !/^([0-9]{9}[VX]|[0-9]{12})$/.test(nicVal)) {
     errors.push('Please enter a valid 12-digit NIC or 9-digit NIC ending in V/X.');
     nicEl.classList.add('is-invalid');
+  } else if (duplicateState.nic.exists) {
+    errors.push(duplicateState.nic.message);
+    nicEl.classList.add('is-invalid');
   }
   if (!phoneEl.value.trim() || phoneEl.value.replace(/[^0-9]/g, '').length < 9) {
     errors.push('Please enter a valid mobile phone number.');
+    phoneEl.classList.add('is-invalid');
+  } else if (duplicateState.phone.exists) {
+    errors.push(duplicateState.phone.message);
     phoneEl.classList.add('is-invalid');
   }
   const emailVal = emailEl.value.trim();
   if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
     errors.push('Please enter a valid email address.');
+    emailEl.classList.add('is-invalid');
+  } else if (duplicateState.email.exists) {
+    errors.push(duplicateState.email.message);
     emailEl.classList.add('is-invalid');
   }
   if (!checkPasswordRules()) {

@@ -33,13 +33,20 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Auto-dismiss alerts after 5 seconds
-  const autoAlerts = document.querySelectorAll('.alert-dismissible');
+  // Auto-dismiss non-critical alerts after 9 seconds (pause on hover)
+  const autoAlerts = document.querySelectorAll('.alert-dismissible:not(.alert-persistent)');
   autoAlerts.forEach((alert) => {
-    setTimeout(() => {
+    let timer = setTimeout(() => {
       const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
       if (bsAlert) bsAlert.close();
-    }, 5000);
+    }, 9000);
+    alert.addEventListener('mouseenter', () => clearTimeout(timer));
+    alert.addEventListener('mouseleave', () => {
+      timer = setTimeout(() => {
+        const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+        if (bsAlert) bsAlert.close();
+      }, 4500);
+    });
   });
 
   // Initialize Lucide Icons

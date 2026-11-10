@@ -163,6 +163,81 @@ class AuthController {
         require_once __DIR__ . '/../Views/auth/register.php';
     }
 
+    /**
+     * Check whether email, NIC, or mobile phone is already registered.
+     */
+    private function findExistingRegisterField(PDO $db, string $field, string $value): bool {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return false;
+        }
+
+        if ($field === 'email') {
+            $stmt = $db->prepare("SELECT id FROM users WHERE LOWER(TRIM(email)) = LOWER(?) LIMIT 1");
+            $stmt->execute([$trimmed]);
+            return (bool)$stmt->fetchColumn();
+        }
+
+        if ($field === 'nic') {
+            $normalized = strtoupper(str_replace(' ', '', $trimmed));
+            $stmt = $db->prepare("SELECT id FROM student_profiles WHERE UPPER(REPLACE(TRIM(nic), ' ', '')) = ? LIMIT 1");
+            $stmt->execute([$normalized]);
+            return (bool)$stmt->fetchColumn();
+        }
+
+        if ($field === 'phone') {
+            $digits = preg_replace('/[^0-9]/', '', $trimmed);
+            if (strlen($digits) < 9) {
+                return false;
+            }
+            $lastNine = substr($digits, -9);
+            $stmt = $db->prepare("
+                SELECT id FROM student_profiles
+                WHERE phone IS NOT NULL AND phone != ''
+                  AND RIGHT(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '+', ''), 9) = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$lastNine]);
+            return (bool)$stmt->fetchColumn();
+        }
+
+        return false;
+    }
+
+    /**
+     * AJAX endpoint: Instant duplicate field check while student types in the registration form.
+     */
+    public function checkRegisterDuplicate(): void {
+        header('Content-Type: application/json; charset=UTF-8');
+
+        $field = trim($_GET['field'] ?? $_POST['field'] ?? '');
+        $value = trim($_GET['value'] ?? $_POST['value'] ?? '');
+
+        $messages = [
+            'email' => 'This email address is already registered! You cannot register with it again (මෙම Email එක දැනටමත් register කර ඇත).',
+            'nic'   => 'This NIC number is already registered! You cannot add it again (මෙම NIC අංකය දැනටමත් register කර ඇත).',
+            'phone' => 'This mobile number is already linked to an existing student account (මෙම දුරකථන අංකය දැනටමත් ඇතුළත් කර ඇත).',
+        ];
+
+        if (!isset($messages[$field]) || $value === '') {
+            echo json_encode(['exists' => false, 'message' => '']);
+            exit;
+        }
+
+        try {
+            $db = Database::getConnection();
+            $exists = $this->findExistingRegisterField($db, $field, $value);
+            echo json_encode([
+                'exists'  => $exists,
+                'message' => $exists ? $messages[$field] : '',
+            ]);
+        } catch (Exception $e) {
+            error_log('Register duplicate check error: ' . $e->getMessage());
+            echo json_encode(['exists' => false, 'message' => '']);
+        }
+        exit;
+    }
+
     public function handleRegister(): void {
         Csrf::checkOrAbort();
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
@@ -230,23 +305,24 @@ class AuthController {
         }
 
         // Check if email already registered
-        $stmt = $db->prepare("SELECT id FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        if ($stmt->fetch()) {
+        if ($this->findExistingRegisterField($db, 'email', $email)) {
             Flash::error('This email is already registered. Please sign in or use a different email.');
             header('Location: index.php?page=register');
             exit;
         }
 
         // Check if NIC already registered
-        if (!empty($nic)) {
-            $nicStmt = $db->prepare("SELECT id FROM student_profiles WHERE nic = ?");
-            $nicStmt->execute([$nic]);
-            if ($nicStmt->fetch()) {
-                Flash::error("A student account with NIC '$nic' already exists. Please sign in or use Account Activation.");
-                header('Location: index.php?page=register');
-                exit;
-            }
+        if (!empty($nic) && $this->findExistingRegisterField($db, 'nic', $nic)) {
+            Flash::error("A student account with NIC '$nic' already exists. Please sign in or contact administration.");
+            header('Location: index.php?page=register');
+            exit;
+        }
+
+        // Check if Mobile Phone already registered
+        if (!empty($phone) && $this->findExistingRegisterField($db, 'phone', $phone)) {
+            Flash::error("This mobile number ($phone) is already registered to another student account.");
+            header('Location: index.php?page=register');
+            exit;
         }
 
         try {

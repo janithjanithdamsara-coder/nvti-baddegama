@@ -64,6 +64,9 @@ switch ($page) {
     case 'register':
         (new AuthController())->showRegister();
         break;
+    case 'ajax_check_register':
+        (new AuthController())->checkRegisterDuplicate();
+        break;
     case 'register_process':
         (new AuthController())->handleRegister();
         break;
