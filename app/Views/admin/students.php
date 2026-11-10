@@ -230,15 +230,21 @@ $search = trim($_GET['search'] ?? '');
       </div>
 
       <!-- Students Table Card -->
-      <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
+      <div class="card border shadow-sm rounded-4 mb-4 bg-white">
         <!-- Table Header Banner Info -->
-        <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-light">
+        <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-light rounded-top-4 flex-wrap gap-2">
           <div class="d-flex align-items-center gap-2">
-            <span class="badge rounded-circle p-1.5 text-white d-flex align-items-center justify-content-center" style="background: <?= ($batchStatus === 'active') ? '#7A1418' : '#475569' ?>; width: 28px; height: 28px;">
-              <i class="bi bi-<?= ($batchStatus === 'active') ? 'people-fill' : 'archive-fill' ?>" style="font-size: 0.85rem;"></i>
+            <span class="badge rounded-circle p-1.5 text-white d-flex align-items-center justify-content-center" style="background: <?= ($batchStatus === 'active') ? '#7A1418' : (($batchStatus === 'pending') ? '#d97706' : '#475569') ?>; width: 28px; height: 28px;">
+              <i class="bi bi-<?= ($batchStatus === 'active') ? 'people-fill' : (($batchStatus === 'pending') ? 'hourglass-split' : 'archive-fill') ?>" style="font-size: 0.85rem;"></i>
             </span>
             <span class="fw-bold text-dark small">
-              <?= ($batchStatus === 'active') ? 'Currently Enrolled Students' : 'Archived / Graduated Students Directory' ?>
+              <?php if ($batchStatus === 'pending'): ?>
+                Pending Student Approvals
+              <?php elseif ($batchStatus === 'archived'): ?>
+                Archived / Graduated Students Directory
+              <?php else: ?>
+                Currently Enrolled Students
+              <?php endif; ?>
             </span>
             <span class="badge bg-secondary-subtle text-secondary rounded-pill font-monospace" style="font-size: 0.72rem;">
               Showing <?= count($students) ?> students
@@ -253,7 +259,7 @@ $search = trim($_GET['search'] ?? '');
         </div>
 
         <div class="table-responsive">
-          <table class="table table-hover table-custom align-middle mb-0">
+          <table class="table table-hover align-middle mb-0" style="font-size: 0.86rem;">
             <thead class="table-light">
               <tr style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px;">
                 <th class="ps-3 py-3">Student Details</th>
@@ -361,10 +367,10 @@ $search = trim($_GET['search'] ?? '');
                         <?php endif; ?>
 
                         <div class="dropdown d-inline-block">
-                          <button class="btn btn-sm btn-light border dropdown-toggle rounded-pill px-3 py-1 shadow-xs" type="button" data-bs-toggle="dropdown" style="font-size: 0.78rem;">
+                          <button class="btn btn-sm btn-light border dropdown-toggle rounded-pill px-3 py-1 shadow-xs" type="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' style="font-size: 0.78rem;">
                             Manage
                           </button>
-                          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
+                          <ul class="dropdown-menu dropdown-menu-end shadow border rounded-3" style="z-index: 1060;">
                             <li>
                               <button type="button" class="dropdown-item py-1.5 fw-semibold text-primary" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['student_code'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')">
                                 <i class="bi bi-file-earmark-check me-2"></i>Verification Docs

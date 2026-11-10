@@ -155,6 +155,10 @@ class AuthController {
         }
         $class = $activeBatches[0];
 
+        // Retrieve preserved old input if a previous submission had a server-side error
+        $oldReg = $_SESSION['old_register'] ?? [];
+        unset($_SESSION['old_register']);
+
         $pageTitle = "Student Registration";
         require_once __DIR__ . '/../Views/auth/register.php';
     }
@@ -173,6 +177,17 @@ class AuthController {
         $requestedClassId = !empty($_POST['class_id']) ? (int)$_POST['class_id'] : 0;
         $password       = $_POST['password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
+
+        // Save old inputs so user never loses typed data on validation error
+        $_SESSION['old_register'] = [
+            'name'            => $fullName,
+            'email'           => $email,
+            'phone'           => $phone,
+            'whatsapp_number' => $whatsappNumber,
+            'nic'             => $nic,
+            'address'         => $address,
+            'class_id'        => $requestedClassId,
+        ];
 
         // Basic validations
         if (empty($fullName) || empty($email) || empty($password)) {
@@ -264,6 +279,7 @@ class AuthController {
 
             Auth::logAudit($userId, 'STUDENT_REGISTER_PENDING', "Student registered ($studentCode) - awaiting Admin verification.");
             $db->commit();
+            unset($_SESSION['old_register']);
 
             Flash::info("Registration submitted successfully, $fullName! Your profile is now pending confirmation by the NVTI Baddegama Administration. Once confirmed as a diploma student, you will receive an approval email at <strong>$email</strong> and can sign in.");
             header('Location: index.php?page=login');

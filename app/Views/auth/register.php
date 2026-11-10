@@ -172,7 +172,18 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
           <!-- Form Body -->
           <div class="p-4 p-md-5">
-            <form action="index.php?page=register_process" method="POST" autocomplete="off" id="studentRegisterForm">
+            <?php $old = $oldReg ?? []; ?>
+            <div id="regClientAlert" class="alert alert-danger border-0 rounded-4 shadow-sm d-none mb-4 small" role="alert">
+              <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+                <div>
+                  <strong class="d-block mb-0.5">Please fix the following before submitting:</strong>
+                  <span id="regClientAlertMsg"></span>
+                </div>
+              </div>
+            </div>
+
+            <form action="index.php?page=register_process" method="POST" autocomplete="off" id="studentRegisterForm" novalidate>
               <?= Csrf::field() ?>
 
               <!-- Hidden Course Binding -->
@@ -184,7 +195,9 @@ require_once __DIR__ . '/../layouts/navbar.php';
                   <label class="form-label fw-semibold small text-secondary">Select Active Academic Batch *</label>
                   <select name="class_id" class="form-select reg-form-control" required>
                     <?php foreach ($activeBatches as $ab): ?>
-                      <option value="<?= (int)$ab['id'] ?>"><?= e($ab['class_name']) ?> (<?= e($ab['academic_year']) ?>)</option>
+                      <option value="<?= (int)$ab['id'] ?>" <?= ((int)($old['class_id'] ?? 0) === (int)$ab['id']) ? 'selected' : '' ?>>
+                        <?= e($ab['class_name']) ?> (<?= e($ab['academic_year']) ?>)
+                      </option>
                     <?php endforeach; ?>
                   </select>
                 </div>
@@ -212,7 +225,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                     <label class="form-label fw-semibold small text-secondary">Full Name (with initials) *</label>
                     <div class="input-group reg-input-group">
                       <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
-                      <input type="text" name="name" class="form-control" placeholder="e.g. Kasun Madushanka Silva" required autofocus>
+                      <input type="text" name="name" id="regName" class="form-control" placeholder="e.g. Kasun Madushanka Silva" value="<?= e($old['name'] ?? '') ?>" required autofocus>
                     </div>
                   </div>
 
@@ -221,7 +234,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                     <label class="form-label fw-semibold small text-secondary">National Identity Card (NIC) *</label>
                     <div class="input-group reg-input-group">
                       <span class="input-group-text"><i class="bi bi-card-heading"></i></span>
-                      <input type="text" name="nic" class="form-control text-uppercase" placeholder="e.g. 200112345678 or 991234567V" required>
+                      <input type="text" name="nic" id="regNic" class="form-control text-uppercase" placeholder="e.g. 200112345678 or 991234567V" value="<?= e($old['nic'] ?? '') ?>" required>
                     </div>
                     <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">12-digit new NIC or 9-digit old NIC with V/X.</small>
                   </div>
@@ -231,7 +244,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                     <label class="form-label fw-semibold small text-secondary">Mobile Phone Number *</label>
                     <div class="input-group reg-input-group">
                       <span class="input-group-text"><i class="bi bi-telephone-fill"></i></span>
-                      <input type="tel" name="phone" id="phoneInput" class="form-control" placeholder="e.g. 0771234567" required>
+                      <input type="tel" name="phone" id="phoneInput" class="form-control" placeholder="e.g. 0771234567" value="<?= e($old['phone'] ?? '') ?>" required>
                     </div>
                   </div>
 
@@ -245,14 +258,14 @@ require_once __DIR__ . '/../layouts/navbar.php';
                     </div>
                     <div class="input-group reg-input-group">
                       <span class="input-group-text text-success"><i class="bi bi-whatsapp"></i></span>
-                      <input type="tel" name="whatsapp_number" id="whatsappInput" class="form-control" placeholder="e.g. 0771234567">
+                      <input type="tel" name="whatsapp_number" id="whatsappInput" class="form-control" placeholder="e.g. 0771234567" value="<?= e($old['whatsapp_number'] ?? '') ?>">
                     </div>
                   </div>
 
                   <!-- Residential Address -->
                   <div class="col-12">
                     <label class="form-label fw-semibold small text-secondary">Residential / Postal Address</label>
-                    <textarea name="address" class="form-control reg-form-control" rows="2" placeholder="Street, Village / Town, City"></textarea>
+                    <textarea name="address" id="regAddress" class="form-control reg-form-control" rows="2" placeholder="Street, Village / Town, City"><?= e($old['address'] ?? '') ?></textarea>
                   </div>
                 </div>
               </div>
@@ -270,9 +283,9 @@ require_once __DIR__ . '/../layouts/navbar.php';
                     <label class="form-label fw-semibold small text-secondary">Login Email Address *</label>
                     <div class="input-group reg-input-group">
                       <span class="input-group-text"><i class="bi bi-envelope-at-fill"></i></span>
-                      <input type="email" name="email" class="form-control" placeholder="e.g. student@gmail.com" required>
+                      <input type="email" name="email" id="regEmail" class="form-control" placeholder="e.g. student@gmail.com" value="<?= e($old['email'] ?? '') ?>" required>
                     </div>
-                    <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">You will use this email address to log in to your student portal.</small>
+                    <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">Approval notification and login details will be sent to this email.</small>
                   </div>
 
                   <!-- Create Password -->
@@ -280,7 +293,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                     <label class="form-label fw-semibold small text-secondary">Create Password *</label>
                     <div class="input-group reg-input-group">
                       <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
-                      <input type="password" name="password" id="regPassword" class="form-control" placeholder="Min 8 chars, 1 uppercase, 1 digit" minlength="8" required>
+                      <input type="password" name="password" id="regPassword" class="form-control" placeholder="e.g. Kasun@2026" minlength="8" required oninput="checkPasswordRules()">
                       <button class="btn btn-light border border-start-0" type="button" onclick="togglePassword('regPassword', 'toggleIcon1')" style="border-radius: 0 14px 14px 0 !important;">
                         <i class="bi bi-eye" id="toggleIcon1"></i>
                       </button>
@@ -292,19 +305,36 @@ require_once __DIR__ . '/../layouts/navbar.php';
                     <label class="form-label fw-semibold small text-secondary">Confirm Password *</label>
                     <div class="input-group reg-input-group">
                       <span class="input-group-text"><i class="bi bi-shield-lock-fill"></i></span>
-                      <input type="password" name="confirm_password" id="regConfirmPassword" class="form-control" placeholder="Re-enter password" minlength="8" required>
+                      <input type="password" name="confirm_password" id="regConfirmPassword" class="form-control" placeholder="Re-enter password" minlength="8" required oninput="checkPasswordMatch()">
                       <button class="btn btn-light border border-start-0" type="button" onclick="togglePassword('regConfirmPassword', 'toggleIcon2')" style="border-radius: 0 14px 14px 0 !important;">
                         <i class="bi bi-eye" id="toggleIcon2"></i>
                       </button>
                     </div>
+                    <div id="regMatchMsg" class="small mt-1 d-none" style="font-size: 0.75rem;"></div>
                   </div>
                 </div>
 
-                <!-- Password Policy Notice -->
+                <!-- Live Interactive Password Format Checklist (JS) -->
                 <div class="reg-helper-card mt-3">
-                  <div class="d-flex align-items-center gap-2 text-secondary small">
-                    <i class="bi bi-shield-check text-danger fs-6"></i>
-                    <span>Password must be at least <strong>8 characters</strong> with uppercase, lowercase, and a number.</span>
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="fw-bold text-dark small d-flex align-items-center gap-1.5">
+                      <i class="bi bi-shield-check text-danger fs-6"></i> Password Format Requirements
+                    </span>
+                    <span id="regStrengthBadge" class="badge bg-secondary-subtle text-secondary rounded-pill" style="font-size: 0.7rem;">Enter Password</span>
+                  </div>
+                  <div class="row g-1.5 small" style="font-size: 0.78rem;">
+                    <div class="col-12 col-sm-6" id="ruleLen">
+                      <i class="bi bi-circle text-muted me-1"></i> <span class="text-muted">Minimum 8 characters</span>
+                    </div>
+                    <div class="col-12 col-sm-6" id="ruleUpper">
+                      <i class="bi bi-circle text-muted me-1"></i> <span class="text-muted">One uppercase letter (A-Z)</span>
+                    </div>
+                    <div class="col-12 col-sm-6" id="ruleLower">
+                      <i class="bi bi-circle text-muted me-1"></i> <span class="text-muted">One lowercase letter (a-z)</span>
+                    </div>
+                    <div class="col-12 col-sm-6" id="ruleDigit">
+                      <i class="bi bi-circle text-muted me-1"></i> <span class="text-muted">At least one number (0-9)</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -313,7 +343,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
               <div class="pt-2">
                 <button type="submit" class="btn reg-btn-submit w-100 d-flex align-items-center justify-content-center gap-2 mb-3">
                   <i class="bi bi-person-check-fill fs-5"></i>
-                  <span>Register &amp; Access Student Portal</span>
+                  <span>Submit Registration for Approval</span>
                   <i class="bi bi-arrow-right fs-5"></i>
                 </button>
               </div>
@@ -356,6 +386,118 @@ function copyPhoneToWhatsapp() {
     document.getElementById('whatsappInput').value = phone;
   }
 }
+
+function updateRuleState(elId, passed, label) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (passed) {
+    el.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i> <span class="text-success fw-semibold">' + label + '</span>';
+  } else {
+    el.innerHTML = '<i class="bi bi-circle text-muted me-1"></i> <span class="text-muted">' + label + '</span>';
+  }
+}
+
+function checkPasswordRules() {
+  const pwd = document.getElementById('regPassword').value;
+  const hasLen = pwd.length >= 8;
+  const hasUpper = /[A-Z]/.test(pwd);
+  const hasLower = /[a-z]/.test(pwd);
+  const hasDigit = /[0-9]/.test(pwd);
+
+  updateRuleState('ruleLen', hasLen, 'Minimum 8 characters');
+  updateRuleState('ruleUpper', hasUpper, 'One uppercase letter (A-Z)');
+  updateRuleState('ruleLower', hasLower, 'One lowercase letter (a-z)');
+  updateRuleState('ruleDigit', hasDigit, 'At least one number (0-9)');
+
+  const passedCount = [hasLen, hasUpper, hasLower, hasDigit].filter(Boolean).length;
+  const badge = document.getElementById('regStrengthBadge');
+  if (!pwd) {
+    badge.className = 'badge bg-secondary-subtle text-secondary rounded-pill';
+    badge.textContent = 'Enter Password';
+  } else if (passedCount === 4) {
+    badge.className = 'badge bg-success text-white rounded-pill';
+    badge.textContent = 'Strong & Valid';
+  } else if (passedCount >= 2) {
+    badge.className = 'badge bg-warning text-dark rounded-pill';
+    badge.textContent = 'Almost There (' + passedCount + '/4)';
+  } else {
+    badge.className = 'badge bg-danger text-white rounded-pill';
+    badge.textContent = 'Weak (' + passedCount + '/4)';
+  }
+
+  checkPasswordMatch();
+  return passedCount === 4;
+}
+
+function checkPasswordMatch() {
+  const pwd = document.getElementById('regPassword').value;
+  const cpwd = document.getElementById('regConfirmPassword').value;
+  const msg = document.getElementById('regMatchMsg');
+  if (!cpwd) {
+    msg.classList.add('d-none');
+    return false;
+  }
+  msg.classList.remove('d-none');
+  if (pwd === cpwd) {
+    msg.innerHTML = '<span class="text-success fw-semibold"><i class="bi bi-check-circle-fill me-1"></i>Passwords match</span>';
+    return true;
+  } else {
+    msg.innerHTML = '<span class="text-danger fw-semibold"><i class="bi bi-x-circle-fill me-1"></i>Passwords do not match</span>';
+    return false;
+  }
+}
+
+// Client-side validation to prevent page refresh & lost inputs!
+document.getElementById('studentRegisterForm')?.addEventListener('submit', function (e) {
+  const alertBox = document.getElementById('regClientAlert');
+  const alertMsg = document.getElementById('regClientAlertMsg');
+  const errors = [];
+
+  const nameEl = document.getElementById('regName');
+  const nicEl = document.getElementById('regNic');
+  const phoneEl = document.getElementById('phoneInput');
+  const emailEl = document.getElementById('regEmail');
+  const pwdEl = document.getElementById('regPassword');
+  const cpwdEl = document.getElementById('regConfirmPassword');
+
+  [nameEl, nicEl, phoneEl, emailEl, pwdEl, cpwdEl].forEach(el => el?.classList.remove('is-invalid'));
+
+  if (!nameEl.value.trim()) {
+    errors.push('Full Name is required.');
+    nameEl.classList.add('is-invalid');
+  }
+  const nicVal = nicEl.value.trim().toUpperCase();
+  if (!nicVal || !/^([0-9]{9}[VX]|[0-9]{12})$/.test(nicVal)) {
+    errors.push('Please enter a valid 12-digit NIC or 9-digit NIC ending in V/X.');
+    nicEl.classList.add('is-invalid');
+  }
+  if (!phoneEl.value.trim() || phoneEl.value.replace(/[^0-9]/g, '').length < 9) {
+    errors.push('Please enter a valid mobile phone number.');
+    phoneEl.classList.add('is-invalid');
+  }
+  const emailVal = emailEl.value.trim();
+  if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+    errors.push('Please enter a valid email address.');
+    emailEl.classList.add('is-invalid');
+  }
+  if (!checkPasswordRules()) {
+    errors.push('Password must be at least 8 characters and include 1 uppercase, 1 lowercase, and 1 number.');
+    pwdEl.classList.add('is-invalid');
+  }
+  if (pwdEl.value !== cpwdEl.value) {
+    errors.push('Password confirmation does not match.');
+    cpwdEl.classList.add('is-invalid');
+  }
+
+  if (errors.length > 0) {
+    e.preventDefault();
+    alertMsg.innerHTML = errors.join('<br>');
+    alertBox.classList.remove('d-none');
+    alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else {
+    alertBox.classList.add('d-none');
+  }
+});
 </script>
 
 <?php require_once __DIR__ . '/../layouts/footer.php'; ?>

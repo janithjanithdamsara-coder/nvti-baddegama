@@ -31,11 +31,11 @@ require_once __DIR__ . '/../layouts/navbar.php';
       <?php if (isset($docSummary) && !$docSummary['is_all_verified']): ?>
         <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(90deg, #fff7ed 0%, #ffedd5 100%); border-left: 5px solid #ea580c !important;">
           <div class="card-body p-3 p-md-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-            <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2.5 min-w-0 w-100">
+            <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2.5 flex-grow-1 min-w-0">
               <div class="rounded-circle bg-white p-2 d-flex align-items-center justify-content-center shadow-sm text-warning flex-shrink-0" style="width: 44px; height: 44px;">
                 <i class="bi bi-file-earmark-check-fill fs-4 text-warning"></i>
               </div>
-              <div class="min-w-0 flex-grow-1">
+              <div class="min-w-0">
                 <div class="d-flex flex-wrap align-items-center gap-1.5 mb-1">
                   <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.7rem;">ENROLLMENT VERIFICATION</span>
                   <span class="text-muted small" style="font-size: 0.78rem;">&bull; <?= $docSummary['uploaded'] ?> of <?= $docSummary['total'] ?> Certificates Uploaded</span>
@@ -50,7 +50,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                 <small class="text-secondary d-block" style="line-height: 1.4;">Please ensure all 7 official certificates (O/L, A/L, GN, Character, Leaving, Birth, NIC) are uploaded for diploma verification.</small>
               </div>
             </div>
-            <a href="index.php?page=student_documents" class="btn btn-warning btn-sm fw-bold px-3.5 py-2 rounded-pill shadow-sm text-nowrap d-inline-flex align-items-center justify-content-center gap-1.5 flex-shrink-0 w-100 w-md-auto" style="background: #ea580c; border-color: #ea580c; color: #fff;">
+            <a href="index.php?page=student_documents" class="btn btn-warning btn-sm fw-bold px-3.5 py-2 rounded-pill shadow-sm text-nowrap d-inline-flex align-items-center justify-content-center gap-1.5 flex-shrink-0" style="background: #ea580c; border-color: #ea580c; color: #fff;">
               <i class="bi bi-cloud-arrow-up-fill"></i>
               <span><?= !$docSummary['is_complete'] ? 'Upload Documents' : 'View Document Status' ?> &rarr;</span>
             </a>
