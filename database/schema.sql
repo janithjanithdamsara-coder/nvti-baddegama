@@ -176,6 +176,7 @@ CREATE TABLE `materials` (
   `external_url` TEXT DEFAULT NULL,
   `file_size_bytes` BIGINT DEFAULT 0,
   `download_count` INT DEFAULT 0,
+  `is_hidden` TINYINT(1) NOT NULL DEFAULT 0,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`teacher_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`class_id`) REFERENCES `classes`(`id`) ON DELETE CASCADE,

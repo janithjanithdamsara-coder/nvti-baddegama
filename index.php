@@ -181,6 +181,18 @@ switch ($page) {
     case 'admin_delete_material':
         (new AdminController())->deleteMaterial();
         break;
+    case 'admin_toggle_material_visibility':
+        (new AdminController())->toggleMaterialVisibility();
+        break;
+    case 'admin_bulk_materials':
+        (new AdminController())->bulkMaterials();
+        break;
+    case 'admin_module_materials_action':
+        (new AdminController())->moduleMaterialsAction();
+        break;
+    case 'admin_global_materials_action':
+        (new AdminController())->globalMaterialsAction();
+        break;
     case 'admin_delete_assignment':
         (new AdminController())->deleteAssignment();
         break;
@@ -236,6 +248,9 @@ switch ($page) {
         break;
     case 'teacher_delete_material':
         (new TeacherController())->deleteMaterial();
+        break;
+    case 'teacher_toggle_material_visibility':
+        (new TeacherController())->toggleMaterialVisibility();
         break;
     case 'teacher_assignments':
         (new TeacherController())->assignments();
@@ -330,13 +345,18 @@ switch ($page) {
         Auth::requireLogin();
         $matId = (int)($_GET['id'] ?? 0);
         $db = Database::getConnection();
-        $stmt = $db->prepare("SELECT file_path, original_filename FROM materials WHERE id = ?");
+        $stmt = $db->prepare("SELECT file_path, original_filename, is_hidden FROM materials WHERE id = ?");
         $stmt->execute([$matId]);
         $row = $stmt->fetch();
 
         if (!$row || empty($row['file_path'])) {
             http_response_code(404);
             die("Study material file not found.");
+        }
+
+        if (Auth::role() === 'student' && !empty($row['is_hidden'])) {
+            http_response_code(403);
+            die("<div style='font-family:sans-serif;padding:30px;text-align:center;'><h3>Access Restricted</h3><p>This study material has been archived or hidden by the course instructor / administrator.</p><a href='index.php?page=student_materials'>Return to Classroom Hub</a></div>");
         }
 
         // Increment download counter
@@ -359,6 +379,11 @@ switch ($page) {
         if (!$row) {
             http_response_code(404);
             die("Study material not found.");
+        }
+
+        if (Auth::role() === 'student' && !empty($row['is_hidden'])) {
+            http_response_code(403);
+            die("<div style='font-family:sans-serif;padding:30px;text-align:center;'><h3>Access Restricted</h3><p>This study material has been archived or hidden by the course instructor / administrator.</p><a href='index.php?page=student_materials'>Return to Classroom Hub</a></div>");
         }
 
         if ($row['material_type'] === 'youtube' || $row['material_type'] === 'url') {

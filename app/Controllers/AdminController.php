@@ -748,6 +748,7 @@ class AdminController {
                     'original_filename' => $m['original_filename'],
                     'external_url'=> $m['external_url'],
                     'file_size'   => $m['file_size_bytes'],
+                    'is_hidden'   => (int)($m['is_hidden'] ?? 0),
                     'data'        => $m
                 ];
             }
@@ -782,6 +783,7 @@ class AdminController {
                        cs.id as class_subject_id, cs.class_id, c.class_name,
                        u.id as teacher_id, u.name as teacher_name, u.email as teacher_email,
                        (SELECT COUNT(*) FROM materials m WHERE m.subject_id = s.id AND m.class_id = cs.class_id) as materials_count,
+                       (SELECT COUNT(*) FROM materials m WHERE m.subject_id = s.id AND m.class_id = cs.class_id AND m.is_hidden = 1) as hidden_materials_count,
                        (SELECT COUNT(*) FROM assignments a WHERE a.subject_id = s.id AND a.class_id = cs.class_id) as assignments_count
                 FROM subjects s
                 JOIN class_subjects cs ON s.id = cs.subject_id
@@ -798,6 +800,7 @@ class AdminController {
 
             // Total statistics
             $totalMaterials = $db->query("SELECT COUNT(*) FROM materials")->fetchColumn();
+            $totalHiddenMaterials = $db->query("SELECT COUNT(*) FROM materials WHERE is_hidden = 1")->fetchColumn();
             $totalAssignments = $db->query("SELECT COUNT(*) FROM assignments")->fetchColumn();
 
             $pageTitle = "Google Classroom Hub & Subject Modules";
@@ -993,6 +996,227 @@ class AdminController {
         }
 
         header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+        exit;
+    }
+
+    /**
+     * Admin Toggle Material Visibility (Hide / Unhide)
+     */
+    public function toggleMaterialVisibility(): void {
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+
+        $matId = (int)($_POST['material_id'] ?? 0);
+        $subjectId = (int)($_POST['subject_id'] ?? 0);
+
+        if ($matId > 0) {
+            $stmt = $db->prepare("SELECT title, is_hidden FROM materials WHERE id = ?");
+            $stmt->execute([$matId]);
+            $mat = $stmt->fetch();
+
+            if ($mat) {
+                $newStatus = ((int)$mat['is_hidden'] === 1) ? 0 : 1;
+                $upd = $db->prepare("UPDATE materials SET is_hidden = ? WHERE id = ?");
+                $upd->execute([$newStatus, $matId]);
+
+                $statusLabel = ($newStatus === 1) ? 'Hidden from students' : 'Visible to students';
+                Auth::logAudit(Auth::id(), 'TOGGLE_MATERIAL_VISIBILITY', "Changed visibility of '{$mat['title']}' to $statusLabel");
+                Flash::success("Study material '{$mat['title']}' is now {$statusLabel}.");
+            }
+        }
+
+        header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+        exit;
+    }
+
+    /**
+     * Admin Bulk Material Operations (Hide, Unhide, Delete)
+     */
+    public function bulkMaterials(): void {
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+
+        $action = trim($_POST['bulk_action'] ?? '');
+        $subjectId = (int)($_POST['subject_id'] ?? 0);
+        $materialIds = $_POST['material_ids'] ?? [];
+
+        if (empty($materialIds) || !is_array($materialIds)) {
+            Flash::error("Please select at least one material to perform this action.");
+            header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+            exit;
+        }
+
+        $cleanIds = array_map('intval', $materialIds);
+        $cleanIds = array_values(array_filter($cleanIds, fn($id) => $id > 0));
+
+        if (empty($cleanIds)) {
+            Flash::error("No valid materials selected.");
+            header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+            exit;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($cleanIds), '?'));
+
+        if ($action === 'hide') {
+            $stmt = $db->prepare("UPDATE materials SET is_hidden = 1 WHERE id IN ($placeholders)");
+            $stmt->execute($cleanIds);
+            Auth::logAudit(Auth::id(), 'BULK_HIDE_MATERIALS', "Hidden " . count($cleanIds) . " materials");
+            Flash::success(count($cleanIds) . " study materials have been hidden from students.");
+        } elseif ($action === 'unhide') {
+            $stmt = $db->prepare("UPDATE materials SET is_hidden = 0 WHERE id IN ($placeholders)");
+            $stmt->execute($cleanIds);
+            Auth::logAudit(Auth::id(), 'BULK_UNHIDE_MATERIALS', "Unhidden " . count($cleanIds) . " materials");
+            Flash::success(count($cleanIds) . " study materials are now visible to students.");
+        } elseif ($action === 'delete') {
+            // Unlink files
+            $fStmt = $db->prepare("SELECT file_path FROM materials WHERE id IN ($placeholders)");
+            $fStmt->execute($cleanIds);
+            $files = $fStmt->fetchAll();
+            foreach ($files as $f) {
+                if (!empty($f['file_path'])) {
+                    @unlink(MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $f['file_path']);
+                }
+            }
+            $stmt = $db->prepare("DELETE FROM materials WHERE id IN ($placeholders)");
+            $stmt->execute($cleanIds);
+            Auth::logAudit(Auth::id(), 'BULK_DELETE_MATERIALS', "Deleted " . count($cleanIds) . " materials");
+            Flash::success(count($cleanIds) . " study materials have been permanently deleted.");
+        } else {
+            Flash::error("Invalid bulk action requested.");
+        }
+
+        header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+        exit;
+    }
+
+    /**
+     * Admin Module Materials Action (Hide all / Unhide all / Delete all in subject module)
+     */
+    public function moduleMaterialsAction(): void {
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+
+        $subjectId = (int)($_POST['subject_id'] ?? 0);
+        $classId = (int)($_POST['class_id'] ?? 1);
+        $action = trim($_POST['module_action'] ?? '');
+        $redirectView = trim($_POST['redirect_view'] ?? 'subject'); // 'subject' or 'grid'
+
+        if ($subjectId <= 0) {
+            Flash::error("Invalid classroom module specified.");
+            header("Location: index.php?page=admin_materials");
+            exit;
+        }
+
+        $sStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
+        $sStmt->execute([$subjectId]);
+        $subName = $sStmt->fetchColumn() ?: "Module";
+
+        if ($action === 'hide_all') {
+            $stmt = $db->prepare("UPDATE materials SET is_hidden = 1 WHERE subject_id = ? AND class_id = ?");
+            $stmt->execute([$subjectId, $classId]);
+            $count = $stmt->rowCount();
+            Auth::logAudit(Auth::id(), 'MODULE_HIDE_ALL_MATERIALS', "Hidden all materials for module $subName ($subjectId)");
+            Flash::success("All materials in '{$subName}' have been hidden from students.");
+        } elseif ($action === 'unhide_all') {
+            $stmt = $db->prepare("UPDATE materials SET is_hidden = 0 WHERE subject_id = ? AND class_id = ?");
+            $stmt->execute([$subjectId, $classId]);
+            $count = $stmt->rowCount();
+            Auth::logAudit(Auth::id(), 'MODULE_UNHIDE_ALL_MATERIALS', "Unhidden all materials for module $subName ($subjectId)");
+            Flash::success("All materials in '{$subName}' are now visible to students.");
+        } elseif ($action === 'delete_all') {
+            // Delete all material files for this subject & class
+            $fStmt = $db->prepare("SELECT file_path FROM materials WHERE subject_id = ? AND class_id = ?");
+            $fStmt->execute([$subjectId, $classId]);
+            $files = $fStmt->fetchAll();
+            foreach ($files as $f) {
+                if (!empty($f['file_path'])) {
+                    @unlink(MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $f['file_path']);
+                }
+            }
+            $stmt = $db->prepare("DELETE FROM materials WHERE subject_id = ? AND class_id = ?");
+            $stmt->execute([$subjectId, $classId]);
+            $count = $stmt->rowCount();
+            Auth::logAudit(Auth::id(), 'MODULE_DELETE_ALL_MATERIALS', "Deleted all materials for module $subName ($subjectId)");
+            Flash::success("All study materials in module '{$subName}' have been deleted.");
+        } else {
+            Flash::error("Unknown module operation.");
+        }
+
+        if ($redirectView === 'grid') {
+            header("Location: index.php?page=admin_materials");
+        } else {
+            header("Location: index.php?page=admin_materials&subject_id=$subjectId");
+        }
+        exit;
+    }
+
+    /**
+     * Admin Global Batch Material Operations (Hide all across system, unhide all, or wipe)
+     */
+    public function globalMaterialsAction(): void {
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+
+        $action = trim($_POST['global_action'] ?? '');
+        $targetSubjectId = (int)($_POST['target_subject_id'] ?? 0); // 0 = All Modules
+
+        if ($action === 'hide_all') {
+            if ($targetSubjectId > 0) {
+                $stmt = $db->prepare("UPDATE materials SET is_hidden = 1 WHERE subject_id = ?");
+                $stmt->execute([$targetSubjectId]);
+                $count = $stmt->rowCount();
+                Auth::logAudit(Auth::id(), 'MODULE_HIDE_ALL_MATERIALS', "Hidden all materials for subject ID $targetSubjectId");
+                Flash::success("All study materials for the selected module are now HIDDEN from students (safe for new batch).");
+            } else {
+                $db->query("UPDATE materials SET is_hidden = 1");
+                $count = $db->query("SELECT COUNT(*) FROM materials")->fetchColumn();
+                Auth::logAudit(Auth::id(), 'GLOBAL_HIDE_ALL_MATERIALS', "Hidden all $count materials system-wide for new batch");
+                Flash::success("All study materials ($count items) across all modules are now HIDDEN from students (safe for new batch). You or lecturers can unhide them as lessons progress.");
+            }
+        } elseif ($action === 'unhide_all') {
+            if ($targetSubjectId > 0) {
+                $stmt = $db->prepare("UPDATE materials SET is_hidden = 0 WHERE subject_id = ?");
+                $stmt->execute([$targetSubjectId]);
+                Flash::success("All study materials in the selected module are now VISIBLE to students.");
+            } else {
+                $db->query("UPDATE materials SET is_hidden = 0");
+                $count = $db->query("SELECT COUNT(*) FROM materials")->fetchColumn();
+                Auth::logAudit(Auth::id(), 'GLOBAL_UNHIDE_ALL_MATERIALS', "Unhidden all $count materials system-wide");
+                Flash::success("All study materials ($count items) across all modules are now VISIBLE to students.");
+            }
+        } elseif ($action === 'delete_all') {
+            require_once __DIR__ . '/../Helpers/Uploader.php';
+            if ($targetSubjectId > 0) {
+                $fStmt = $db->prepare("SELECT file_path FROM materials WHERE subject_id = ?");
+                $fStmt->execute([$targetSubjectId]);
+                $files = $fStmt->fetchAll();
+                foreach ($files as $f) {
+                    if (!empty($f['file_path'])) {
+                        @unlink(MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $f['file_path']);
+                    }
+                }
+                $del = $db->prepare("DELETE FROM materials WHERE subject_id = ?");
+                $del->execute([$targetSubjectId]);
+                $count = $del->rowCount();
+                Auth::logAudit(Auth::id(), 'MODULE_DELETE_ALL_MATERIALS', "Permanently deleted $count materials for module $targetSubjectId");
+                Flash::success("Permanently deleted $count study materials from selected module.");
+            } else {
+                // Wipe all materials across all modules
+                $files = $db->query("SELECT file_path FROM materials")->fetchAll();
+                foreach ($files as $f) {
+                    if (!empty($f['file_path'])) {
+                        @unlink(MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $f['file_path']);
+                    }
+                }
+                $count = $db->query("DELETE FROM materials")->rowCount();
+                Auth::logAudit(Auth::id(), 'GLOBAL_DELETE_ALL_MATERIALS', "Permanently deleted all $count materials system-wide");
+                Flash::success("Permanently deleted all $count study materials across the LMS.");
+            }
+        } else {
+            Flash::error("Invalid action requested.");
+        }
+
+        header("Location: index.php?page=admin_materials");
         exit;
     }
 

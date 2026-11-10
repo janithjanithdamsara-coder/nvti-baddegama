@@ -66,29 +66,109 @@ $activeTab = $tab ?? 'daily';
         $isSubmittedByMonitor = $isLocked && $markedRole === 'student' && $verifStatus === 'pending_verification';
         $isVerifiedOfficial = $isLocked && $verifStatus === 'verified';
         $isNotSubmitted = !$dayLock || !$isLocked;
+
+        // Date calculations for previous & next academic days (skipping weekends)
+        $selectedTs = strtotime($selectedDate);
+        $dayOfWeek = (int)date('N', $selectedTs); // 1 = Mon, 5 = Fri, 6 = Sat, 7 = Sun
+        if ($dayOfWeek === 5) {
+            $nextDate = date('Y-m-d', strtotime('+3 days', $selectedTs));
+        } elseif ($dayOfWeek === 6) {
+            $nextDate = date('Y-m-d', strtotime('+2 days', $selectedTs));
+        } else {
+            $nextDate = date('Y-m-d', strtotime('+1 day', $selectedTs));
+        }
+
+        if ($dayOfWeek === 1) {
+            $prevDate = date('Y-m-d', strtotime('-3 days', $selectedTs));
+        } elseif ($dayOfWeek === 7) {
+            $prevDate = date('Y-m-d', strtotime('-2 days', $selectedTs));
+        } else {
+            $prevDate = date('Y-m-d', strtotime('-1 day', $selectedTs));
+        }
+        $todayDate = date('Y-m-d');
+        $isToday = ($selectedDate === $todayDate);
+
+        // Calculate attendance counts
+        $cntTotal = count($students);
+        $cntPresent = 0;
+        $cntAbsent = 0;
+        $cntLate = 0;
+        $cntExcused = 0;
+        foreach ($students as $st) {
+            $stId = (int)$st['user_id'];
+            $stStatus = $existingAttendance[$stId]['status'] ?? 'present';
+            if ($stStatus === 'present') $cntPresent++;
+            elseif ($stStatus === 'absent') $cntAbsent++;
+            elseif ($stStatus === 'late') $cntLate++;
+            elseif ($stStatus === 'excused') $cntExcused++;
+        }
+        $attRate = $cntTotal > 0 ? round((($cntPresent + $cntLate) / $cntTotal) * 100, 1) : 0;
       ?>
-        <!-- Date Selector Header & Quick Action Bar -->
+        <!-- Modern Date Stepper & Status Bar -->
         <div class="card border rounded-4 shadow-sm bg-white mb-3">
           <div class="card-body p-3">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-              <form action="index.php" method="GET" class="d-flex align-items-center gap-2">
-                <input type="hidden" name="page" value="teacher_attendance">
-                <input type="hidden" name="tab" value="daily">
-                <label for="attDate" class="small fw-bold text-dark text-nowrap mb-0"><i class="bi bi-calendar-event text-primary me-1"></i>Select Date:</label>
-                <input type="date" class="form-control form-control-sm border-secondary-subtle" id="attDate" name="date" value="<?= e($selectedDate) ?>" max="<?= date('Y-m-d') ?>" required>
-                <button type="submit" class="btn btn-primary btn-sm px-3 fw-semibold">Load Sheet</button>
-              </form>
-
-              <!-- Quick Mark Helpers & Holiday Button -->
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+              <!-- Stepper Controls & Datepicker -->
               <div class="d-flex align-items-center gap-2 flex-wrap">
-                <button type="button" class="btn btn-outline-success btn-sm fw-semibold rounded-pill px-3 shadow-xs" onclick="markAllStatus('present')" <?= ($holiday || $isVerifiedOfficial) ? 'disabled' : '' ?>>
-                  <i class="bi bi-check-all me-1"></i> All Present
-                </button>
-                <button type="button" class="btn btn-outline-danger btn-sm fw-semibold rounded-pill px-3 shadow-xs" onclick="markAllStatus('absent')" <?= ($holiday || $isVerifiedOfficial) ? 'disabled' : '' ?>>
-                  <i class="bi bi-x-circle me-1"></i> All Absent
-                </button>
-                <button type="button" class="btn btn-outline-warning text-dark btn-sm fw-semibold rounded-pill px-3 shadow-xs" data-bs-toggle="modal" data-bs-target="#declareHolidayModal">
-                  <i class="bi bi-calendar2-x-fill text-warning me-1"></i> <?= $holiday ? 'Update Holiday' : 'Mark Holiday / Closed' ?>
+                <a href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($prevDate) ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold shadow-xs" title="Previous Academic Day">
+                  <i class="bi bi-chevron-left me-1"></i> Prev (<?= date('D, M d', strtotime($prevDate)) ?>)
+                </a>
+
+                <form action="index.php" method="GET" class="d-flex align-items-center gap-1.5 m-0">
+                  <input type="hidden" name="page" value="teacher_attendance">
+                  <input type="hidden" name="tab" value="daily">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-secondary-subtle"><i class="bi bi-calendar-event text-primary"></i></span>
+                    <input type="date" class="form-control form-control-sm border-secondary-subtle fw-bold" id="attDate" name="date" value="<?= e($selectedDate) ?>" onchange="this.form.submit()" required>
+                  </div>
+                </form>
+
+                <a href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($nextDate) ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold shadow-xs" title="Next Academic Day">
+                  Next (<?= date('D, M d', strtotime($nextDate)) ?>) <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+
+                <?php if (!$isToday): ?>
+                  <a href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($todayDate) ?>" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold shadow-xs" style="background: #7A1418; border-color: #7A1418;">
+                    <i class="bi bi-calendar-check me-1"></i> Jump to Today
+                  </a>
+                <?php else: ?>
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1.5 fw-bold">
+                    <i class="bi bi-pin-angle-fill me-1"></i> Today
+                  </span>
+                <?php endif; ?>
+              </div>
+
+              <!-- Status Tag & Quick Helpers -->
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <?php if ($holiday): ?>
+                  <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1.5 fw-bold">
+                    <i class="bi bi-calendar-x-fill me-1"></i> Holiday / Closed Day
+                  </span>
+                <?php elseif ($isVerifiedOfficial): ?>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold">
+                    <i class="bi bi-check-circle-fill me-1"></i> Roll Call Marked &amp; Locked
+                  </span>
+                <?php elseif ($isSubmittedByMonitor): ?>
+                  <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-3 py-1.5 fw-bold">
+                    <i class="bi bi-clock-history me-1"></i> Pending Sir's Verification
+                  </span>
+                <?php else: ?>
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1.5 fw-bold">
+                    <i class="bi bi-exclamation-circle-fill me-1"></i> Roll Call Not Marked Yet
+                  </span>
+                <?php endif; ?>
+
+                <?php if (!$holiday && !$isVerifiedOfficial): ?>
+                  <button type="button" class="btn btn-outline-success btn-sm fw-semibold rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('present')">
+                    <i class="bi bi-check-all me-1"></i> All Present
+                  </button>
+                  <button type="button" class="btn btn-outline-danger btn-sm fw-semibold rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('absent')">
+                    <i class="bi bi-x-circle me-1"></i> All Absent
+                  </button>
+                <?php endif; ?>
+
+                <button type="button" class="btn btn-outline-warning text-dark btn-sm fw-semibold rounded-pill px-2.5 shadow-xs" data-bs-toggle="modal" data-bs-target="#declareHolidayModal">
+                  <i class="bi bi-calendar2-x-fill text-warning me-1"></i> <?= $holiday ? 'Update Holiday' : 'Mark Closed / Holiday' ?>
                 </button>
               </div>
             </div>
@@ -172,58 +252,147 @@ $activeTab = $tab ?? 'daily';
               </div>
             </div>
           <?php elseif ($isVerifiedOfficial): ?>
-            <!-- FINALIZED & LOCKED BANNER -->
-            <div class="alert border-0 shadow-sm rounded-4 p-4 mb-4 text-dark" style="background: linear-gradient(90deg, #f0fdf4 0%, #dcfce7 100%); border-left: 5px solid #10b981 !important;">
-              <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-success bg-white shadow-sm flex-shrink-0" style="width: 50px; height: 50px;">
-                    <i class="bi bi-shield-lock-fill fs-3 text-success"></i>
-                  </div>
-                  <div>
-                    <div class="d-flex align-items-center gap-2 mb-1">
-                      <span class="badge bg-success text-white fw-bold rounded-pill px-3 py-1" style="font-size: 0.74rem;">
-                        <i class="bi bi-patch-check-fill me-1"></i> ATTENDANCE FINALIZED &amp; LOCKED
-                      </span>
-                      <span class="text-success fw-semibold small">&bull; Record Closed for Today</span>
+            <!-- ================= ATTENDANCE COMPLETED & FINALIZED HERO CARD ================= -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #d1fae5 100%); border-left: 6px solid #10b981 !important;">
+              <div class="card-body p-4">
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
+                  <div class="d-flex align-items-start gap-3">
+                    <div class="rounded-circle p-3 d-flex align-items-center justify-content-center text-success bg-white shadow-sm flex-shrink-0" style="width: 62px; height: 62px;">
+                      <i class="bi bi-patch-check-fill fs-1 text-success"></i>
                     </div>
-                    <h5 class="fw-bold mb-1 text-dark">Today's Attendance Officially Finalized &amp; Locked</h5>
-                    <p class="text-secondary small mb-0">
-                      අද දින (<?= date('l, d F Y', strtotime($selectedDate)) ?>) පැමිණීම සාර්ථකව අවසන් කර Lock කරන ලදී. ඊළඟ පැමිණීම සටහන් කිරීම හෙට දින විවෘත වේ.
-                      <br><span class="text-muted">Recorded &amp; Finalized by <?= e($dayLock['verified_by_name'] ?? $dayLock['marked_by_name'] ?? 'Instructor') ?> (Role: <?= strtoupper(e($dayLock['marked_by_role'] ?? 'OFFICIAL')) ?>) at <?= date('h:i A', strtotime($dayLock['verified_at'] ?? $dayLock['submitted_at'])) ?></span>
-                    </p>
+                    <div>
+                      <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                        <span class="badge bg-success text-white fw-bold rounded-pill px-3 py-1" style="font-size: 0.76rem;">
+                          <i class="bi bi-lock-fill me-1"></i> ROLL CALL COMPLETED &amp; LOCKED
+                        </span>
+                        <span class="text-success fw-bold small">&bull; Date: <?= date('l, d F Y', strtotime($selectedDate)) ?></span>
+                      </div>
+                      <h4 class="fw-bold text-dark mb-1">
+                        අද දින පැමිණීම සාර්ථකව සටහන් කර අවසන් කර ඇත
+                      </h4>
+                      <p class="text-secondary small mb-2" style="max-width: 680px; line-height: 1.5;">
+                        මෙම දිනට අදාළ roll call එක සම්පූර්ණ කර ඇති බැවින් ශිෂ්‍ය නාම ලැයිස්තුව ආරක්ෂිතව close කර ඇත.
+                        මීළඟ දින පැමිණීම සටහන් කිරීමට පහත <strong>'Mark Next Date (මීළඟ දිනය)'</strong> තෝරන්න.
+                      </p>
+                      <div class="text-muted small">
+                        <i class="bi bi-shield-check text-success me-1"></i> Verified &amp; Locked by: <strong><?= e($dayLock['verified_by_name'] ?? $dayLock['marked_by_name'] ?? 'Instructor') ?></strong> (Role: <?= strtoupper(e($dayLock['marked_by_role'] ?? 'OFFICIAL')) ?>) at <?= date('h:i A', strtotime($dayLock['verified_at'] ?? $dayLock['submitted_at'])) ?>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Action Buttons on Completed State -->
+                  <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2.5 flex-shrink-0">
+                    <!-- Primary Action: Next Date -->
+                    <a href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($nextDate) ?>" class="btn btn-success btn-lg rounded-pill px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center justify-content-center gap-2">
+                      <i class="bi bi-calendar-plus-fill"></i>
+                      <span>Mark Next Date (<?= date('D, M d', strtotime($nextDate)) ?>)</span>
+                      <i class="bi bi-arrow-right"></i>
+                    </a>
+
+                    <!-- View / Hide List Toggle Button -->
+                    <button class="btn btn-outline-dark rounded-pill px-3.5 py-2.5 fw-semibold d-inline-flex align-items-center justify-content-center gap-1.5 shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#dailyRollCallCollapse" aria-expanded="false" aria-controls="dailyRollCallCollapse" id="btnToggleRollCall">
+                      <i class="bi bi-person-lines-fill"></i>
+                      <span id="lblToggleRollCall">View Name List (ලැයිස්තුව බලන්න)</span>
+                    </button>
+
+                    <!-- Unlock button -->
+                    <form action="index.php?page=teacher_attendance_unlock" method="POST" onsubmit="return confirm('Unlock this attendance sheet so you can make corrections?');" class="d-inline">
+                      <?= Csrf::field() ?>
+                      <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
+                      <button type="submit" class="btn btn-outline-danger rounded-pill px-3 py-2.5 fw-semibold w-100" title="Unlock and re-mark">
+                        <i class="bi bi-unlock-fill me-1"></i> Unlock
+                      </button>
+                    </form>
                   </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                  <!-- Unlock and Re-edit Button -->
-                  <form action="index.php?page=teacher_attendance_unlock" method="POST" onsubmit="return confirm('Unlock this sheet so you can make edits or corrections?');" class="d-inline">
-                    <?= Csrf::field() ?>
-                    <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
-                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3.5 py-2 fw-semibold shadow-xs">
-                      <i class="bi bi-unlock-fill me-1"></i> Unlock &amp; Edit Sheet
-                    </button>
-                  </form>
+
+                <!-- Summary KPI Metric Cards Bar -->
+                <div class="row g-2.5 mt-3 pt-3 border-top border-success-subtle">
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="bg-white rounded-3 p-2.5 text-center shadow-xs border">
+                      <div class="text-muted small fw-medium">Total Batch</div>
+                      <div class="h5 fw-bold text-dark mb-0"><?= $cntTotal ?></div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="bg-white rounded-3 p-2.5 text-center shadow-xs border border-success-subtle">
+                      <div class="text-success small fw-bold"><i class="bi bi-check-circle-fill me-1"></i>Present</div>
+                      <div class="h5 fw-bold text-success mb-0" id="statPresent"><?= $cntPresent ?></div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="bg-white rounded-3 p-2.5 text-center shadow-xs border border-danger-subtle">
+                      <div class="text-danger small fw-bold"><i class="bi bi-x-circle-fill me-1"></i>Absent</div>
+                      <div class="h5 fw-bold text-danger mb-0" id="statAbsent"><?= $cntAbsent ?></div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="bg-white rounded-3 p-2.5 text-center shadow-xs border border-warning-subtle">
+                      <div class="text-warning small fw-bold"><i class="bi bi-clock-fill me-1"></i>Late</div>
+                      <div class="h5 fw-bold text-warning mb-0" id="statLate"><?= $cntLate ?></div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="bg-white rounded-3 p-2.5 text-center shadow-xs border border-info-subtle">
+                      <div class="text-info small fw-bold"><i class="bi bi-info-circle-fill me-1"></i>Excused</div>
+                      <div class="h5 fw-bold text-info mb-0" id="statExcused"><?= $cntExcused ?></div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-4 col-lg-2">
+                    <div class="bg-white rounded-3 p-2.5 text-center shadow-xs border">
+                      <div class="text-primary small fw-bold"><i class="bi bi-percent me-1"></i>Attendance</div>
+                      <div class="h5 fw-bold text-dark mb-0" id="statRate"><?= $attRate ?>%</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           <?php else: ?>
-            <div class="alert border-0 shadow-sm rounded-4 p-3 mb-4 text-dark" style="background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%); border-left: 5px solid #64748b !important;">
+            <!-- PENDING MARKING NOTICE & LIVE STATS BAR -->
+            <div class="card border rounded-4 shadow-sm p-3 mb-4 bg-white" style="border-left: 5px solid #7A1418 !important;">
               <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                 <div class="d-flex align-items-center gap-3">
-                  <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-secondary bg-white shadow-sm flex-shrink-0" style="width: 44px; height: 44px;">
-                    <i class="bi bi-hourglass-split fs-4"></i>
+                  <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-primary bg-primary-subtle shadow-xs flex-shrink-0" style="width: 44px; height: 44px;">
+                    <i class="bi bi-pencil-square fs-4"></i>
                   </div>
                   <div>
                     <div class="d-flex align-items-center gap-2 mb-0.5">
-                      <span class="badge bg-secondary text-white fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">PENDING SUBMISSION</span>
+                      <span class="badge bg-secondary text-white fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">READY FOR MARKING</span>
+                      <span class="text-muted small">&bull; Date: <?= date('l, d F Y', strtotime($selectedDate)) ?></span>
                     </div>
-                    <h6 class="fw-bold mb-0 text-dark">Class Monitor has not submitted attendance for <?= date('l, d F Y', strtotime($selectedDate)) ?> yet</h6>
-                    <small class="text-secondary">You can mark students directly below and click <strong>"Save &amp; Finalize Attendance"</strong> to close today's sheet.</small>
+                    <h6 class="fw-bold mb-0 text-dark">Roll call sheet is open for marking</h6>
+                    <small class="text-secondary">Mark each student below and click <strong>"Save &amp; Finalize Attendance"</strong> to close today's sheet.</small>
                   </div>
                 </div>
                 <div>
-                  <button type="submit" form="teacherDailyForm" name="action" value="save" class="btn btn-primary btn-sm fw-bold px-3.5 py-2 rounded-pill shadow-sm" style="background: #7A1418; border-color: #7A1418;">
-                    <i class="bi bi-save me-1"></i> Save &amp; Finalize Attendance
+                  <button type="submit" form="teacherDailyForm" name="action" value="save" class="btn btn-primary fw-bold px-4 py-2 rounded-pill shadow-sm d-inline-flex align-items-center gap-2" style="background: #7A1418; border-color: #7A1418;">
+                    <i class="bi bi-check2-circle fs-5"></i>
+                    <span>Save &amp; Finalize Attendance</span>
                   </button>
+                </div>
+              </div>
+
+              <!-- Live Counter Bar -->
+              <div class="row g-2 mt-2 pt-2 border-top">
+                <div class="col-3 col-md text-center border-end">
+                  <small class="text-muted d-block" style="font-size: 0.72rem;">Total Students</small>
+                  <strong class="text-dark"><?= $cntTotal ?></strong>
+                </div>
+                <div class="col-3 col-md text-center border-end">
+                  <small class="text-success d-block fw-bold" style="font-size: 0.72rem;">Present</small>
+                  <strong class="text-success" id="liveStatPresent"><?= $cntPresent ?></strong>
+                </div>
+                <div class="col-3 col-md text-center border-end">
+                  <small class="text-danger d-block fw-bold" style="font-size: 0.72rem;">Absent</small>
+                  <strong class="text-danger" id="liveStatAbsent"><?= $cntAbsent ?></strong>
+                </div>
+                <div class="col-3 col-md text-center border-end">
+                  <small class="text-warning d-block fw-bold" style="font-size: 0.72rem;">Late</small>
+                  <strong class="text-warning" id="liveStatLate"><?= $cntLate ?></strong>
+                </div>
+                <div class="col-3 col-md text-center">
+                  <small class="text-info d-block fw-bold" style="font-size: 0.72rem;">Excused</small>
+                  <strong class="text-info" id="liveStatExcused"><?= $cntExcused ?></strong>
                 </div>
               </div>
             </div>
@@ -231,148 +400,156 @@ $activeTab = $tab ?? 'daily';
         <?php endif; ?>
 
         <?php if (!$holiday): ?>
-        <!-- Daily Roll Call Grid Form -->
-        <form action="index.php?page=teacher_attendance_save" method="POST" id="teacherDailyForm">
-          <?= Csrf::field() ?>
-          <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
+        <!-- Daily Roll Call Container (Collapsed by default if already finalized!) -->
+        <div class="<?= $isVerifiedOfficial ? 'collapse' : '' ?>" id="dailyRollCallCollapse">
+          <!-- Daily Roll Call Grid Form -->
+          <form action="index.php?page=teacher_attendance_save" method="POST" id="teacherDailyForm">
+            <?= Csrf::field() ?>
+            <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
 
-          <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
-            <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
-              <div>
-                <strong class="text-dark"><i class="bi bi-people-fill text-primary me-2"></i>Class Roll Call (<?= count($students) ?> Students)</strong>
-                <span class="text-muted small ms-2">&bull; Date: <?= date('l, d F Y', strtotime($selectedDate)) ?></span>
+            <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
+              <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+                <div>
+                  <strong class="text-dark"><i class="bi bi-people-fill text-primary me-2"></i>Class Roll Call (<?= count($students) ?> Students)</strong>
+                  <span class="text-muted small ms-2">&bull; Date: <?= date('l, d F Y', strtotime($selectedDate)) ?></span>
+                </div>
+                <div>
+                  <?php if ($isVerifiedOfficial): ?>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold">
+                      <i class="bi bi-lock-fill me-1"></i> Finalized &amp; Locked for Today
+                    </span>
+                  <?php else: ?>
+                    <button type="submit" class="btn btn-primary btn-sm px-3.5 py-1.5 fw-bold rounded-pill shadow-sm" style="background: #7A1418; border-color: #7A1418;">
+                      <i class="bi bi-check2-circle me-1"></i> <?= $isSubmittedByMonitor ? 'Verify, Approve &amp; Finalize' : 'Save &amp; Finalize' ?>
+                    </button>
+                  <?php endif; ?>
+                </div>
               </div>
-              <div>
+
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+                  <thead class="table-light text-secondary text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                    <tr>
+                      <th style="width: 45px;" class="text-center py-2.5">#</th>
+                      <th style="width: 290px;" class="py-2.5">Student Information</th>
+                      <th style="width: 160px;" class="py-2.5">MIS &amp; NIC Number</th>
+                      <th style="width: 330px;" class="text-center py-2.5">Attendance Status</th>
+                      <th class="py-2.5 text-end pe-3">Record Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php $idx = 1; foreach ($students as $st): 
+                      $stId = (int)$st['user_id'];
+                      $curAtt = $existingAttendance[$stId]['status'] ?? 'present';
+                      $markedBy = $existingAttendance[$stId]['marked_by_name'] ?? null;
+                    ?>
+                      <tr>
+                        <td class="text-center text-muted fw-bold"><?= $idx++ ?></td>
+                        <td>
+                          <div class="d-flex align-items-center gap-2.5">
+                            <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center text-primary fw-bold flex-shrink-0" style="width: 36px; height: 36px; font-size: 0.82rem;">
+                              <?= strtoupper(substr($st['name'], 0, 1)) ?>
+                            </div>
+                            <div>
+                              <div class="fw-bold text-dark mb-0 text-truncate" style="max-width: 230px;"><?= e($st['name']) ?></div>
+                              <small class="text-muted font-monospace"><?= e($st['student_code']) ?></small>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="badge bg-light text-dark border font-monospace"><?= e($st['mis_number'] ?? 'N/A') ?></span>
+                          <div class="text-muted" style="font-size: 0.72rem;"><?= e($st['nic'] ?? '') ?></div>
+                        </td>
+                        <td class="text-center">
+                          <?php if ($isVerifiedOfficial): ?>
+                            <!-- Clean Finalized Read-Only Badge (Inputs closed) -->
+                            <input type="hidden" name="attendance[<?= $stId ?>][status]" value="<?= e($curAtt) ?>">
+                            <?php if ($curAtt === 'present'): ?>
+                              <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.8rem;">
+                                <i class="bi bi-check-circle-fill me-1 text-success"></i> Present
+                              </span>
+                            <?php elseif ($curAtt === 'late'): ?>
+                              <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #fefce8; color: #854d0e; border: 1px solid #fef08a; font-size: 0.8rem;">
+                                <i class="bi bi-clock-fill me-1 text-warning"></i> Late
+                              </span>
+                            <?php elseif ($curAtt === 'absent'): ?>
+                              <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.8rem;">
+                                <i class="bi bi-x-circle-fill me-1 text-danger"></i> Absent
+                              </span>
+                            <?php else: ?>
+                              <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.8rem;">
+                                <i class="bi bi-info-circle-fill me-1 text-primary"></i> Excused
+                              </span>
+                            <?php endif; ?>
+                          <?php else: ?>
+                            <!-- Editable Radio Selection with Live Update Listener -->
+                            <div class="attendance-pill-group" role="group">
+                              <!-- Present -->
+                              <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_present" value="present" <?= ($curAtt === 'present') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
+                              <label class="att-pill-label att-pill-present" for="t_status_<?= $stId ?>_present">
+                                <i class="bi bi-check-circle-fill me-1"></i> Present
+                              </label>
+
+                              <!-- Late -->
+                              <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_late" value="late" <?= ($curAtt === 'late') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
+                              <label class="att-pill-label att-pill-late" for="t_status_<?= $stId ?>_late">
+                                <i class="bi bi-clock-fill me-1"></i> Late
+                              </label>
+
+                              <!-- Absent -->
+                              <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_absent" value="absent" <?= ($curAtt === 'absent') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
+                              <label class="att-pill-label att-pill-absent" for="t_status_<?= $stId ?>_absent">
+                                <i class="bi bi-x-circle-fill me-1"></i> Absent
+                              </label>
+
+                              <!-- Excused -->
+                              <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_excused" value="excused" <?= ($curAtt === 'excused') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
+                              <label class="att-pill-label att-pill-excused" for="t_status_<?= $stId ?>_excused">
+                                Excused
+                              </label>
+                            </div>
+                          <?php endif; ?>
+                        </td>
+                        <td class="text-end pe-3">
+                          <?php if ($markedBy): ?>
+                            <span class="badge bg-light text-secondary border" style="font-size: 0.72rem;">
+                              <i class="bi bi-person-check me-1"></i> Marked by: <?= e($markedBy) ?>
+                            </span>
+                          <?php else: ?>
+                            <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">Not Recorded</span>
+                          <?php endif; ?>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="card-footer bg-white p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 border-top">
                 <?php if ($isVerifiedOfficial): ?>
-                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold">
-                    <i class="bi bi-lock-fill me-1"></i> Finalized &amp; Locked for Today
-                  </span>
+                  <span class="small text-muted"><i class="bi bi-lock-fill text-success me-1"></i> Attendance is finalized and locked for this date. Next roll call opens on next academic session.</span>
+                  <div class="d-flex align-items-center gap-2">
+                    <a href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($nextDate) ?>" class="btn btn-success btn-sm rounded-pill px-3 py-1.5 fw-bold">
+                      <i class="bi bi-calendar-plus me-1"></i> Go to Next Date
+                    </a>
+                    <form action="index.php?page=teacher_attendance_unlock" method="POST" onsubmit="return confirm('Do you want to unlock this sheet to make corrections?');" class="d-inline">
+                      <?= Csrf::field() ?>
+                      <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
+                      <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold shadow-xs">
+                        <i class="bi bi-unlock-fill me-1"></i> Unlock &amp; Edit Sheet
+                      </button>
+                    </form>
+                  </div>
                 <?php else: ?>
-                  <button type="submit" class="btn btn-primary btn-sm px-3.5 py-1.5 fw-bold rounded-pill shadow-sm" style="background: #7A1418; border-color: #7A1418;">
-                    <i class="bi bi-check2-circle me-1"></i> <?= $isSubmittedByMonitor ? 'Verify, Approve &amp; Finalize' : 'Save &amp; Finalize' ?>
+                  <span class="small text-muted"><i class="bi bi-shield-check text-success me-1"></i> Instructors hold ultimate authority to inspect, correct, and officially verify records.</span>
+                  <button type="submit" class="btn btn-primary px-4 py-2 fw-bold shadow-sm rounded-pill" style="background: #7A1418; border-color: #7A1418;">
+                    <i class="bi bi-check2-circle me-1"></i> <?= $isSubmittedByMonitor ? 'Verify, Approve &amp; Finalize Attendance' : 'Save &amp; Finalize Attendance' ?>
                   </button>
                 <?php endif; ?>
               </div>
             </div>
-
-            <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
-                <thead class="table-light text-secondary text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                  <tr>
-                    <th style="width: 45px;" class="text-center py-2.5">#</th>
-                    <th style="width: 290px;" class="py-2.5">Student Information</th>
-                    <th style="width: 160px;" class="py-2.5">MIS &amp; NIC Number</th>
-                    <th style="width: 330px;" class="text-center py-2.5">Attendance Status</th>
-                    <th class="py-2.5 text-end pe-3">Record Details</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php $idx = 1; foreach ($students as $st): 
-                    $stId = (int)$st['user_id'];
-                    $curAtt = $existingAttendance[$stId]['status'] ?? 'present';
-                    $markedBy = $existingAttendance[$stId]['marked_by_name'] ?? null;
-                  ?>
-                    <tr>
-                      <td class="text-center text-muted fw-bold"><?= $idx++ ?></td>
-                      <td>
-                        <div class="d-flex align-items-center gap-2.5">
-                          <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center text-primary fw-bold flex-shrink-0" style="width: 36px; height: 36px; font-size: 0.82rem;">
-                            <?= strtoupper(substr($st['name'], 0, 1)) ?>
-                          </div>
-                          <div>
-                            <div class="fw-bold text-dark mb-0 text-truncate" style="max-width: 230px;"><?= e($st['name']) ?></div>
-                            <small class="text-muted font-monospace"><?= e($st['student_code']) ?></small>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="badge bg-light text-dark border font-monospace"><?= e($st['mis_number'] ?? 'N/A') ?></span>
-                        <div class="text-muted" style="font-size: 0.72rem;"><?= e($st['nic'] ?? '') ?></div>
-                      </td>
-                      <td class="text-center">
-                        <?php if ($isVerifiedOfficial): ?>
-                          <!-- Clean Finalized Read-Only Badge (Inputs closed) -->
-                          <input type="hidden" name="attendance[<?= $stId ?>][status]" value="<?= e($curAtt) ?>">
-                          <?php if ($curAtt === 'present'): ?>
-                            <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.8rem;">
-                              <i class="bi bi-check-circle-fill me-1 text-success"></i> Present
-                            </span>
-                          <?php elseif ($curAtt === 'late'): ?>
-                            <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #fefce8; color: #854d0e; border: 1px solid #fef08a; font-size: 0.8rem;">
-                              <i class="bi bi-clock-fill me-1 text-warning"></i> Late
-                            </span>
-                          <?php elseif ($curAtt === 'absent'): ?>
-                            <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.8rem;">
-                              <i class="bi bi-x-circle-fill me-1 text-danger"></i> Absent
-                            </span>
-                          <?php else: ?>
-                            <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.8rem;">
-                              <i class="bi bi-info-circle-fill me-1 text-primary"></i> Excused
-                            </span>
-                          <?php endif; ?>
-                        <?php else: ?>
-                          <!-- Editable Radio Selection -->
-                          <div class="attendance-pill-group" role="group">
-                            <!-- Present -->
-                            <input type="radio" class="btn-check" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_present" value="present" <?= ($curAtt === 'present') ? 'checked' : '' ?>>
-                            <label class="att-pill-label att-pill-present" for="t_status_<?= $stId ?>_present">
-                              <i class="bi bi-check-circle-fill me-1"></i> Present
-                            </label>
-
-                            <!-- Late -->
-                            <input type="radio" class="btn-check" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_late" value="late" <?= ($curAtt === 'late') ? 'checked' : '' ?>>
-                            <label class="att-pill-label att-pill-late" for="t_status_<?= $stId ?>_late">
-                              <i class="bi bi-clock-fill me-1"></i> Late
-                            </label>
-
-                            <!-- Absent -->
-                            <input type="radio" class="btn-check" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_absent" value="absent" <?= ($curAtt === 'absent') ? 'checked' : '' ?>>
-                            <label class="att-pill-label att-pill-absent" for="t_status_<?= $stId ?>_absent">
-                              <i class="bi bi-x-circle-fill me-1"></i> Absent
-                            </label>
-
-                            <!-- Excused -->
-                            <input type="radio" class="btn-check" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_excused" value="excused" <?= ($curAtt === 'excused') ? 'checked' : '' ?>>
-                            <label class="att-pill-label att-pill-excused" for="t_status_<?= $stId ?>_excused">
-                              Excused
-                            </label>
-                          </div>
-                        <?php endif; ?>
-                      </td>
-                      <td class="text-end pe-3">
-                        <?php if ($markedBy): ?>
-                          <span class="badge bg-light text-secondary border" style="font-size: 0.72rem;">
-                            <i class="bi bi-person-check me-1"></i> Marked by: <?= e($markedBy) ?>
-                          </span>
-                        <?php else: ?>
-                          <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">Not Recorded</span>
-                        <?php endif; ?>
-                      </td>
-                    </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="card-footer bg-white p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 border-top">
-              <?php if ($isVerifiedOfficial): ?>
-                <span class="small text-muted"><i class="bi bi-lock-fill text-success me-1"></i> Attendance is finalized and locked. Next roll call opens tomorrow morning.</span>
-                <form action="index.php?page=teacher_attendance_unlock" method="POST" onsubmit="return confirm('Do you want to unlock this sheet to make corrections?');" class="d-inline">
-                  <?= Csrf::field() ?>
-                  <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
-                  <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-4 py-2 fw-semibold shadow-xs">
-                    <i class="bi bi-unlock-fill me-1"></i> Unlock &amp; Edit Sheet
-                  </button>
-                </form>
-              <?php else: ?>
-                <span class="small text-muted"><i class="bi bi-shield-check text-success me-1"></i> Instructors hold ultimate authority to inspect, correct, and officially verify records.</span>
-                <button type="submit" class="btn btn-primary px-4 py-2 fw-bold shadow-sm rounded-pill" style="background: #7A1418; border-color: #7A1418;">
-                  <i class="bi bi-check2-circle me-1"></i> <?= $isSubmittedByMonitor ? 'Verify, Approve &amp; Finalize Attendance' : 'Save &amp; Finalize Attendance' ?>
-                </button>
-              <?php endif; ?>
-            </div>
-          </div>
-        </form>
+          </form>
+        </div>
         <?php endif; ?>
 
       <!-- ================= TAB 2: CLASS MONITORS ================= -->
@@ -765,10 +942,48 @@ function markAllStatus(targetStatus) {
   radios.forEach(r => {
     if (!r.disabled) {
       r.checked = true;
-      r.dispatchEvent(new Event('change'));
     }
   });
+  updateLiveAttendanceStats();
 }
+
+function updateLiveAttendanceStats() {
+  const checkedRadios = document.querySelectorAll('.att-status-radio:checked');
+  let pres = 0, abs = 0, late = 0, exc = 0;
+  checkedRadios.forEach(r => {
+    if (r.value === 'present') pres++;
+    else if (r.value === 'absent') abs++;
+    else if (r.value === 'late') late++;
+    else if (r.value === 'excused') exc++;
+  });
+
+  const pEl = document.getElementById('liveStatPresent');
+  const aEl = document.getElementById('liveStatAbsent');
+  const lEl = document.getElementById('liveStatLate');
+  const eEl = document.getElementById('liveStatExcused');
+
+  if (pEl) pEl.textContent = pres;
+  if (aEl) aEl.textContent = abs;
+  if (lEl) lEl.textContent = late;
+  if (eEl) eEl.textContent = exc;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  const rollCollapse = document.getElementById('dailyRollCallCollapse');
+  const lblToggle = document.getElementById('lblToggleRollCall');
+  const btnToggle = document.getElementById('btnToggleRollCall');
+
+  if (rollCollapse && lblToggle) {
+    rollCollapse.addEventListener('show.bs.collapse', function () {
+      lblToggle.textContent = 'Hide Name List (ලැයිස්තුව සඟවන්න)';
+      if (btnToggle) btnToggle.classList.replace('btn-outline-dark', 'btn-dark');
+    });
+    rollCollapse.addEventListener('hide.bs.collapse', function () {
+      lblToggle.textContent = 'View Name List (ලැයිස්තුව බලන්න)';
+      if (btnToggle) btnToggle.classList.replace('btn-dark', 'btn-outline-dark');
+    });
+  }
+});
 </script>
 
 <?php require_once __DIR__ . '/../layouts/footer.php'; ?>

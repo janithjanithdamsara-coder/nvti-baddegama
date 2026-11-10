@@ -50,7 +50,7 @@ class StudentController {
             JOIN categories cat ON m.category_id = cat.id
             JOIN subjects s ON m.subject_id = s.id
             JOIN users u ON m.teacher_id = u.id
-            WHERE m.class_id = ?
+            WHERE m.class_id = ? AND m.is_hidden = 0
             ORDER BY m.created_at DESC LIMIT 5
         ");
         $matStmt->execute([$classId]);
@@ -134,14 +134,14 @@ class StudentController {
         $subStmt->execute([$classId]);
         $subjects = $subStmt->fetchAll();
 
-        // Query materials
+        // Query materials (Students only see unhidden / active materials)
         $sql = "
             SELECT m.*, cat.category_name, cat.icon as category_icon, s.subject_name, s.subject_code, u.name as teacher_name
             FROM materials m
             JOIN categories cat ON m.category_id = cat.id
             JOIN subjects s ON m.subject_id = s.id
             JOIN users u ON m.teacher_id = u.id
-            WHERE m.class_id = ?
+            WHERE m.class_id = ? AND m.is_hidden = 0 AND m.is_hidden = 0
         ";
         $params = [$classId];
 
@@ -188,7 +188,7 @@ class StudentController {
             JOIN categories cat ON m.category_id = cat.id
             JOIN subjects s ON m.subject_id = s.id
             JOIN users u ON m.teacher_id = u.id
-            WHERE m.class_id = ?
+            WHERE m.class_id = ? AND m.is_hidden = 0 AND m.is_hidden = 0
             ORDER BY m.created_at DESC LIMIT 15
         ");
         $feedMat->execute([$classId]);

@@ -105,19 +105,26 @@ require_once __DIR__ . '/../layouts/navbar.php';
       <!-- 4. Verified & Approved by Instructor (Teacher) -->
       <?php elseif ($isVerified && empty($holiday)): ?>
         <div class="alert border-0 shadow-sm rounded-4 p-4 mb-4 text-dark" style="background: linear-gradient(90deg, #f0fdf4 0%, #dcfce7 100%); border-left: 5px solid #10b981 !important;">
-          <div class="d-flex align-items-center gap-3">
-            <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-success bg-white shadow-sm flex-shrink-0" style="width: 50px; height: 50px;">
-              <i class="bi bi-patch-check-fill fs-3"></i>
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-success bg-white shadow-sm flex-shrink-0" style="width: 50px; height: 50px;">
+                <i class="bi bi-patch-check-fill fs-3"></i>
+              </div>
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="badge bg-success text-white fw-bold rounded-pill px-3 py-1" style="font-size: 0.74rem;">
+                    <i class="bi bi-lock-fill me-1"></i> OFFICIAL &amp; VERIFIED
+                  </span>
+                  <span class="text-success fw-semibold small">&bull; Record Closed for Today</span>
+                </div>
+                <h5 class="fw-bold mb-1 text-dark">Verified &amp; Approved by Instructor (<?= e($dayLock['verified_by_name'] ?? 'Sir') ?>)</h5>
+                <p class="text-secondary small mb-0">අද දින පැමිණීම Sir විසින් සහතික කර Lock කර ඇත. Name list එක close කර ඇත. මීළඟ දින පැමිණීම සඳහා Next Date එක තෝරන්න.</p>
+              </div>
             </div>
             <div>
-              <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="badge bg-success text-white fw-bold rounded-pill px-3 py-1" style="font-size: 0.74rem;">
-                  <i class="bi bi-lock-fill me-1"></i> OFFICIAL &amp; VERIFIED
-                </span>
-                <span class="text-success fw-semibold small">&bull; Record Closed for Today</span>
-              </div>
-              <h5 class="fw-bold mb-1 text-dark">Verified &amp; Approved by Instructor (<?= e($dayLock['verified_by_name'] ?? 'Sir') ?>)</h5>
-              <p class="text-secondary small mb-0">Official student attendance has been approved and locked for <strong><?= date('l, d F Y', strtotime($selectedDate)) ?></strong>. Next roll call will open tomorrow morning.</p>
+              <button class="btn btn-outline-success rounded-pill px-3.5 py-2 fw-semibold shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#monitorRollCallCollapse">
+                <i class="bi bi-person-lines-fill me-1"></i> View Submitted List
+              </button>
             </div>
           </div>
         </div>
@@ -126,33 +133,47 @@ require_once __DIR__ . '/../layouts/navbar.php';
       <?php elseif ($isLocked && empty($holiday)): ?>
         <?php if ($lockedBySelf): ?>
           <div class="alert border-0 shadow-sm rounded-4 p-3 mb-4 text-dark" style="background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%); border-left: 5px solid #f59e0b !important;">
-            <div class="d-flex align-items-center gap-3">
-              <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-warning bg-white shadow-sm flex-shrink-0" style="width: 44px; height: 44px;">
-                <i class="bi bi-hourglass-split fs-4"></i>
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-warning bg-white shadow-sm flex-shrink-0" style="width: 44px; height: 44px;">
+                  <i class="bi bi-hourglass-split fs-4"></i>
+                </div>
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-0.5">
+                    <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">SUBMITTED TO SIR</span>
+                    <span class="text-muted small">&bull; Pending Instructor Approval</span>
+                  </div>
+                  <h6 class="fw-bold mb-0 text-dark">You submitted roll call at <?= e(date('h:i A', strtotime($dayLock['submitted_at'] ?? 'now'))) ?> for <?= date('l, d F Y', strtotime($selectedDate)) ?></h6>
+                  <small class="text-secondary">අද දවසේ roll call එක සාර්ථකව Submit කර ඇත. Instructor (Sir) විසින් approve කරන තුරු Sheet එක Locked වේ.</small>
+                </div>
               </div>
               <div>
-                <div class="d-flex align-items-center gap-2 mb-0.5">
-                  <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">SUBMITTED TO SIR</span>
-                  <span class="text-muted small">&bull; Pending Instructor Approval</span>
-                </div>
-                <h6 class="fw-bold mb-0 text-dark">You submitted roll call at <?= e(date('h:i A', strtotime($dayLock['submitted_at'] ?? 'now'))) ?> for <?= date('l, d F Y', strtotime($selectedDate)) ?></h6>
-                <small class="text-secondary">Your attendance submission has been forwarded to the lecturer (Sir). Sir will review, make any necessary adjustments, and verify the official record.</small>
+                <button class="btn btn-outline-warning text-dark rounded-pill px-3.5 py-2 fw-semibold shadow-xs bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#monitorRollCallCollapse">
+                  <i class="bi bi-person-lines-fill me-1"></i> View Submitted List
+                </button>
               </div>
             </div>
           </div>
         <?php else: ?>
           <div class="alert border-0 shadow-sm rounded-4 p-3 mb-4 text-dark" style="background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%); border-left: 5px solid #f59e0b !important;">
-            <div class="d-flex align-items-center gap-3">
-              <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-warning bg-white shadow-sm flex-shrink-0" style="width: 44px; height: 44px;">
-                <i class="bi bi-lock-fill fs-4"></i>
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-warning bg-white shadow-sm flex-shrink-0" style="width: 44px; height: 44px;">
+                  <i class="bi bi-lock-fill fs-4"></i>
+                </div>
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-0.5">
+                    <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">SUBMITTED BY <?= strtoupper(e($dayLock['marked_by_name'] ?? 'MONITOR')) ?></span>
+                    <span class="text-muted small">&bull; Pending Sir's Verification</span>
+                  </div>
+                  <h6 class="fw-bold mb-0 text-dark">Attendance already submitted for <?= date('l, d F Y', strtotime($selectedDate)) ?></h6>
+                  <small class="text-secondary">This sheet was submitted by <strong><?= e($dayLock['marked_by_name'] ?? 'Monitor') ?></strong> at <?= e(date('h:i A', strtotime($dayLock['submitted_at'] ?? 'now'))) ?>.</small>
+                </div>
               </div>
               <div>
-                <div class="d-flex align-items-center gap-2 mb-0.5">
-                  <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">SUBMITTED BY <?= strtoupper(e($dayLock['marked_by_name'] ?? 'MONITOR')) ?></span>
-                  <span class="text-muted small">&bull; Pending Sir's Verification</span>
-                </div>
-                <h6 class="fw-bold mb-0 text-dark">Attendance already submitted for <?= date('l, d F Y', strtotime($selectedDate)) ?></h6>
-                <small class="text-secondary">This sheet was submitted by <strong><?= e($dayLock['marked_by_name'] ?? 'Monitor') ?></strong> at <?= e(date('h:i A', strtotime($dayLock['submitted_at'] ?? 'now'))) ?>. Only Instructor (Sir) or Admin can make changes.</small>
+                <button class="btn btn-outline-secondary rounded-pill px-3.5 py-2 fw-semibold shadow-xs bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#monitorRollCallCollapse">
+                  <i class="bi bi-person-lines-fill me-1"></i> View Submitted List
+                </button>
               </div>
             </div>
           </div>
@@ -185,6 +206,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
       <?php endif; ?>
 
       <?php if (empty($holiday)): ?>
+      <div class="<?= ($isLocked || $isVerified) ? 'collapse' : '' ?>" id="monitorRollCallCollapse">
       <!-- Excel-Style Grid Form -->
       <form action="index.php?page=student_batch_attendance_save" method="POST" id="attendanceGridForm">
         <?= Csrf::field() ?>
@@ -317,6 +339,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
           </div>
         </div>
       </form>
+      </div>
       <?php endif; ?>
 
     </div>

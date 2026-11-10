@@ -73,10 +73,26 @@ require_once __DIR__ . '/../layouts/navbar.php';
                       <?php else: ?>
                         <span class="badge bg-info-subtle text-info"><i class="bi bi-link-45deg me-1"></i> Web Link</span>
                       <?php endif; ?>
+                      <div class="mt-1">
+                        <?php if (!empty($m['is_hidden'])): ?>
+                          <span class="badge bg-secondary text-white rounded-pill" style="font-size: 0.68rem;"><i class="bi bi-eye-slash-fill me-1"></i> Hidden</span>
+                        <?php else: ?>
+                          <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 0.68rem;"><i class="bi bi-eye-fill me-1"></i> Visible</span>
+                        <?php endif; ?>
+                      </div>
                     </td>
                     <td class="small text-muted"><?= date('M d, Y', strtotime($m['created_at'])) ?></td>
                     <td class="text-end">
                       <div class="d-flex justify-content-end gap-1">
+                        <!-- Toggle Visibility -->
+                        <form action="index.php?page=teacher_toggle_material_visibility" method="POST" class="d-inline">
+                          <?= Csrf::field() ?>
+                          <input type="hidden" name="material_id" value="<?= $m['id'] ?>">
+                          <button type="submit" class="btn btn-sm <?= !empty($m['is_hidden']) ? 'btn-outline-success' : 'btn-outline-secondary' ?>" title="<?= !empty($m['is_hidden']) ? 'Unhide (Make visible to students)' : 'Hide from students' ?>">
+                            <i class="bi <?= !empty($m['is_hidden']) ? 'bi-eye' : 'bi-eye-slash' ?>"></i>
+                          </button>
+                        </form>
+
                         <?php if ($m['material_type'] === 'file'): ?>
                           <a href="index.php?page=download_material&id=<?= $m['id'] ?>" class="btn btn-sm btn-outline-primary" title="Download File">
                             <i class="bi bi-download"></i>

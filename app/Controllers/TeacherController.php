@@ -224,6 +224,33 @@ class TeacherController {
         exit;
     }
 
+    /**
+     * Teacher Toggle Material Visibility
+     */
+    public function toggleMaterialVisibility(): void {
+        Csrf::checkOrAbort();
+        $id = (int)($_POST['material_id'] ?? 0);
+        $teacherId = Auth::id();
+
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT title, is_hidden FROM materials WHERE id = ? AND teacher_id = ?");
+        $stmt->execute([$id, $teacherId]);
+        $mat = $stmt->fetch();
+
+        if ($mat) {
+            $newStatus = ((int)$mat['is_hidden'] === 1) ? 0 : 1;
+            $upd = $db->prepare("UPDATE materials SET is_hidden = ? WHERE id = ?");
+            $upd->execute([$newStatus, $id]);
+
+            $statusLabel = ($newStatus === 1) ? 'Hidden from students' : 'Visible to students';
+            Auth::logAudit($teacherId, 'TOGGLE_MATERIAL_VISIBILITY', "Changed visibility of '{$mat['title']}' to $statusLabel");
+            Flash::success("Material '{$mat['title']}' is now {$statusLabel}.");
+        }
+
+        header('Location: index.php?page=teacher_materials');
+        exit;
+    }
+
     public function assignments(): void {
         $db = Database::getConnection();
         $teacherId = Auth::id();

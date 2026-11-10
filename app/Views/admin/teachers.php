@@ -59,34 +59,41 @@ require_once __DIR__ . '/../layouts/navbar.php';
         <?php foreach (($adminUsers ?? []) as $adm): 
           $isPrimary = ($adm['id'] == 1);
         ?>
-          <div class="col-12 col-md-4">
-            <div class="card border rounded-4 bg-white shadow-sm h-100 p-3.5 transition-hover position-relative" style="<?= $isPrimary ? 'border-top: 3px solid #7A1418 !important;' : 'border-top: 3px solid #1967d2 !important;' ?>">
-              <div class="d-flex align-items-start gap-3">
-                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0 shadow-sm" 
-                     style="width: 46px; height: 46px; font-size: 1.05rem; background: <?= $isPrimary ? 'linear-gradient(135deg, #7A1418, #90161b)' : 'linear-gradient(135deg, #1967d2, #1557b0)' ?>;">
-                  <?= strtoupper(substr($adm['name'], 0, 1)) ?>
-                </div>
-
-                <div class="flex-grow-1 min-w-0">
-                  <div class="d-flex align-items-center justify-content-between gap-1 mb-1">
-                    <span class="badge rounded-pill <?= $isPrimary ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle' ?> fw-bold" style="font-size: 0.7rem;">
-                      <i class="bi <?= $isPrimary ? 'bi-shield-shaded' : 'bi-person-check-fill' ?> me-1"></i>
-                      <?= $isPrimary ? 'Primary Administrator' : 'Academic Administrator' ?>
-                    </span>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 0.65rem;">Active</span>
+          <div class="col-12 col-md-6 col-lg-4">
+            <div class="card border rounded-4 bg-white shadow-sm h-100 p-4 transition-hover position-relative" style="<?= $isPrimary ? 'border-top: 4px solid #7A1418 !important;' : 'border-top: 4px solid #1967d2 !important;' ?>">
+              <!-- Top Row: Avatar + Name + Active Status -->
+              <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+                <div class="d-flex align-items-center gap-3 min-w-0">
+                  <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0 shadow-sm" 
+                       style="width: 48px; height: 48px; font-size: 1.15rem; background: <?= $isPrimary ? 'linear-gradient(135deg, #7A1418, #991b1b)' : 'linear-gradient(135deg, #1967d2, #0d47a1)' ?>;">
+                    <?= strtoupper(substr($adm['name'], 0, 1)) ?>
                   </div>
-
-                  <h6 class="fw-bold text-dark mb-0 text-truncate" title="<?= e($adm['name']) ?>">
-                    <?= e($adm['name']) ?>
-                  </h6>
-                  <div class="text-muted small text-truncate font-monospace" style="font-size: 0.78rem;">
-                    <i class="bi bi-envelope me-1"></i><a href="mailto:<?= e($adm['email']) ?>" class="text-decoration-none text-secondary"><?= e($adm['email']) ?></a>
-                  </div>
-                  <div class="text-muted small mt-2 pt-2 border-top d-flex justify-content-between align-items-center" style="font-size: 0.72rem;">
-                    <span>User ID: <strong>#<?= $adm['id'] ?></strong></span>
-                    <span class="text-success"><i class="bi bi-key-fill me-1"></i>Full Admin Access</span>
+                  <div class="min-w-0">
+                    <h6 class="fw-bold text-dark mb-0 text-truncate" title="<?= e($adm['name']) ?>" style="font-size: 0.95rem;">
+                      <?= e($adm['name']) ?>
+                    </h6>
+                    <div class="text-muted small text-truncate font-monospace" style="font-size: 0.78rem;">
+                      <i class="bi bi-envelope me-1"></i><a href="mailto:<?= e($adm['email']) ?>" class="text-decoration-none text-secondary"><?= e($adm['email']) ?></a>
+                    </div>
                   </div>
                 </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 flex-shrink-0" style="font-size: 0.68rem;">
+                  <i class="bi bi-circle-fill me-1" style="font-size: 0.45rem;"></i>Active
+                </span>
+              </div>
+
+              <!-- Role & Permissions Badges -->
+              <div class="mb-3">
+                <span class="badge rounded-pill <?= $isPrimary ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle' ?> fw-semibold px-2.5 py-1" style="font-size: 0.73rem;">
+                  <i class="bi <?= $isPrimary ? 'bi-shield-shaded' : 'bi-person-check-fill' ?> me-1"></i>
+                  <?= $isPrimary ? 'Primary Administrator' : 'Academic Administrator' ?>
+                </span>
+              </div>
+
+              <!-- Footer: User ID + Access Level -->
+              <div class="text-muted small pt-2.5 border-top d-flex justify-content-between align-items-center mt-auto" style="font-size: 0.75rem;">
+                <span class="font-monospace text-secondary">User ID: <strong class="text-dark">#<?= $adm['id'] ?></strong></span>
+                <span class="text-success fw-semibold"><i class="bi bi-key-fill me-1 text-success"></i>Full Admin Access</span>
               </div>
             </div>
           </div>
