@@ -457,7 +457,18 @@ class TeacherController {
     public function attendance(): void {
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $teacherId = Auth::id();
-        $classId = 1;
+
+        // Dynamically detect active class if not specified
+        $allBatches = AttendanceManager::getAllBatches();
+        $requestedClassId = (int)($_GET['class_id'] ?? 0);
+        if ($requestedClassId > 0) {
+            $classId = $requestedClassId;
+        } else {
+            $classId = AttendanceManager::getActiveClassId();
+        }
+
+        $currentBatch = AttendanceManager::getBatchById($classId) ?: AttendanceManager::getActiveBatch();
+        $isBatchArchived = ($currentBatch && $currentBatch['status'] === 'archived');
 
         $tab = trim($_GET['tab'] ?? 'daily');
         $selectedDate = trim($_GET['date'] ?? date('Y-m-d'));
@@ -470,9 +481,9 @@ class TeacherController {
             $selectedMonth = date('Y-m');
         }
 
-        // Daily tab data
+        // Daily tab data (strictly active students if batch is active, or full list if viewing historical archived batch)
         $dayLock = AttendanceManager::getDayLock($classId, $selectedDate);
-        $students = AttendanceManager::getClassStudents($classId);
+        $students = AttendanceManager::getClassStudents($classId, $isBatchArchived);
         $existingAttendance = AttendanceManager::getAttendanceForDate($classId, $selectedDate);
         $holiday = AttendanceManager::getHoliday($selectedDate, $classId);
         $isWeekend = ((int)date('N', strtotime($selectedDate)) >= 6);
@@ -481,16 +492,16 @@ class TeacherController {
         $monitors = AttendanceManager::getClassMonitors($classId);
 
         // Monthly matrix tab data
-        $monthlyData = AttendanceManager::getMonthlyMatrix($classId, $selectedMonth);
+        $monthlyData = AttendanceManager::getMonthlyMatrix($classId, $selectedMonth, $isBatchArchived);
         $monthlyHolidays = AttendanceManager::getMonthlyHolidays($selectedMonth, $classId);
 
-        $className = "NVTI Baddegama ICT L5 - Batch 2026";
-        $pageTitle = "Attendance & Class Monitor Management";
+        $className = $currentBatch['class_name'] ?? "NVTI Baddegama National Diploma";
+        $pageTitle = "Attendance & Class Monitor Management - " . $className;
         require_once __DIR__ . '/../Views/teacher/attendance.php';
     }
 
     /**
-     * Teacher Save Attendance (Teacher can always save / override)
+     * Teacher Save Attendance (Teacher can always save / override for active batches)
      */
     public function saveAttendance(): void {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -501,13 +512,24 @@ class TeacherController {
         Csrf::validate();
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $teacherId = Auth::id();
-        $classId = 1;
+        $classId = (int)($_POST['class_id'] ?? 0);
+        if ($classId <= 0) {
+            $classId = AttendanceManager::getActiveClassId();
+        }
+
+        $batch = AttendanceManager::getBatchById($classId);
+        if ($batch && $batch['status'] === 'archived') {
+            Flash::error("This batch is archived (Old Batch). Attendance records for graduated batches are read-only and preserved permanently.");
+            header("Location: index.php?page=teacher_attendance&class_id=" . $classId);
+            exit;
+        }
+
         $date = trim($_POST['date'] ?? date('Y-m-d'));
         $attendanceData = $_POST['attendance'] ?? [];
 
         if (empty($attendanceData) || !is_array($attendanceData)) {
             Flash::error("No attendance data submitted.");
-            header("Location: index.php?page=teacher_attendance&date=" . urlencode($date));
+            header("Location: index.php?page=teacher_attendance&class_id=" . $classId . "&date=" . urlencode($date));
             exit;
         }
 
@@ -520,7 +542,7 @@ class TeacherController {
             Flash::success("Attendance for " . htmlspecialchars($date) . " has been officially verified, approved, and locked into daily records.");
         }
 
-        header("Location: index.php?page=teacher_attendance&date=" . urlencode($date));
+        header("Location: index.php?page=teacher_attendance&class_id=" . $classId . "&date=" . urlencode($date));
         exit;
     }
 
@@ -536,16 +558,19 @@ class TeacherController {
         Csrf::validate();
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $teacherId = Auth::id();
-        $classId = 1;
+        $classId = (int)($_POST['class_id'] ?? 0);
+        if ($classId <= 0) {
+            $classId = AttendanceManager::getActiveClassId();
+        }
         $date = trim($_POST['date'] ?? '');
 
         if ($date) {
             AttendanceManager::unlockDay($classId, $date, $teacherId);
-            Auth::logAudit($teacherId, 'UNLOCK_ATTENDANCE', "Unlocked attendance for $date");
+            Auth::logAudit($teacherId, 'UNLOCK_ATTENDANCE', "Unlocked attendance for class $classId on $date");
             Flash::success("Attendance sheet for " . htmlspecialchars($date) . " has been unlocked. Class monitors can now edit.");
         }
 
-        header("Location: index.php?page=teacher_attendance&date=" . urlencode($date));
+        header("Location: index.php?page=teacher_attendance&class_id=" . $classId . "&date=" . urlencode($date));
         exit;
     }
 
@@ -561,7 +586,10 @@ class TeacherController {
         Csrf::validate();
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $userId = Auth::id();
-        $classId = 1;
+        $classId = (int)($_POST['class_id'] ?? 0);
+        if ($classId <= 0) {
+            $classId = AttendanceManager::getActiveClassId();
+        }
         $date = trim($_POST['date'] ?? '');
         $name = trim($_POST['holiday_name'] ?? '');
         $type = trim($_POST['holiday_type'] ?? 'public_holiday');
@@ -569,13 +597,13 @@ class TeacherController {
 
         if (!empty($date) && !empty($name)) {
             AttendanceManager::setHoliday($date, $name, $type, $desc, $classId, $userId);
-            Auth::logAudit($userId, 'DECLARE_HOLIDAY', "Declared $date as holiday: $name ($type)");
+            Auth::logAudit($userId, 'DECLARE_HOLIDAY', "Declared $date as holiday: $name ($type) for class $classId");
             Flash::success("Date " . htmlspecialchars($date) . " has been officially recorded as a Holiday / Closure: " . htmlspecialchars($name));
         } else {
             Flash::error("Please provide a holiday name/reason and date.");
         }
 
-        header("Location: index.php?page=teacher_attendance&date=" . urlencode($date));
+        header("Location: index.php?page=teacher_attendance&class_id=" . $classId . "&date=" . urlencode($date));
         exit;
     }
 
@@ -591,16 +619,19 @@ class TeacherController {
         Csrf::validate();
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $userId = Auth::id();
-        $classId = 1;
+        $classId = (int)($_POST['class_id'] ?? 0);
+        if ($classId <= 0) {
+            $classId = AttendanceManager::getActiveClassId();
+        }
         $date = trim($_POST['date'] ?? '');
 
         if ($date) {
             AttendanceManager::removeHoliday($date, $classId);
-            Auth::logAudit($userId, 'REMOVE_HOLIDAY', "Removed holiday declaration for $date");
+            Auth::logAudit($userId, 'REMOVE_HOLIDAY', "Removed holiday declaration for $date (class $classId)");
             Flash::success("Holiday declaration for " . htmlspecialchars($date) . " has been removed. Regular attendance can now be marked.");
         }
 
-        header("Location: index.php?page=teacher_attendance&date=" . urlencode($date));
+        header("Location: index.php?page=teacher_attendance&class_id=" . $classId . "&date=" . urlencode($date));
         exit;
     }
 
@@ -616,20 +647,23 @@ class TeacherController {
         Csrf::validate();
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $teacherId = Auth::id();
-        $classId = 1;
+        $classId = (int)($_POST['class_id'] ?? 0);
+        if ($classId <= 0) {
+            $classId = AttendanceManager::getActiveClassId();
+        }
         $studentId = (int)($_POST['student_id'] ?? 0);
         $role = in_array($_POST['monitor_role'] ?? '', ['primary', 'backup']) ? $_POST['monitor_role'] : 'primary';
         $status = in_array($_POST['status'] ?? '', ['active', 'disabled']) ? $_POST['status'] : 'active';
 
         if ($studentId > 0) {
             AttendanceManager::setMonitor($classId, $studentId, $role, $status, $teacherId);
-            Auth::logAudit($teacherId, 'ASSIGN_MONITOR', "Assigned student $studentId as $role monitor ($status)");
+            Auth::logAudit($teacherId, 'ASSIGN_MONITOR', "Assigned student $studentId as $role monitor ($status) for class $classId");
             Flash::success("Class Monitor successfully assigned.");
         } else {
             Flash::error("Please select a valid student.");
         }
 
-        header("Location: index.php?page=teacher_attendance&tab=monitors");
+        header("Location: index.php?page=teacher_attendance&class_id=" . $classId . "&tab=monitors");
         exit;
     }
 
@@ -645,6 +679,10 @@ class TeacherController {
         Csrf::validate();
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $teacherId = Auth::id();
+        $classId = (int)($_POST['class_id'] ?? 0);
+        if ($classId <= 0) {
+            $classId = AttendanceManager::getActiveClassId();
+        }
         $monitorId = (int)($_POST['monitor_id'] ?? 0);
         $newStatus = ($_POST['status'] === 'active') ? 'active' : 'disabled';
 
@@ -654,25 +692,28 @@ class TeacherController {
             Flash::success("Monitor status updated to " . ucfirst($newStatus) . ". All past attendance marked by this student is preserved.");
         }
 
-        header("Location: index.php?page=teacher_attendance&tab=monitors");
+        header("Location: index.php?page=teacher_attendance&class_id=" . $classId . "&tab=monitors");
         exit;
     }
 
-    /**
-     * Export Monthly Attendance as Excel CSV
-     */
     /**
      * Export Monthly Attendance to CSV (Official NVTI Benchmark Report)
      */
     public function exportAttendanceCsv(): void {
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
-        $classId = 1;
+        $classId = (int)($_GET['class_id'] ?? 0);
+        if ($classId <= 0) {
+            $classId = AttendanceManager::getActiveClassId();
+        }
+        $batch = AttendanceManager::getBatchById($classId) ?: AttendanceManager::getActiveBatch();
+        $isArchived = ($batch && $batch['status'] === 'archived');
+
         $selectedMonth = trim($_GET['month'] ?? date('Y-m'));
         if (!preg_match('/^\d{4}-\d{2}$/', $selectedMonth)) {
             $selectedMonth = date('Y-m');
         }
 
-        $data = AttendanceManager::getMonthlyMatrix($classId, $selectedMonth);
+        $data = AttendanceManager::getMonthlyMatrix($classId, $selectedMonth, $isArchived);
         $holidays = AttendanceManager::getMonthlyHolidays($selectedMonth, $classId);
         $students = $data['students'];
         $dates = $data['dates'];

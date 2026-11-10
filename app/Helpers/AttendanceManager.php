@@ -9,16 +9,62 @@ require_once __DIR__ . '/../../config/database.php';
 class AttendanceManager {
 
     /**
-     * Check if a student is an active monitor for a class
+     * Get the current active batch (most recent active class)
      */
-    public static function getActiveMonitorStatus(int $userId, int $classId = 1): ?array {
+    public static function getActiveBatch(): ?array {
+        $db = Database::getConnection();
+        $stmt = $db->query("SELECT * FROM classes WHERE status = 'active' ORDER BY id DESC LIMIT 1");
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            return $row;
+        }
+        // Fallback: most recent class if no active exists
+        $fallback = $db->query("SELECT * FROM classes ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+        return $fallback ?: null;
+    }
+
+    /**
+     * Get the active batch ID dynamically
+     */
+    public static function getActiveClassId(): int {
+        $batch = self::getActiveBatch();
+        return $batch ? (int)$batch['id'] : 1;
+    }
+
+    /**
+     * Get batch details by ID
+     */
+    public static function getBatchById(int $classId): ?array {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT * FROM classes WHERE id = ? LIMIT 1");
+        $stmt->execute([$classId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /**
+     * Get all batches ordered by status (active first) and ID descending
+     */
+    public static function getAllBatches(): array {
+        $db = Database::getConnection();
+        return $db->query("SELECT * FROM classes ORDER BY FIELD(status, 'active', 'archived'), id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Check if a student is an active monitor for an active class
+     */
+    public static function getActiveMonitorStatus(int $userId, int $classId = 0): ?array {
+        if ($classId <= 0) {
+            $classId = self::getActiveClassId();
+        }
         $db = Database::getConnection();
         $stmt = $db->prepare("
             SELECT am.*, u.name as student_name, sp.student_code, sp.mis_number
             FROM attendance_monitors am
             JOIN users u ON am.student_id = u.id
             JOIN student_profiles sp ON u.id = sp.user_id
-            WHERE am.student_id = ? AND am.class_id = ? AND am.status = 'active'
+            JOIN classes c ON am.class_id = c.id
+            WHERE am.student_id = ? AND am.class_id = ? AND am.status = 'active' AND u.status = 'active' AND c.status = 'active'
             LIMIT 1
         ");
         $stmt->execute([$userId, $classId]);
@@ -116,18 +162,28 @@ class AttendanceManager {
     }
 
     /**
-     * Get all students in a class
+     * Get students in a class (strictly active students in active classes unless $includeArchived is true)
      */
-    public static function getClassStudents(int $classId = 1): array {
+    public static function getClassStudents(int $classId = 0, bool $includeArchived = false): array {
+        if ($classId <= 0) {
+            $classId = self::getActiveClassId();
+        }
         $db = Database::getConnection();
-        $stmt = $db->prepare("
-            SELECT u.id as user_id, u.name, u.email, u.profile_image,
-                   sp.id as profile_id, sp.student_code, sp.mis_number, sp.nic, sp.phone, sp.whatsapp_number
+        $sql = "
+            SELECT u.id as user_id, u.name, u.email, u.profile_image, u.status as user_status,
+                   sp.id as profile_id, sp.student_code, sp.mis_number, sp.nic, sp.phone, sp.whatsapp_number,
+                   c.class_name, c.status as class_status
             FROM users u
             JOIN student_profiles sp ON u.id = sp.user_id
-            WHERE sp.class_id = ? AND u.role = 'student' AND u.status = 'active'
-            ORDER BY sp.student_code ASC, u.name ASC
-        ");
+            JOIN classes c ON sp.class_id = c.id
+            WHERE sp.class_id = ? AND u.role = 'student'
+        ";
+        if (!$includeArchived) {
+            $sql .= " AND u.status = 'active' AND c.status = 'active'";
+        }
+        $sql .= " ORDER BY sp.student_code ASC, u.name ASC";
+
+        $stmt = $db->prepare($sql);
         $stmt->execute([$classId]);
         return $stmt->fetchAll();
     }
@@ -281,9 +337,15 @@ class AttendanceManager {
     /**
      * Get monthly attendance matrix for all students in class
      */
-    public static function getMonthlyMatrix(int $classId, string $yearMonth): array {
+    public static function getMonthlyMatrix(int $classId = 0, string $yearMonth = '', bool $includeArchived = false): array {
+        if ($classId <= 0) {
+            $classId = self::getActiveClassId();
+        }
+        if (empty($yearMonth)) {
+            $yearMonth = date('Y-m');
+        }
         $db = Database::getConnection();
-        $students = self::getClassStudents($classId);
+        $students = self::getClassStudents($classId, $includeArchived);
 
         // Fetch distinct recorded dates in this month
         $datesStmt = $db->prepare("

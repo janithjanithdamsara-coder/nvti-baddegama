@@ -624,8 +624,26 @@ class StudentController {
      */
     public function batchAttendance(): void {
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
+        $db = Database::getConnection();
         $studentId = Auth::id();
-        $classId = 1; // Primary ICT NVQ Level 5 Batch
+
+        // Get student's assigned class ID
+        $profStmt = $db->prepare("
+            SELECT sp.class_id, c.class_name, c.status as class_status 
+            FROM student_profiles sp 
+            JOIN classes c ON sp.class_id = c.id 
+            WHERE sp.user_id = ?
+        ");
+        $profStmt->execute([$studentId]);
+        $classInfo = $profStmt->fetch();
+
+        if (!$classInfo || $classInfo['class_status'] !== 'active') {
+            Flash::error("Your batch is not currently active for attendance marking.");
+            header("Location: index.php?page=student_dashboard");
+            exit;
+        }
+
+        $classId = (int)$classInfo['class_id'];
 
         // Verify active monitor authorization
         $monitorInfo = AttendanceManager::getActiveMonitorStatus($studentId, $classId);
@@ -649,7 +667,7 @@ class StudentController {
         $students = AttendanceManager::getClassStudents($classId);
         $existingAttendance = AttendanceManager::getAttendanceForDate($classId, $selectedDate);
 
-        $className = "NVTI Baddegama ICT L5 - Batch 2026";
+        $className = $classInfo['class_name'] ?? "NVTI Baddegama National Diploma";
         $pageTitle = "Batch Attendance Sheet - Monitor Access";
         require_once __DIR__ . '/../Views/student/batch_attendance.php';
     }
@@ -665,9 +683,25 @@ class StudentController {
 
         Csrf::validate();
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
+        $db = Database::getConnection();
 
         $studentId = Auth::id();
-        $classId = 1;
+        $profStmt = $db->prepare("
+            SELECT sp.class_id, c.status as class_status 
+            FROM student_profiles sp 
+            JOIN classes c ON sp.class_id = c.id 
+            WHERE sp.user_id = ?
+        ");
+        $profStmt->execute([$studentId]);
+        $classInfo = $profStmt->fetch();
+
+        if (!$classInfo || $classInfo['class_status'] !== 'active') {
+            Flash::error("Your batch is not active.");
+            header("Location: index.php?page=student_dashboard");
+            exit;
+        }
+
+        $classId = (int)$classInfo['class_id'];
 
         // Verify monitor authorization
         $monitorInfo = AttendanceManager::getActiveMonitorStatus($studentId, $classId);

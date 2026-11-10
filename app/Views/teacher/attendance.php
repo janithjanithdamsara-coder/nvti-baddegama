@@ -20,36 +20,66 @@ $activeTab = $tab ?? 'daily';
       <!-- Header Banner -->
       <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
         <div class="card-body p-4">
-          <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 flex-wrap">
             <div>
-              <div class="d-flex align-items-center gap-2 mb-1">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1 fw-semibold">
                   <i class="bi bi-calendar2-check-fill me-1"></i> Academic Attendance Portal
                 </span>
-                <span class="badge bg-primary-subtle text-primary border px-2.5 py-1">
-                  NVQ Level 5 ICT
-                </span>
+                
+                <!-- Dynamic Batch Selector Dropdown -->
+                <div class="dropdown d-inline-block">
+                  <button class="btn btn-sm btn-outline-dark dropdown-toggle rounded-pill px-3 py-0.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.82rem;">
+                    <i class="bi bi-mortarboard-fill text-danger"></i>
+                    <span><?= htmlspecialchars($className ?? 'NVTI Diploma Batch') ?></span>
+                    <?php if (!empty($isBatchArchived)): ?>
+                      <span class="badge bg-secondary text-white rounded-pill ms-1" style="font-size: 0.65rem;">Old Batch (Archived)</span>
+                    <?php else: ?>
+                      <span class="badge bg-success text-white rounded-pill ms-1" style="font-size: 0.65rem;">Active Batch</span>
+                    <?php endif; ?>
+                  </button>
+                  <ul class="dropdown-menu shadow border-0 rounded-3 py-1 small">
+                    <li><h6 class="dropdown-header small text-uppercase" style="font-size: 0.68rem;">Switch Academic Batch</h6></li>
+                    <?php if (!empty($allBatches)): ?>
+                      <?php foreach ($allBatches as $b): 
+                        $bId = (int)$b['id'];
+                        $isCur = ($bId === (int)$classId);
+                        $isBArchived = ($b['status'] === 'archived');
+                      ?>
+                        <li>
+                          <a class="dropdown-item py-1.5 d-flex align-items-center justify-content-between gap-3 <?= $isCur ? 'active fw-bold' : '' ?>" 
+                             href="index.php?page=teacher_attendance&class_id=<?= $bId ?>&tab=<?= urlencode($activeTab) ?>&date=<?= urlencode($selectedDate) ?>">
+                            <span><?= e($b['class_name']) ?></span>
+                            <span class="badge <?= $isBArchived ? 'bg-secondary' : 'bg-success' ?> text-white rounded-pill" style="font-size: 0.62rem;">
+                              <?= $isBArchived ? 'Archived' : 'Active' ?>
+                            </span>
+                          </a>
+                        </li>
+                      <?php endforeach; ?>
+                    <?php endif; ?>
+                  </ul>
+                </div>
               </div>
               <h3 class="fw-bold text-dark mb-1">Attendance &amp; Class Monitors</h3>
               <p class="text-muted small mb-0">
-                <?= htmlspecialchars($className ?? 'NVTI Baddegama ICT L5 - Batch 2026') ?> &bull; Instructor: <strong><?= e(Auth::user()['name']) ?></strong>
+                <?= htmlspecialchars($className ?? 'NVTI Baddegama National Diploma') ?> &bull; Instructor: <strong><?= e(Auth::user()['name']) ?></strong>
               </p>
             </div>
 
             <!-- Quick Nav Tabs -->
-            <ul class="nav nav-pills bg-light p-1.5 rounded-3 border" role="tablist">
+            <ul class="nav nav-pills bg-light p-1.5 rounded-3 border flex-wrap" role="tablist">
               <li class="nav-item">
-                <a class="nav-link <?= ($activeTab === 'daily') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($selectedDate) ?>">
+                <a class="nav-link <?= ($activeTab === 'daily') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=daily&date=<?= urlencode($selectedDate) ?>">
                   <i class="bi bi-calendar-day me-1"></i> Daily Sheet
                 </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link <?= ($activeTab === 'monitors') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&tab=monitors">
+                <a class="nav-link <?= ($activeTab === 'monitors') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=monitors">
                   <i class="bi bi-people-fill me-1"></i> Class Monitors
                 </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link <?= ($activeTab === 'monthly') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&tab=monthly&month=<?= urlencode($selectedMonth) ?>">
+                <a class="nav-link <?= ($activeTab === 'monthly') ? 'active fw-bold' : 'text-secondary' ?> py-1.5 px-3" href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=monthly&month=<?= urlencode($selectedMonth) ?>">
                   <i class="bi bi-grid-3x3-gap-fill me-1"></i> Monthly Matrix &amp; Export
                 </a>
               </li>
@@ -57,6 +87,20 @@ $activeTab = $tab ?? 'daily';
           </div>
         </div>
       </div>
+
+      <?php if (!empty($isBatchArchived)): ?>
+        <!-- Archived Batch Warning Notice -->
+        <div class="alert alert-secondary border-0 shadow-sm rounded-4 p-3 mb-4 d-flex align-items-center gap-3">
+          <div class="rounded-circle p-2 bg-white text-secondary shadow-xs flex-shrink-0 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+            <i class="bi bi-archive-fill fs-4"></i>
+          </div>
+          <div>
+            <span class="badge bg-secondary text-white rounded-pill px-2.5 py-0.5 fw-bold" style="font-size: 0.72rem;">GRADUATED / OLD BATCH &bull; READ-ONLY ARCHIVE</span>
+            <div class="fw-bold text-dark mt-0.5">This batch is archived. Past attendance records are 100% preserved permanently for audit and certification.</div>
+            <div class="small text-muted">To mark new daily attendance, switch to the current <strong>Active Batch</strong> via the batch selector above.</div>
+          </div>
+        </div>
+      <?php endif; ?>
 
       <!-- ================= TAB 1: DAILY ATTENDANCE ================= -->
       <?php if ($activeTab === 'daily'): 
@@ -110,12 +154,13 @@ $activeTab = $tab ?? 'daily';
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
               <!-- Stepper Controls & Datepicker -->
               <div class="d-flex align-items-center gap-2 flex-wrap">
-                <a href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($prevDate) ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold shadow-xs" title="Previous Academic Day">
+                <a href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=daily&date=<?= urlencode($prevDate) ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold shadow-xs" title="Previous Academic Day">
                   <i class="bi bi-chevron-left me-1"></i> Prev (<?= date('D, M d', strtotime($prevDate)) ?>)
                 </a>
 
                 <form action="index.php" method="GET" class="d-flex align-items-center gap-1.5 m-0">
                   <input type="hidden" name="page" value="teacher_attendance">
+                  <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
                   <input type="hidden" name="tab" value="daily">
                   <div class="input-group input-group-sm">
                     <span class="input-group-text bg-light border-secondary-subtle"><i class="bi bi-calendar-event text-primary"></i></span>
@@ -123,12 +168,12 @@ $activeTab = $tab ?? 'daily';
                   </div>
                 </form>
 
-                <a href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($nextDate) ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold shadow-xs" title="Next Academic Day">
+                <a href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=daily&date=<?= urlencode($nextDate) ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold shadow-xs" title="Next Academic Day">
                   Next (<?= date('D, M d', strtotime($nextDate)) ?>) <i class="bi bi-chevron-right ms-1"></i>
                 </a>
 
                 <?php if (!$isToday): ?>
-                  <a href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($todayDate) ?>" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold shadow-xs" style="background: #7A1418; border-color: #7A1418;">
+                  <a href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=daily&date=<?= urlencode($todayDate) ?>" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold shadow-xs" style="background: #7A1418; border-color: #7A1418;">
                     <i class="bi bi-calendar-check me-1"></i> Jump to Today
                   </a>
                 <?php else: ?>
@@ -193,6 +238,7 @@ $activeTab = $tab ?? 'daily';
               </button>
               <form action="index.php?page=teacher_remove_holiday" method="POST" onsubmit="return confirm('Remove holiday declaration for this date and re-open attendance marking?');" class="d-inline">
                 <?= Csrf::field() ?>
+                <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
                 <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
                 <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3.5 fw-semibold">
                   <i class="bi bi-trash3 me-1"></i> Remove Holiday (Re-open Roll Call)
@@ -243,6 +289,7 @@ $activeTab = $tab ?? 'daily';
                   </button>
                   <form action="index.php?page=teacher_attendance_unlock" method="POST" onsubmit="return confirm('Unlock this date so student monitor can re-mark?');" class="d-inline">
                     <?= Csrf::field() ?>
+                    <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
                     <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
                     <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2 fw-semibold">
                       <i class="bi bi-unlock-fill me-1"></i> Unlock
@@ -255,55 +302,57 @@ $activeTab = $tab ?? 'daily';
             <!-- ================= ATTENDANCE COMPLETED & FINALIZED HERO CARD ================= -->
             <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #d1fae5 100%); border-left: 6px solid #10b981 !important;">
               <div class="card-body p-4">
-                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-4">
-                  <div class="d-flex align-items-start gap-3">
-                    <div class="rounded-circle p-3 d-flex align-items-center justify-content-center text-success bg-white shadow-sm flex-shrink-0" style="width: 62px; height: 62px;">
-                      <i class="bi bi-patch-check-fill fs-1 text-success"></i>
+                <div class="d-flex align-items-start gap-3 mb-3">
+                  <div class="rounded-circle p-2.5 d-flex align-items-center justify-content-center text-success bg-white shadow-sm flex-shrink-0" style="width: 54px; height: 54px;">
+                    <i class="bi bi-patch-check-fill fs-2 text-success"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                      <span class="badge bg-success text-white fw-bold rounded-pill px-3 py-1" style="font-size: 0.74rem;">
+                        <i class="bi bi-lock-fill me-1"></i> ROLL CALL COMPLETED &amp; LOCKED
+                      </span>
+                      <span class="text-success fw-bold small">&bull; Date: <?= date('l, d F Y', strtotime($selectedDate)) ?></span>
                     </div>
-                    <div>
-                      <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                        <span class="badge bg-success text-white fw-bold rounded-pill px-3 py-1" style="font-size: 0.76rem;">
-                          <i class="bi bi-lock-fill me-1"></i> ROLL CALL COMPLETED &amp; LOCKED
-                        </span>
-                        <span class="text-success fw-bold small">&bull; Date: <?= date('l, d F Y', strtotime($selectedDate)) ?></span>
-                      </div>
-                      <h4 class="fw-bold text-dark mb-1">
-                        අද දින පැමිණීම සාර්ථකව සටහන් කර අවසන් කර ඇත
-                      </h4>
-                      <p class="text-secondary small mb-2" style="max-width: 680px; line-height: 1.5;">
-                        මෙම දිනට අදාළ roll call එක සම්පූර්ණ කර ඇති බැවින් ශිෂ්‍ය නාම ලැයිස්තුව ආරක්ෂිතව close කර ඇත.
-                        මීළඟ දින පැමිණීම සටහන් කිරීමට පහත <strong>'Mark Next Date (මීළඟ දිනය)'</strong> තෝරන්න.
-                      </p>
-                      <div class="text-muted small">
-                        <i class="bi bi-shield-check text-success me-1"></i> Verified &amp; Locked by: <strong><?= e($dayLock['verified_by_name'] ?? $dayLock['marked_by_name'] ?? 'Instructor') ?></strong> (Role: <?= strtoupper(e($dayLock['marked_by_role'] ?? 'OFFICIAL')) ?>) at <?= date('h:i A', strtotime($dayLock['verified_at'] ?? $dayLock['submitted_at'])) ?>
-                      </div>
+                    <h4 class="fw-bold text-dark mb-1 lh-sm">
+                      අද දින පැමිණීම සාර්ථකව සටහන් කර අවසන් කර ඇත
+                    </h4>
+                    <p class="text-secondary small mb-1.5" style="line-height: 1.55;">
+                      මෙම දිනට අදාළ roll call එක සම්පූර්ණ කර ඇති බැවින් ශිෂ්‍ය නාම ලැයිස්තුව ආරක්ෂිතව close කර ඇත.
+                      මීළඟ දින පැමිණීම සටහන් කිරීමට පහත <strong>'Mark Next Date (මීළඟ දිනය)'</strong> තෝරන්න.
+                    </p>
+                    <div class="text-muted small">
+                      <i class="bi bi-shield-check text-success me-1"></i> Verified &amp; Locked by: <strong><?= e($dayLock['verified_by_name'] ?? $dayLock['marked_by_name'] ?? 'Instructor') ?></strong> (Role: <?= strtoupper(e($dayLock['marked_by_role'] ?? 'OFFICIAL')) ?>) at <?= date('h:i A', strtotime($dayLock['verified_at'] ?? $dayLock['submitted_at'])) ?>
                     </div>
                   </div>
+                </div>
 
-                  <!-- Action Buttons on Completed State -->
-                  <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2.5 flex-shrink-0">
-                    <!-- Primary Action: Next Date -->
-                    <a href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($nextDate) ?>" class="btn btn-success btn-lg rounded-pill px-4 py-2.5 fw-bold shadow-sm d-inline-flex align-items-center justify-content-center gap-2">
-                      <i class="bi bi-calendar-plus-fill"></i>
-                      <span>Mark Next Date (<?= date('D, M d', strtotime($nextDate)) ?>)</span>
-                      <i class="bi bi-arrow-right"></i>
-                    </a>
+                <!-- Clean Responsive Action Toolbar (Guaranteed Zero Overflow) -->
+                <div class="d-flex flex-wrap align-items-center gap-2.5 pt-3 border-top border-success-subtle">
+                  <!-- Primary Action: Next Date -->
+                  <a href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=daily&date=<?= urlencode($nextDate) ?>" class="btn btn-success rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-calendar-plus-fill"></i>
+                    <span>Mark Next Date (<?= date('D, M d', strtotime($nextDate)) ?>)</span>
+                    <i class="bi bi-arrow-right"></i>
+                  </a>
 
-                    <!-- View / Hide List Toggle Button -->
-                    <button class="btn btn-outline-dark rounded-pill px-3.5 py-2.5 fw-semibold d-inline-flex align-items-center justify-content-center gap-1.5 shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#dailyRollCallCollapse" aria-expanded="false" aria-controls="dailyRollCallCollapse" id="btnToggleRollCall">
-                      <i class="bi bi-person-lines-fill"></i>
-                      <span id="lblToggleRollCall">View Name List (ලැයිස්තුව බලන්න)</span>
-                    </button>
+                  <!-- View / Hide List Toggle Button -->
+                  <button class="btn btn-outline-dark rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#dailyRollCallCollapse" aria-expanded="false" aria-controls="dailyRollCallCollapse" id="btnToggleRollCall">
+                    <i class="bi bi-person-lines-fill text-primary"></i>
+                    <span id="lblToggleRollCall">View Name List (ලැයිස්තුව බලන්න)</span>
+                  </button>
 
-                    <!-- Unlock button -->
-                    <form action="index.php?page=teacher_attendance_unlock" method="POST" onsubmit="return confirm('Unlock this attendance sheet so you can make corrections?');" class="d-inline">
+                  <!-- Unlock button (Only active when batch is active) -->
+                  <?php if (empty($isBatchArchived)): ?>
+                    <form action="index.php?page=teacher_attendance_unlock" method="POST" onsubmit="return confirm('Unlock this attendance sheet so you can make corrections?');" class="d-inline m-0">
                       <?= Csrf::field() ?>
+                      <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
                       <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
-                      <button type="submit" class="btn btn-outline-danger rounded-pill px-3 py-2.5 fw-semibold w-100" title="Unlock and re-mark">
-                        <i class="bi bi-unlock-fill me-1"></i> Unlock
+                      <button type="submit" class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs bg-white" title="Unlock and re-mark">
+                        <i class="bi bi-unlock-fill"></i>
+                        <span>Unlock Sheet</span>
                       </button>
                     </form>
-                  </div>
+                  <?php endif; ?>
                 </div>
 
                 <!-- Summary KPI Metric Cards Bar -->
@@ -405,16 +454,21 @@ $activeTab = $tab ?? 'daily';
           <!-- Daily Roll Call Grid Form -->
           <form action="index.php?page=teacher_attendance_save" method="POST" id="teacherDailyForm">
             <?= Csrf::field() ?>
+            <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
             <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
 
             <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
-              <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+              <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom flex-wrap gap-2">
                 <div>
                   <strong class="text-dark"><i class="bi bi-people-fill text-primary me-2"></i>Class Roll Call (<?= count($students) ?> Students)</strong>
                   <span class="text-muted small ms-2">&bull; Date: <?= date('l, d F Y', strtotime($selectedDate)) ?></span>
                 </div>
                 <div>
-                  <?php if ($isVerifiedOfficial): ?>
+                  <?php if (!empty($isBatchArchived)): ?>
+                    <span class="badge bg-secondary text-white rounded-pill px-3 py-1.5 fw-bold">
+                      <i class="bi bi-archive-fill me-1"></i> Archived Record (Read-Only)
+                    </span>
+                  <?php elseif ($isVerifiedOfficial): ?>
                     <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold">
                       <i class="bi bi-lock-fill me-1"></i> Finalized &amp; Locked for Today
                     </span>
@@ -426,127 +480,138 @@ $activeTab = $tab ?? 'daily';
                 </div>
               </div>
 
-              <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
-                  <thead class="table-light text-secondary text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                    <tr>
-                      <th style="width: 45px;" class="text-center py-2.5">#</th>
-                      <th style="width: 290px;" class="py-2.5">Student Information</th>
-                      <th style="width: 160px;" class="py-2.5">MIS &amp; NIC Number</th>
-                      <th style="width: 330px;" class="text-center py-2.5">Attendance Status</th>
-                      <th class="py-2.5 text-end pe-3">Record Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php $idx = 1; foreach ($students as $st): 
-                      $stId = (int)$st['user_id'];
-                      $curAtt = $existingAttendance[$stId]['status'] ?? 'present';
-                      $markedBy = $existingAttendance[$stId]['marked_by_name'] ?? null;
-                    ?>
+              <?php if (empty($students)): ?>
+                <div class="p-5 text-center text-muted">
+                  <i class="bi bi-people fs-1 d-block mb-2 opacity-50"></i>
+                  No active students enrolled in this batch yet.
+                </div>
+              <?php else: ?>
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+                    <thead class="table-light text-secondary text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
                       <tr>
-                        <td class="text-center text-muted fw-bold"><?= $idx++ ?></td>
-                        <td>
-                          <div class="d-flex align-items-center gap-2.5">
-                            <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center text-primary fw-bold flex-shrink-0" style="width: 36px; height: 36px; font-size: 0.82rem;">
-                              <?= strtoupper(substr($st['name'], 0, 1)) ?>
+                        <th style="width: 45px;" class="text-center py-2.5">#</th>
+                        <th style="width: 290px;" class="py-2.5">Student Information</th>
+                        <th style="width: 160px;" class="py-2.5">MIS &amp; NIC Number</th>
+                        <th style="width: 330px;" class="text-center py-2.5">Attendance Status</th>
+                        <th class="py-2.5 text-end pe-3">Record Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <?php $idx = 1; foreach ($students as $st): 
+                        $stId = (int)$st['user_id'];
+                        $curAtt = $existingAttendance[$stId]['status'] ?? 'present';
+                        $markedBy = $existingAttendance[$stId]['marked_by_name'] ?? null;
+                        $isReadOnlyRow = ($isVerifiedOfficial || !empty($isBatchArchived));
+                      ?>
+                        <tr>
+                          <td class="text-center text-muted fw-bold"><?= $idx++ ?></td>
+                          <td>
+                            <div class="d-flex align-items-center gap-2.5">
+                              <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center text-primary fw-bold flex-shrink-0" style="width: 36px; height: 36px; font-size: 0.82rem;">
+                                <?= strtoupper(substr($st['name'], 0, 1)) ?>
+                              </div>
+                              <div>
+                                <div class="fw-bold text-dark mb-0 text-truncate" style="max-width: 230px;"><?= e($st['name']) ?></div>
+                                <small class="text-muted font-monospace"><?= e($st['student_code']) ?></small>
+                              </div>
                             </div>
-                            <div>
-                              <div class="fw-bold text-dark mb-0 text-truncate" style="max-width: 230px;"><?= e($st['name']) ?></div>
-                              <small class="text-muted font-monospace"><?= e($st['student_code']) ?></small>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span class="badge bg-light text-dark border font-monospace"><?= e($st['mis_number'] ?? 'N/A') ?></span>
-                          <div class="text-muted" style="font-size: 0.72rem;"><?= e($st['nic'] ?? '') ?></div>
-                        </td>
-                        <td class="text-center">
-                          <?php if ($isVerifiedOfficial): ?>
-                            <!-- Clean Finalized Read-Only Badge (Inputs closed) -->
-                            <input type="hidden" name="attendance[<?= $stId ?>][status]" value="<?= e($curAtt) ?>">
-                            <?php if ($curAtt === 'present'): ?>
-                              <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.8rem;">
-                                <i class="bi bi-check-circle-fill me-1 text-success"></i> Present
-                              </span>
-                            <?php elseif ($curAtt === 'late'): ?>
-                              <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #fefce8; color: #854d0e; border: 1px solid #fef08a; font-size: 0.8rem;">
-                                <i class="bi bi-clock-fill me-1 text-warning"></i> Late
-                              </span>
-                            <?php elseif ($curAtt === 'absent'): ?>
-                              <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.8rem;">
-                                <i class="bi bi-x-circle-fill me-1 text-danger"></i> Absent
+                          </td>
+                          <td>
+                            <span class="badge bg-light text-dark border font-monospace"><?= e($st['mis_number'] ?? 'N/A') ?></span>
+                            <div class="text-muted" style="font-size: 0.72rem;"><?= e($st['nic'] ?? '') ?></div>
+                          </td>
+                          <td class="text-center">
+                            <?php if ($isReadOnlyRow): ?>
+                              <!-- Clean Finalized Read-Only Badge (Inputs closed) -->
+                              <input type="hidden" name="attendance[<?= $stId ?>][status]" value="<?= e($curAtt) ?>">
+                              <?php if ($curAtt === 'present'): ?>
+                                <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: 0.8rem;">
+                                  <i class="bi bi-check-circle-fill me-1 text-success"></i> Present
+                                </span>
+                              <?php elseif ($curAtt === 'late'): ?>
+                                <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #fefce8; color: #854d0e; border: 1px solid #fef08a; font-size: 0.8rem;">
+                                  <i class="bi bi-clock-fill me-1 text-warning"></i> Late
+                                </span>
+                              <?php elseif ($curAtt === 'absent'): ?>
+                                <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; font-size: 0.8rem;">
+                                  <i class="bi bi-x-circle-fill me-1 text-danger"></i> Absent
+                                </span>
+                              <?php else: ?>
+                                <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.8rem;">
+                                  <i class="bi bi-info-circle-fill me-1 text-primary"></i> Excused
+                                </span>
+                              <?php endif; ?>
+                            <?php else: ?>
+                              <!-- Editable Radio Selection with Live Update Listener -->
+                              <div class="attendance-pill-group" role="group">
+                                <!-- Present -->
+                                <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_present" value="present" <?= ($curAtt === 'present') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
+                                <label class="att-pill-label att-pill-present" for="t_status_<?= $stId ?>_present">
+                                  <i class="bi bi-check-circle-fill me-1"></i> Present
+                                </label>
+
+                                <!-- Late -->
+                                <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_late" value="late" <?= ($curAtt === 'late') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
+                                <label class="att-pill-label att-pill-late" for="t_status_<?= $stId ?>_late">
+                                  <i class="bi bi-clock-fill me-1"></i> Late
+                                </label>
+
+                                <!-- Absent -->
+                                <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_absent" value="absent" <?= ($curAtt === 'absent') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
+                                <label class="att-pill-label att-pill-absent" for="t_status_<?= $stId ?>_absent">
+                                  <i class="bi bi-x-circle-fill me-1"></i> Absent
+                                </label>
+
+                                <!-- Excused -->
+                                <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_excused" value="excused" <?= ($curAtt === 'excused') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
+                                <label class="att-pill-label att-pill-excused" for="t_status_<?= $stId ?>_excused">
+                                  Excused
+                                </label>
+                              </div>
+                            <?php endif; ?>
+                          </td>
+                          <td class="text-end pe-3">
+                            <?php if ($markedBy): ?>
+                              <span class="badge bg-light text-secondary border" style="font-size: 0.72rem;">
+                                <i class="bi bi-person-check me-1"></i> Marked by: <?= e($markedBy) ?>
                               </span>
                             <?php else: ?>
-                              <span class="badge rounded-pill px-3 py-1.5 fw-bold" style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; font-size: 0.8rem;">
-                                <i class="bi bi-info-circle-fill me-1 text-primary"></i> Excused
-                              </span>
+                              <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">Not Recorded</span>
                             <?php endif; ?>
-                          <?php else: ?>
-                            <!-- Editable Radio Selection with Live Update Listener -->
-                            <div class="attendance-pill-group" role="group">
-                              <!-- Present -->
-                              <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_present" value="present" <?= ($curAtt === 'present') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
-                              <label class="att-pill-label att-pill-present" for="t_status_<?= $stId ?>_present">
-                                <i class="bi bi-check-circle-fill me-1"></i> Present
-                              </label>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
 
-                              <!-- Late -->
-                              <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_late" value="late" <?= ($curAtt === 'late') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
-                              <label class="att-pill-label att-pill-late" for="t_status_<?= $stId ?>_late">
-                                <i class="bi bi-clock-fill me-1"></i> Late
-                              </label>
-
-                              <!-- Absent -->
-                              <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_absent" value="absent" <?= ($curAtt === 'absent') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
-                              <label class="att-pill-label att-pill-absent" for="t_status_<?= $stId ?>_absent">
-                                <i class="bi bi-x-circle-fill me-1"></i> Absent
-                              </label>
-
-                              <!-- Excused -->
-                              <input type="radio" class="btn-check att-status-radio" name="attendance[<?= $stId ?>][status]" id="t_status_<?= $stId ?>_excused" value="excused" <?= ($curAtt === 'excused') ? 'checked' : '' ?> onchange="updateLiveAttendanceStats()">
-                              <label class="att-pill-label att-pill-excused" for="t_status_<?= $stId ?>_excused">
-                                Excused
-                              </label>
-                            </div>
-                          <?php endif; ?>
-                        </td>
-                        <td class="text-end pe-3">
-                          <?php if ($markedBy): ?>
-                            <span class="badge bg-light text-secondary border" style="font-size: 0.72rem;">
-                              <i class="bi bi-person-check me-1"></i> Marked by: <?= e($markedBy) ?>
-                            </span>
-                          <?php else: ?>
-                            <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">Not Recorded</span>
-                          <?php endif; ?>
-                        </td>
-                      </tr>
-                    <?php endforeach; ?>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="card-footer bg-white p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 border-top">
-                <?php if ($isVerifiedOfficial): ?>
-                  <span class="small text-muted"><i class="bi bi-lock-fill text-success me-1"></i> Attendance is finalized and locked for this date. Next roll call opens on next academic session.</span>
-                  <div class="d-flex align-items-center gap-2">
-                    <a href="index.php?page=teacher_attendance&tab=daily&date=<?= urlencode($nextDate) ?>" class="btn btn-success btn-sm rounded-pill px-3 py-1.5 fw-bold">
-                      <i class="bi bi-calendar-plus me-1"></i> Go to Next Date
-                    </a>
-                    <form action="index.php?page=teacher_attendance_unlock" method="POST" onsubmit="return confirm('Do you want to unlock this sheet to make corrections?');" class="d-inline">
-                      <?= Csrf::field() ?>
-                      <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
-                      <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold shadow-xs">
-                        <i class="bi bi-unlock-fill me-1"></i> Unlock &amp; Edit Sheet
-                      </button>
-                    </form>
-                  </div>
-                <?php else: ?>
-                  <span class="small text-muted"><i class="bi bi-shield-check text-success me-1"></i> Instructors hold ultimate authority to inspect, correct, and officially verify records.</span>
-                  <button type="submit" class="btn btn-primary px-4 py-2 fw-bold shadow-sm rounded-pill" style="background: #7A1418; border-color: #7A1418;">
-                    <i class="bi bi-check2-circle me-1"></i> <?= $isSubmittedByMonitor ? 'Verify, Approve &amp; Finalize Attendance' : 'Save &amp; Finalize Attendance' ?>
-                  </button>
-                <?php endif; ?>
-              </div>
+                <div class="card-footer bg-white p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 border-top">
+                  <?php if (!empty($isBatchArchived)): ?>
+                    <span class="small text-muted"><i class="bi bi-archive-fill text-secondary me-1"></i> Archived cohort attendance records are permanently preserved in read-only mode.</span>
+                  <?php elseif ($isVerifiedOfficial): ?>
+                    <span class="small text-muted"><i class="bi bi-lock-fill text-success me-1"></i> Attendance is finalized and locked for this date. Next roll call opens on next academic session.</span>
+                    <div class="d-flex align-items-center gap-2">
+                      <a href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=daily&date=<?= urlencode($nextDate) ?>" class="btn btn-success btn-sm rounded-pill px-3 py-1.5 fw-bold">
+                        <i class="bi bi-calendar-plus me-1"></i> Go to Next Date
+                      </a>
+                      <form action="index.php?page=teacher_attendance_unlock" method="POST" onsubmit="return confirm('Do you want to unlock this sheet to make corrections?');" class="d-inline">
+                        <?= Csrf::field() ?>
+                        <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
+                        <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
+                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fw-semibold shadow-xs">
+                          <i class="bi bi-unlock-fill me-1"></i> Unlock &amp; Edit Sheet
+                        </button>
+                      </form>
+                    </div>
+                  <?php else: ?>
+                    <span class="small text-muted"><i class="bi bi-shield-check text-success me-1"></i> Instructors hold ultimate authority to inspect, correct, and officially verify records.</span>
+                    <button type="submit" class="btn btn-primary px-4 py-2 fw-bold shadow-sm rounded-pill" style="background: #7A1418; border-color: #7A1418;">
+                      <i class="bi bi-check2-circle me-1"></i> <?= $isSubmittedByMonitor ? 'Verify, Approve &amp; Finalize Attendance' : 'Save &amp; Finalize Attendance' ?>
+                    </button>
+                  <?php endif; ?>
+                </div>
+              <?php endif; ?>
             </div>
           </form>
         </div>
@@ -565,6 +630,7 @@ $activeTab = $tab ?? 'daily';
               <div class="card-body p-4">
                 <form action="index.php?page=teacher_attendance_assign" method="POST">
                   <?= Csrf::field() ?>
+                  <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
 
                   <div class="mb-3">
                     <label for="monitorStudent" class="form-label fw-semibold small text-dark">Select Student from Batch</label>
@@ -665,6 +731,7 @@ $activeTab = $tab ?? 'daily';
                           <td class="text-end">
                             <form action="index.php?page=teacher_attendance_toggle" method="POST" class="d-inline">
                               <?= Csrf::field() ?>
+                              <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
                               <input type="hidden" name="monitor_id" value="<?= (int)$m['id'] ?>">
                               <?php if ($m['status'] === 'active'): ?>
                                 <input type="hidden" name="status" value="disabled">
@@ -713,12 +780,13 @@ $activeTab = $tab ?? 'daily';
             <div class="d-flex align-items-center gap-2">
               <form action="index.php" method="GET" class="d-flex align-items-center gap-2">
                 <input type="hidden" name="page" value="teacher_attendance">
+                <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
                 <input type="hidden" name="tab" value="monthly">
                 <input type="month" class="form-control form-control-sm border-secondary-subtle" name="month" value="<?= e($selectedMonth) ?>" max="<?= date('Y-m') ?>" required>
                 <button type="submit" class="btn btn-outline-primary btn-sm fw-semibold">View</button>
               </form>
 
-              <a href="index.php?page=teacher_attendance_export&month=<?= urlencode($selectedMonth) ?>" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm">
+              <a href="index.php?page=teacher_attendance_export&class_id=<?= (int)$classId ?>&month=<?= urlencode($selectedMonth) ?>" class="btn btn-success btn-sm fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm">
                 <i class="bi bi-download"></i> Export Excel (.CSV)
               </a>
             </div>
@@ -899,6 +967,7 @@ $activeTab = $tab ?? 'daily';
       </div>
       <form action="index.php?page=teacher_declare_holiday" method="POST">
         <?= Csrf::field() ?>
+        <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
         <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
         <div class="modal-body py-3">
           <div class="mb-3">

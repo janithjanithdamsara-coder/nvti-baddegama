@@ -153,7 +153,22 @@ class AdminController {
 
         // If requested to archive previous active batches
         if ($archivePrevious) {
-            $db->exec("UPDATE classes SET status = 'archived' WHERE status = 'active'");
+            $oldIds = $db->query("SELECT id FROM classes WHERE status = 'active'")->fetchAll(PDO::FETCH_COLUMN);
+            if (!empty($oldIds)) {
+                $db->exec("UPDATE classes SET status = 'archived' WHERE status = 'active'");
+                // Suspend accounts and disable monitors for those archived batches
+                $placeholders = implode(',', array_fill(0, count($oldIds), '?'));
+                $suspStmt = $db->prepare("
+                    UPDATE users u
+                    JOIN student_profiles sp ON u.id = sp.user_id
+                    SET u.status = 'suspended'
+                    WHERE sp.class_id IN ($placeholders) AND u.role = 'student'
+                ");
+                $suspStmt->execute($oldIds);
+
+                $monStmt = $db->prepare("UPDATE attendance_monitors SET status = 'disabled' WHERE class_id IN ($placeholders)");
+                $monStmt->execute($oldIds);
+            }
         }
 
         $status = $setActive ? 'active' : 'archived';
@@ -192,7 +207,10 @@ class AdminController {
                 $suspendStmt->execute([$classId]);
                 $suspendedCount = $suspendStmt->rowCount();
 
-                Auth::logAudit(Auth::id(), 'ARCHIVE_BATCH', "Archived batch ID $classId: {$b['class_name']}. Suspended $suspendedCount student accounts.");
+                // 3. Disable any active attendance monitors for this archived batch
+                $db->prepare("UPDATE attendance_monitors SET status = 'disabled' WHERE class_id = ?")->execute([$classId]);
+
+                Auth::logAudit(Auth::id(), 'ARCHIVE_BATCH', "Archived batch ID $classId: {$b['class_name']}. Suspended $suspendedCount student accounts and disabled monitors.");
                 Flash::success("Batch \"{$b['class_name']}\" moved to Old Batches. {$suspendedCount} student account(s) have been suspended to prevent active LMS login. All student records, attendance, and documents are 100% preserved.");
             }
         }
@@ -530,7 +548,11 @@ class AdminController {
         $db = Database::getConnection();
 
         $appId   = (int)($_POST['application_id'] ?? 0);
-        $classId = (int)($_POST['class_id'] ?? 1); // NVTI Baddegama ICT L5 - Batch 2026
+        $classId = (int)($_POST['class_id'] ?? 0);
+        if ($classId <= 0) {
+            require_once __DIR__ . '/../Helpers/AttendanceManager.php';
+            $classId = AttendanceManager::getActiveClassId();
+        }
         $courseId = 1;
 
         if ($appId <= 0) {
@@ -582,10 +604,10 @@ class AdminController {
 
         // Generate temporary password
         $rawPassword = 'Nvti@' . substr($app['nic'], -4);
-        $passwordHash = password_hash($rawPassword, PASSWORD_ARGON2ID);
+        $passwordHash = password_hash($rawPassword, PASSWORD_BCRYPT);
 
         // Insert into users
-        $insUser = $db->prepare("INSERT INTO users (name, email, password_hash, role, status) VALUES (?, ?, ?, 'student', 'active')");
+        $insUser = $db->prepare("INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, 'student', 'active')");
         $insUser->execute([$app['full_name'], $email, $passwordHash]);
         $userId = (int)$db->lastInsertId();
 
@@ -604,16 +626,21 @@ class AdminController {
         ]);
 
         // Insert enrollment
-        $insEnr = $db->prepare("INSERT INTO enrollments (user_id, course_id, class_id, status) VALUES (?, ?, ?, 'active')");
-        $insEnr->execute([$userId, $courseId, $classId]);
+        $insEnr = $db->prepare("INSERT INTO enrollments (student_id, class_id, status) VALUES (?, ?, 'active')");
+        $insEnr->execute([$userId, $classId]);
 
         // Update application record
         $db->prepare("UPDATE student_applications SET status = 'enrolled', is_processed = 1, enrolled_user_id = ? WHERE id = ?")
            ->execute([$userId, $appId]);
 
-        Auth::logAudit(Auth::id(), 'ENROLL_APPLICANT', "Enrolled applicant {$app['full_name']} (ID $appId) as student user #$userId");
+        // Fetch batch name
+        $bStmt = $db->prepare("SELECT class_name FROM classes WHERE id = ?");
+        $bStmt->execute([$classId]);
+        $batchName = $bStmt->fetchColumn() ?: 'Active Batch';
 
-        Flash::success("Candidate {$app['full_name']} enrolled successfully to Batch 2026! Login Email: <strong>{$email}</strong> | Temp Password: <strong>{$rawPassword}</strong>");
+        Auth::logAudit(Auth::id(), 'ENROLL_APPLICANT', "Enrolled applicant {$app['full_name']} (ID $appId) as student user #$userId in $batchName");
+
+        Flash::success("Candidate {$app['full_name']} enrolled successfully to {$batchName}! Login Email: <strong>{$email}</strong> | Temp Password: <strong>{$rawPassword}</strong>");
         header('Location: index.php?page=admin_applications');
         exit;
     }
