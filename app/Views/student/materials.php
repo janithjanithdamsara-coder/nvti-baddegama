@@ -15,40 +15,23 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
 
       <!-- Header Banner -->
       <div class="card border rounded-4 mb-4 p-3 p-md-4 bg-white shadow-sm">
-        <div class="text-center text-md-start">
-          <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
-            <span class="badge rounded-pill px-2.5 py-1 fw-bold" style="background: #fef2f2; color: #7A1418; border: 1px solid #fecaca; font-size: 0.74rem;">
-              <i data-lucide="graduation-cap" style="width: 13px; height: 13px;" class="me-1"></i> NVQ Level 5 &bull; Semester 1 &amp; 2
-            </span>
-            <span class="badge bg-light text-secondary border fw-medium rounded-pill">ICT Curriculum</span>
+        <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+          <div class="text-center text-md-start">
+            <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+              <span class="badge rounded-pill px-2.5 py-1 fw-bold" style="background: #fef2f2; color: #7A1418; border: 1px solid #fecaca; font-size: 0.74rem;">
+                <i data-lucide="graduation-cap" style="width: 13px; height: 13px;" class="me-1"></i> NVQ Level 5 &bull; Semester 1 &amp; 2
+              </span>
+              <span class="badge bg-light text-secondary border fw-medium rounded-pill">ICT Curriculum</span>
+            </div>
+            <h3 class="fw-bold mb-1 text-dark">Learning Materials &amp; Classroom Hub</h3>
+            <p class="text-muted small mb-0">Explore lecture notes, videos, and study resources uploaded for your subject classes.</p>
           </div>
-          <h3 class="fw-bold mb-1 text-dark">Learning Materials &amp; Classroom Hub</h3>
-          <p class="text-muted small mb-0">Browse subject classes, stream lecturer postings, explore TVEC syllabus sub-topics, or view materials online.</p>
+          <div class="d-flex align-items-center gap-2 flex-wrap justify-content-center">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-2 fw-bold">
+              <i data-lucide="files" style="width: 14px; height: 14px;" class="me-1 align-middle"></i> <?= count($materials) ?> Materials Uploaded
+            </span>
+          </div>
         </div>
-
-        <!-- Google Classroom Style Navigation Tabs (Mobile Scrollable / Wrappable) -->
-        <ul class="nav nav-pills mt-3 pt-3 border-top gap-1.5 gap-md-2 justify-content-center justify-content-md-start" id="classroomTabs">
-          <li class="nav-item">
-            <a class="nav-link rounded-pill px-3 py-1.5 small fw-semibold <?= ($activeTab === 'classroom') ? 'active' : '' ?>" href="index.php?page=student_materials&tab=classroom">
-              <i data-lucide="layout-grid" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> Subject Classes
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link rounded-pill px-3 py-1.5 small fw-semibold <?= ($activeTab === 'stream') ? 'active' : '' ?>" href="index.php?page=student_materials&tab=stream">
-              <i data-lucide="message-square" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> Class Stream
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link rounded-pill px-3 py-1.5 small fw-semibold <?= ($activeTab === 'all') ? 'active' : '' ?>" href="index.php?page=student_materials&tab=all">
-              <i data-lucide="folder" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> All Materials
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link rounded-pill px-3 py-1.5 small fw-semibold text-secondary" href="index.php?page=student_curriculum">
-              <i data-lucide="book-open-check" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> Syllabus &rarr;
-            </a>
-          </li>
-        </ul>
       </div>
 
       <!-- ============================================================== -->
@@ -121,9 +104,26 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
                     <?= e($sb['description'] ?: 'Official NVTI Baddegama Diploma curriculum coursework and resources.') ?>
                   </p>
 
+                  <?php
+                    $matCount = (int)($sb['materials_count'] ?? 0);
+                    $asgCount = (int)($sb['assignments_count'] ?? 0);
+                  ?>
+                  <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap mb-3">
+                    <span class="badge rounded-pill px-3 py-1.5 fw-bold <?= $matCount > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-secondary border' ?>" style="font-size: 0.76rem;">
+                      <i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1 align-middle"></i>
+                      <?= $matCount ?> <?= $matCount === 1 ? 'Material' : 'Materials' ?>
+                    </span>
+                    <?php if ($asgCount > 0): ?>
+                      <span class="badge rounded-pill px-3 py-1.5 fw-bold bg-warning-subtle text-dark border border-warning-subtle" style="font-size: 0.76rem;">
+                        <i data-lucide="clipboard-check" style="width: 13px; height: 13px;" class="me-1 align-middle"></i>
+                        <?= $asgCount ?> <?= $asgCount === 1 ? 'Task' : 'Tasks' ?>
+                      </span>
+                    <?php endif; ?>
+                  </div>
+
                   <div class="d-flex align-items-center justify-content-center gap-2 pt-3 border-top">
-                    <a href="index.php?page=student_materials&tab=all&subject_id=<?= $sb['id'] ?>" class="btn btn-sm btn-outline-primary rounded-pill px-4 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs">
-                      <i data-lucide="folder-open" style="width: 14px; height: 14px;"></i> View Materials
+                    <a href="index.php?page=student_materials&tab=all&subject_id=<?= $sb['id'] ?>" class="btn btn-sm <?= $matCount > 0 ? 'btn-primary' : 'btn-outline-primary' ?> rounded-pill px-4 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs">
+                      <i data-lucide="folder-open" style="width: 14px; height: 14px;"></i> View Materials (<?= $matCount ?>)
                     </a>
                     <a href="index.php?page=student_curriculum#mod-<?= e($sb['subject_code']) ?>" class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 text-secondary small d-inline-flex align-items-center gap-1" title="View Syllabus">
                       <i data-lucide="list-tree" style="width: 14px; height: 14px;"></i>
@@ -275,6 +275,16 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
       <!-- TAB 4: ALL RESOURCES GRID & SEARCH (View Online & Download)    -->
       <!-- ============================================================== -->
       <?php else: ?>
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+          <a href="index.php?page=student_materials" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1.5 bg-white shadow-xs">
+            <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+            <span>Back to Subject Classes</span>
+          </a>
+          <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1.5 fw-bold">
+            <?= count($materials) ?> <?= count($materials) === 1 ? 'Material' : 'Materials' ?> Found
+          </span>
+        </div>
+
         <!-- Filter & Search Toolbar -->
         <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white">
           <form action="index.php" method="GET" class="row g-2 align-items-center">

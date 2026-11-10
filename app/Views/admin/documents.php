@@ -334,20 +334,20 @@ $baseDocsPage = ($currentRole === 'teacher') ? 'teacher_documents' : 'admin_docu
 </div>
 
 <!-- ================= DOCUMENT REVIEW & VERIFICATION MODAL ================= -->
-<div class="modal fade" id="reviewDocModal" tabindex="-1" aria-labelledby="reviewDocModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 950px;">
-    <div class="modal-content border-0 rounded-4 shadow">
-      <div class="modal-header border-bottom py-3 px-4 bg-light">
-        <div class="d-flex align-items-center gap-2">
-          <div class="rounded-circle p-2 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+<div class="modal fade" id="reviewDocModal" tabindex="-1" aria-labelledby="reviewDocModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-fullscreen-sm-down modal-dialog-centered" style="max-width: 950px;">
+    <div class="modal-content border-0 rounded-4 shadow overflow-hidden">
+      <div class="modal-header border-bottom py-2.5 px-3 px-md-4 bg-light flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 min-w-0 flex-grow-1">
+          <div class="rounded-circle p-2 bg-primary-subtle text-primary d-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px;">
             <i class="bi bi-shield-check fs-5"></i>
           </div>
-          <div>
-            <h6 class="modal-title fw-bold text-dark mb-0" id="reviewDocModalTitle">Inspect Document</h6>
-            <small class="text-muted" id="reviewDocModalSub"></small>
+          <div class="min-w-0">
+            <h6 class="modal-title fw-bold text-dark mb-0 text-truncate" id="reviewDocModalTitle">Inspect Document</h6>
+            <small class="text-muted d-block text-truncate" id="reviewDocModalSub"></small>
           </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
           <a href="#" id="reviewDocNewTabBtn" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
             <i class="bi bi-box-arrow-up-right me-1"></i> Open Full View
           </a>
@@ -355,13 +355,13 @@ $baseDocsPage = ($currentRole === 'teacher') ? 'teacher_documents' : 'admin_docu
         </div>
       </div>
 
-      <div class="modal-body p-0" style="min-height: 520px; background: #525659;">
-        <iframe id="reviewDocFrame" src="" style="width: 100%; height: 560px; border: none;"></iframe>
+      <div class="modal-body p-0" style="height: clamp(260px, 55vh, 520px); background: #525659; overflow: hidden;">
+        <iframe id="reviewDocFrame" src="" style="width: 100%; height: 100%; border: none; display: block;"></iframe>
       </div>
 
       <!-- Action Verification Form Footer -->
-      <div class="modal-footer bg-light border-top p-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-3">
-        <form action="index.php?page=<?= e($verifyActionPage) ?>" method="POST" id="verifyDocForm" class="d-flex flex-column flex-md-row align-items-center gap-2 w-100">
+      <div class="modal-footer bg-light border-top p-3">
+        <form action="index.php?page=<?= e($verifyActionPage) ?>" method="POST" id="verifyDocForm" class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 w-100 m-0">
           <?= Csrf::field() ?>
           <input type="hidden" name="document_id" id="verifyFormDocId" value="">
           <input type="hidden" name="return_url" value="<?= e($_SERVER['REQUEST_URI'] ?? 'index.php?page=' . $baseDocsPage) ?>">
@@ -371,11 +371,11 @@ $baseDocsPage = ($currentRole === 'teacher') ? 'teacher_documents' : 'admin_docu
             <input type="text" class="form-control border-secondary-subtle" name="admin_notes" id="verifyFormNotes" placeholder="Reason / note (e.g. Approved or specify issue if rejecting)...">
           </div>
 
-          <div class="d-flex align-items-center gap-2 flex-shrink-0">
-            <button type="submit" name="status" value="rejected" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">
+          <div class="d-flex align-items-center justify-content-end gap-2 flex-shrink-0">
+            <button type="submit" name="status" value="rejected" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold flex-fill flex-md-grow-0">
               <i class="bi bi-x-circle-fill me-1"></i> Reject
             </button>
-            <button type="submit" name="status" value="verified" class="btn btn-success btn-sm rounded-pill px-4 fw-bold shadow-sm">
+            <button type="submit" name="status" value="verified" class="btn btn-success btn-sm rounded-pill px-4 fw-bold shadow-sm flex-fill flex-md-grow-0">
               <i class="bi bi-check-circle-fill me-1"></i> Approve &amp; Verify
             </button>
           </div>
@@ -390,7 +390,7 @@ const docTypesMeta = <?= json_encode($docTypes) ?>;
 
 function openReviewModal(docId, studentName, docTitle, filename, currentStatus, currentNotes) {
   const url = 'index.php?page=view_student_document&id=' + docId;
-  document.getElementById('reviewDocModalTitle').textContent = docTitle + ' &bull; ' + studentName;
+  document.getElementById('reviewDocModalTitle').textContent = docTitle + ' \u2022 ' + studentName;
   document.getElementById('reviewDocModalSub').textContent = 'File: ' + filename + ' (Current Status: ' + currentStatus.toUpperCase() + ')';
   document.getElementById('reviewDocNewTabBtn').href = url;
   document.getElementById('reviewDocFrame').src = url;
