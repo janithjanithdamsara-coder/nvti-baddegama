@@ -48,88 +48,114 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
           </span>
         </div>
 
-        <div class="row g-3 g-md-4 mb-4">
+        <div class="row g-4 mb-4">
           <?php 
-            $cardColors = [
-              ['bg' => 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', 'accent' => '#3b82f6'],
-              ['bg' => 'linear-gradient(135deg, #7A1418 0%, #991b1b 100%)', 'accent' => '#dc2626'],
-              ['bg' => 'linear-gradient(135deg, #065f46 0%, #059669 100%)', 'accent' => '#10b981'],
-              ['bg' => 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)', 'accent' => '#8b5cf6'],
-              ['bg' => 'linear-gradient(135deg, #78350f 0%, #d97706 100%)', 'accent' => '#f59e0b'],
-              ['bg' => 'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)', 'accent' => '#14b8a6'],
+            $themePalettes = [
+              'blue'     => ['bg' => 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', 'icon' => 'bi-database-fill-gear', 'avatar_color' => '#334155'],
+              'maroon'   => ['bg' => 'linear-gradient(135deg, #7A1418 0%, #991b1b 100%)', 'icon' => 'bi-camera-reels-fill', 'avatar_color' => '#7A1418'],
+              'dark'     => ['bg' => 'linear-gradient(135deg, #455a64 0%, #37474f 100%)', 'icon' => 'bi-code-slash', 'avatar_color' => '#334155'],
+              'charcoal' => ['bg' => 'linear-gradient(135deg, #334155 0%, #1e293b 100%)', 'icon' => 'bi-globe-americas', 'avatar_color' => '#334155'],
+              'indigo'   => ['bg' => 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)', 'icon' => 'bi-hdd-network-fill', 'avatar_color' => '#3b82f6'],
+              'slate'    => ['bg' => 'linear-gradient(135deg, #374151 0%, #1f2937 100%)', 'icon' => 'bi-file-earmark-check-fill', 'avatar_color' => '#d97706'],
+              'teal'     => ['bg' => 'linear-gradient(135deg, #0f766e 0%, #115e59 100%)', 'icon' => 'bi-brush-fill', 'avatar_color' => '#0d9488'],
+              'green'    => ['bg' => 'linear-gradient(135deg, #065f46 0%, #059669 100%)', 'icon' => 'bi-journal-code', 'avatar_color' => '#059669'],
+              'amber'    => ['bg' => 'linear-gradient(135deg, #78350f 0%, #d97706 100%)', 'icon' => 'bi-mortarboard-fill', 'avatar_color' => '#d97706'],
+              'purple'   => ['bg' => 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)', 'icon' => 'bi-cpu-fill', 'avatar_color' => '#7c3aed'],
             ];
+            $paletteKeys = array_keys($themePalettes);
             $colorIdx = 0;
+
             foreach ($subjects as $sb):
-              $color = $cardColors[$colorIdx % count($cardColors)];
+              $userColorKey = (!empty($sb['color_theme']) && isset($themePalettes[$sb['color_theme']]))
+                ? $sb['color_theme']
+                : $paletteKeys[$colorIdx % count($paletteKeys)];
               $colorIdx++;
-              $teacherName = $sb['teacher_name'] ?: 'Nishantha Gamage';
+              $palette = $themePalettes[$userColorKey];
+
+              $cardBg = $palette['bg'];
+              $cardIcon = !empty($sb['icon']) ? $sb['icon'] : $palette['icon'];
+              $avatarColor = $palette['avatar_color'];
+              $cardTitle = $sb['subject_name'];
+              $cardSubtitle = !empty($sb['description']) ? $sb['description'] : $sb['subject_code'];
+
+              $teacherName = $sb['teacher_name'] ?: 'U.G.P.K. Nishantha';
               $initial = strtoupper(substr($teacherName, 0, 1));
+              $matCount = (int)($sb['materials_count'] ?? 0);
+              $asgCount = (int)($sb['assignments_count'] ?? 0);
           ?>
-            <div class="col-12 col-md-6 col-lg-4">
-              <div class="card border rounded-4 overflow-hidden shadow-sm h-100 classroom-card transition-all d-flex flex-column">
-                <!-- Classroom Card Header Banner (Centered, Generous Padding) -->
-                <div class="text-white position-relative text-center d-flex flex-column justify-content-center align-items-center" style="background: <?= $color['bg'] ?>; min-height: 152px; padding: 22px 24px 32px 24px;">
-                  <!-- Top Right Dropdown Menu -->
-                  <div class="dropdown position-absolute" style="top: 12px; right: 14px; z-index: 3;">
-                    <button class="btn btn-sm btn-link text-white text-decoration-none p-1 opacity-75" type="button" data-bs-toggle="dropdown" aria-label="Module options">
-                      <i data-lucide="more-vertical" style="width: 18px; height: 18px;"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1 small">
-                      <li><a class="dropdown-item" href="index.php?page=student_curriculum#mod-<?= e($sb['subject_code']) ?>">View Syllabus Topics</a></li>
-                      <li><a class="dropdown-item" href="index.php?page=student_papers&module_code=<?= e($sb['subject_code']) ?>">Past Papers</a></li>
-                    </ul>
+            <div class="col-12 col-md-6 col-xl-4 col-xxl-3">
+              <div class="card border-0 rounded-4 shadow-sm h-100 bg-white overflow-hidden g-classroom-card transition-hover position-relative d-flex flex-column" style="min-height: 290px;">
+                <!-- Top Colorful Banner Header (Matching Admin Classroom Hub) -->
+                <div class="position-relative text-white overflow-hidden d-flex flex-column justify-content-between" style="background: <?= $cardBg ?>; min-height: 150px; padding: 22px 22px 18px 22px; border-top-left-radius: 1rem; border-top-right-radius: 1rem;">
+                  <div class="d-flex justify-content-between align-items-start position-relative" style="z-index: 2;">
+                    <div class="pe-2" style="max-width: 95%;">
+                      <a href="index.php?page=student_materials&tab=all&subject_id=<?= (int)$sb['id'] ?>" class="text-white text-decoration-none">
+                        <h4 class="fw-bold text-white mb-1 text-truncate text-hover-underline" style="font-size: 1.15rem; letter-spacing: -0.2px; line-height: 1.3;" title="<?= e($cardTitle) ?>">
+                          <?= e($cardTitle) ?>
+                        </h4>
+                      </a>
+                      <div class="text-white-50 text-truncate" style="font-size: 0.82rem; line-height: 1.35;" title="<?= e($cardSubtitle) ?>">
+                        <?= e($cardSubtitle) ?>
+                      </div>
+                    </div>
                   </div>
 
-                  <span class="badge bg-white bg-opacity-25 text-white font-monospace mb-2 px-2.5 py-1 rounded-pill" style="font-size: 0.72rem; letter-spacing: 0.4px;">
-                    <?= e($sb['subject_code']) ?>
-                  </span>
-                  <h5 class="fw-bold mb-1.5 text-white px-2 lh-sm" style="font-size: 1.06rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="<?= e($sb['subject_name']) ?>">
-                    <?= e($sb['subject_name']) ?>
-                  </h5>
-                  <div class="small text-white-50 fw-medium text-truncate" style="max-width: 90%;">
-                    <i data-lucide="user-check" style="width: 13px; height: 13px;" class="me-1 align-middle"></i><?= e($teacherName) ?>
+                  <div class="position-relative mt-2" style="z-index: 2;">
+                    <span class="text-white small fw-medium d-inline-flex align-items-center gap-1.5 text-truncate" style="font-size: 0.84rem; text-shadow: 0 1px 2px rgba(0,0,0,0.25);">
+                      <i class="bi bi-person-fill opacity-75"></i>
+                      <?= e($teacherName) ?>
+                    </span>
                   </div>
 
-                  <!-- Centered Lecturer Avatar Circle -->
-                  <div class="position-absolute" style="left: 50%; transform: translateX(-50%); bottom: -22px; z-index: 4;">
-                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow border border-3 border-white" style="width: 46px; height: 46px; background: #334155; font-size: 1.1rem;">
-                      <?= $initial ?>
+                  <!-- Decorative Right-side Icon Outline -->
+                  <div class="position-absolute end-0 bottom-0 p-3 opacity-20 text-white pointer-events-none" style="font-size: 4rem; line-height: 0.8; transform: translate(6px, 6px);">
+                    <i class="bi <?= e($cardIcon) ?>"></i>
+                  </div>
+                </div>
+
+                <!-- Floating Round Avatar Badge -->
+                <div class="position-absolute" style="top: 120px; right: 22px; z-index: 5;">
+                  <div class="rounded-circle shadow d-flex align-items-center justify-content-center text-white fw-bold border border-3 border-white"
+                       style="width: 56px; height: 56px; font-size: 1.3rem; background-color: <?= $avatarColor ?>;">
+                    <?= $initial ?>
+                  </div>
+                </div>
+
+                <!-- Card Middle Body -->
+                <div class="card-body d-flex flex-column flex-grow-1 justify-content-between" style="padding: 22px 22px 18px 22px;">
+                  <div class="mb-3">
+                    <span class="badge bg-light text-dark border font-monospace px-2.5 py-1" style="font-size: 0.74rem;">
+                      <?= e($sb['subject_code']) ?>
+                    </span>
+                    <span class="badge bg-light text-secondary border px-2.5 py-1 ms-1" style="font-size: 0.74rem;">
+                      NVTI Baddegama
+                    </span>
+                  </div>
+
+                  <!-- Stats Pills & Bottom Quick Actions -->
+                  <div class="pt-2 border-top d-flex justify-content-between align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                      <span class="badge rounded-pill px-2.5 py-1 <?= $matCount > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle fw-bold' : 'bg-danger-subtle text-danger border border-danger-subtle' ?>" style="font-size: 0.72rem;">
+                        <i class="bi bi-file-earmark-text me-1"></i> <?= $matCount ?> <?= $matCount === 1 ? 'Note' : 'Notes' ?>
+                      </span>
+                      <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
+                        <i class="bi bi-clipboard2-check me-1"></i> <?= $asgCount ?> <?= $asgCount === 1 ? 'Task' : 'Tasks' ?>
+                      </span>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-1.5" style="position: relative; z-index: 6;">
+                      <a href="index.php?page=student_materials&tab=all&subject_id=<?= (int)$sb['id'] ?>" class="btn btn-sm btn-light border text-primary fw-bold rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1 shadow-xs" style="font-size: 0.75rem;">
+                        <i class="bi bi-box-arrow-in-right"></i> Open
+                      </a>
+                      <a href="index.php?page=student_curriculum#mod-<?= e($sb['subject_code']) ?>" class="btn btn-sm btn-light border rounded-circle d-inline-flex align-items-center justify-content-center text-secondary shadow-xs" style="width: 28px; height: 28px;" title="View Syllabus Topics">
+                        <i class="bi bi-list-ul" style="font-size: 0.8rem;"></i>
+                      </a>
                     </div>
                   </div>
                 </div>
 
-                <!-- Classroom Card Body (Centered Content) -->
-                <div class="card-body bg-white d-flex flex-column justify-content-between text-center" style="padding: 34px 20px 20px 20px;">
-                  <p class="small text-muted mb-3 mx-auto" style="min-height: 40px; line-height: 1.5; max-width: 95%;">
-                    <?= e($sb['description'] ?: 'Official NVTI Baddegama Diploma curriculum coursework and resources.') ?>
-                  </p>
-
-                  <?php
-                    $matCount = (int)($sb['materials_count'] ?? 0);
-                    $asgCount = (int)($sb['assignments_count'] ?? 0);
-                  ?>
-                  <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap mb-3">
-                    <span class="badge rounded-pill px-3 py-1.5 fw-bold <?= $matCount > 0 ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-light text-secondary border' ?>" style="font-size: 0.76rem;">
-                      <i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1 align-middle"></i>
-                      <?= $matCount ?> <?= $matCount === 1 ? 'Material' : 'Materials' ?>
-                    </span>
-                    <?php if ($asgCount > 0): ?>
-                      <span class="badge rounded-pill px-3 py-1.5 fw-bold bg-warning-subtle text-dark border border-warning-subtle" style="font-size: 0.76rem;">
-                        <i data-lucide="clipboard-check" style="width: 13px; height: 13px;" class="me-1 align-middle"></i>
-                        <?= $asgCount ?> <?= $asgCount === 1 ? 'Task' : 'Tasks' ?>
-                      </span>
-                    <?php endif; ?>
-                  </div>
-
-                  <div class="d-flex align-items-center justify-content-center gap-2 pt-3 border-top">
-                    <a href="index.php?page=student_materials&tab=all&subject_id=<?= $sb['id'] ?>" class="btn btn-sm <?= $matCount > 0 ? 'btn-primary' : 'btn-outline-primary' ?> rounded-pill px-4 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs">
-                      <i data-lucide="folder-open" style="width: 14px; height: 14px;"></i> View Materials (<?= $matCount ?>)
-                    </a>
-                    <a href="index.php?page=student_curriculum#mod-<?= e($sb['subject_code']) ?>" class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 text-secondary small d-inline-flex align-items-center gap-1" title="View Syllabus">
-                      <i data-lucide="list-tree" style="width: 14px; height: 14px;"></i>
-                    </a>
-                  </div>
-                </div>
+                <!-- Full Card Clickable Overlay Link -->
+                <a href="index.php?page=student_materials&tab=all&subject_id=<?= (int)$sb['id'] ?>" class="stretched-link" aria-label="Open <?= e($cardTitle) ?>"></a>
               </div>
             </div>
           <?php endforeach; ?>
@@ -212,7 +238,7 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
                         <div class="d-flex flex-wrap align-items-center gap-2 mt-2 pt-2 border-top">
                           <?php if ($post['post_type'] === 'material'): ?>
                             <?php if ($post['material_type'] === 'file'): ?>
-                              <button type="button" onclick="previewMaterial(<?= (int)$post['id'] ?>, '<?= addslashes(e($post['title'])) ?>', 'file', 'index.php?page=view_material&id=<?= (int)$post['id'] ?>')" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 fw-medium">
+                              <button type="button" onclick="previewMaterial(<?= (int)$post['id'] ?>, '<?= addslashes(e($post['title'])) ?>', 'file', 'index.php?page=view_material&id=<?= (int)$post['id'] ?>', '<?= addslashes(e($post['original_filename'] ?: $post['file_path'])) ?>')" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 fw-medium">
                                 <i data-lucide="eye" style="width: 14px; height: 14px;"></i> View Online
                               </button>
                               <a href="index.php?page=download_material&id=<?= (int)$post['id'] ?>" class="btn btn-sm btn-light border rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 fw-medium">
@@ -355,6 +381,19 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
             </div>
           <?php else: ?>
             <?php foreach ($materials as $m): ?>
+              <?php
+                $fname = (string)($m['original_filename'] ?: $m['file_path'] ?: '');
+                $ext = strtolower(pathinfo($fname, PATHINFO_EXTENSION));
+                $fileBadgeLabel = match ($ext) {
+                  'pdf' => 'PDF File',
+                  'doc', 'docx' => 'Word Doc',
+                  'ppt', 'pptx' => 'Slides (' . strtoupper($ext) . ')',
+                  'xls', 'xlsx' => 'Spreadsheet',
+                  'jpg', 'jpeg', 'png', 'webp', 'gif' => 'Image',
+                  'zip', 'rar' => 'Archive',
+                  default => ($ext ? strtoupper($ext) . ' File' : 'Document'),
+                };
+              ?>
               <div class="col-md-6 col-lg-4">
                 <div class="card material-card h-100 shadow-sm rounded-4 p-3 d-flex flex-column justify-content-between bg-white border">
                   <div>
@@ -363,7 +402,7 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
                         <i class="bi <?= e($m['category_icon']) ?> me-1"></i> <?= e($m['category_name']) ?>
                       </span>
                       <?php if ($m['material_type'] === 'file'): ?>
-                        <span class="badge bg-danger-subtle text-danger"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i> PDF File</span>
+                        <span class="badge bg-danger-subtle text-danger"><i data-lucide="file-text" style="width: 12px; height: 12px;"></i> <?= e($fileBadgeLabel) ?></span>
                       <?php elseif ($m['material_type'] === 'youtube'): ?>
                         <span class="badge bg-danger text-white"><i data-lucide="youtube" style="width: 12px; height: 12px;"></i> YouTube</span>
                       <?php else: ?>
@@ -387,7 +426,7 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
                   <div class="pt-2.5 border-top mt-2">
                     <?php if ($m['material_type'] === 'file'): ?>
                       <div class="d-flex gap-2">
-                        <button type="button" onclick="previewMaterial(<?= (int)$m['id'] ?>, '<?= addslashes(e($m['title'])) ?>', 'file', 'index.php?page=view_material&id=<?= (int)$m['id'] ?>')" class="btn btn-outline-primary btn-sm flex-grow-1 fw-semibold rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5">
+                        <button type="button" onclick="previewMaterial(<?= (int)$m['id'] ?>, '<?= addslashes(e($m['title'])) ?>', 'file', 'index.php?page=view_material&id=<?= (int)$m['id'] ?>', '<?= addslashes(e($fname)) ?>')" class="btn btn-outline-primary btn-sm flex-grow-1 fw-semibold rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5">
                           <i data-lucide="eye" style="width: 14px; height: 14px;"></i> View Online
                         </button>
                         <a href="index.php?page=download_material&id=<?= $m['id'] ?>" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1" title="Download to device">
@@ -444,18 +483,39 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
       </div>
 
       <!-- Modal Body / Content Viewer -->
-      <div class="modal-body p-0 bg-dark position-relative" style="height: 75vh; min-height: 400px;">
-        <!-- Loading spinner -->
-        <div id="modalLoadingSpinner" class="d-flex align-items-center justify-content-center h-100 text-white">
+      <div class="modal-body p-0 bg-dark position-relative" style="height: clamp(320px, 72vh, 640px);">
+        <!-- Loading spinner overlay -->
+        <div id="modalLoadingSpinner" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center text-white bg-dark" style="z-index: 5;">
           <div class="spinner-border text-danger me-2" role="status"></div>
           <span>Loading document preview...</span>
         </div>
 
-        <!-- PDF & Document Viewer IFrame -->
-        <iframe id="modalDocIframe" src="" class="w-100 h-100 border-0" style="display:none;" onload="document.getElementById('modalLoadingSpinner').style.display='none'; this.style.display='block';"></iframe>
+        <!-- PDF & Document Viewer IFrame (always rendered; never display:none while loading) -->
+        <iframe id="modalDocIframe" src="about:blank" class="w-100 h-100 border-0 d-block bg-white" onload="hideViewerSpinner();"></iframe>
+
+        <!-- Image Viewer Container -->
+        <div id="modalImageContainer" class="position-absolute top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center bg-dark p-3" style="z-index: 4;">
+          <img id="modalPreviewImage" src="" alt="Preview" class="img-fluid rounded shadow" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+        </div>
+
+        <!-- Unsupported Inline Format Fallback (DOCX / PPTX / XLSX / ZIP) -->
+        <div id="modalUnsupportedContainer" class="position-absolute top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center bg-light p-4 text-center" style="z-index: 6;">
+          <div style="max-width: 420px;">
+            <div class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
+              <i class="bi bi-file-earmark-arrow-down-fill fs-2"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-1" id="modalUnsupportedTitle">File Preview Not Available Inline</h5>
+            <p class="small text-muted mb-3">
+              Office documents (Word, PowerPoint, Excel) and archive files cannot be rendered inside this popup. Download the file directly to view it cleanly on your device.
+            </p>
+            <a href="#" id="modalUnsupportedDownloadBtn" class="btn btn-primary rounded-pill px-4 py-2 fw-bold">
+              <i class="bi bi-download me-1"></i> Download File
+            </a>
+          </div>
+        </div>
 
         <!-- Video Player IFrame -->
-        <div id="modalVideoContainer" class="w-100 h-100 d-none">
+        <div id="modalVideoContainer" class="position-absolute top-0 start-0 w-100 h-100 d-none bg-black" style="z-index: 6;">
           <iframe id="modalVideoIframe" src="" class="w-100 h-100 border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         </div>
       </div>
@@ -473,43 +533,97 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
 
 <!-- Modal Viewer JavaScript -->
 <script>
-function previewMaterial(id, title, type, url) {
+let viewerFallbackTimer = null;
+
+function hideViewerSpinner() {
+  const spinner = document.getElementById('modalLoadingSpinner');
+  if (spinner) {
+    spinner.classList.add('d-none');
+    spinner.classList.remove('d-flex');
+  }
+}
+
+function showViewerSpinner() {
+  const spinner = document.getElementById('modalLoadingSpinner');
+  if (spinner) {
+    spinner.classList.remove('d-none');
+    spinner.classList.add('d-flex');
+  }
+}
+
+function previewMaterial(id, title, type, url, filename) {
+  clearTimeout(viewerFallbackTimer);
   const modalEl = document.getElementById('materialViewerModal');
   const titleEl = document.getElementById('modalDocTitle');
   const typeBadge = document.getElementById('modalTypeBadge');
   const docIframe = document.getElementById('modalDocIframe');
+  const imageContainer = document.getElementById('modalImageContainer');
+  const previewImg = document.getElementById('modalPreviewImage');
+  const unsupportedContainer = document.getElementById('modalUnsupportedContainer');
+  const unsupportedDownloadBtn = document.getElementById('modalUnsupportedDownloadBtn');
+  const unsupportedTitle = document.getElementById('modalUnsupportedTitle');
   const videoContainer = document.getElementById('modalVideoContainer');
   const videoIframe = document.getElementById('modalVideoIframe');
-  const spinner = document.getElementById('modalLoadingSpinner');
   const openTabBtn = document.getElementById('modalOpenTabBtn');
   const downloadBtn = document.getElementById('modalDirectDownloadBtn');
 
   titleEl.textContent = title;
-  spinner.style.display = 'flex';
-  docIframe.style.display = 'none';
+  showViewerSpinner();
+  docIframe.classList.remove('d-none');
+  docIframe.src = 'about:blank';
+  imageContainer.classList.add('d-none');
+  imageContainer.classList.remove('d-flex');
+  previewImg.src = '';
+  unsupportedContainer.classList.add('d-none');
+  unsupportedContainer.classList.remove('d-flex');
   videoContainer.classList.add('d-none');
+  videoIframe.src = '';
+
+  const ext = (filename || '').split('.').pop().toLowerCase();
 
   if (type === 'youtube') {
     typeBadge.innerHTML = '<i data-lucide="youtube" style="width: 13px; height: 13px;" class="me-1"></i> Video Lecture';
-    // Extract video ID from youtube url
     let videoId = '';
     const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
     if (match && match[1]) {
       videoId = match[1];
     }
     const embedUrl = videoId ? 'https://www.youtube.com/embed/' + videoId + '?autoplay=1' : url;
+    docIframe.classList.add('d-none');
     videoIframe.src = embedUrl;
     videoContainer.classList.remove('d-none');
-    spinner.style.display = 'none';
+    hideViewerSpinner();
     openTabBtn.href = url;
     downloadBtn.style.display = 'none';
   } else {
-    typeBadge.innerHTML = '<i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1"></i> PDF Document';
     const viewUrl = 'index.php?page=view_material&id=' + id;
-    docIframe.src = viewUrl;
+    const downloadUrl = 'index.php?page=download_material&id=' + id;
     openTabBtn.href = viewUrl;
-    downloadBtn.href = 'index.php?page=download_material&id=' + id;
+    downloadBtn.href = downloadUrl;
     downloadBtn.style.display = 'inline-flex';
+
+    if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+      typeBadge.innerHTML = '<i data-lucide="image" style="width: 13px; height: 13px;" class="me-1"></i> Image File';
+      docIframe.classList.add('d-none');
+      previewImg.onload = hideViewerSpinner;
+      previewImg.onerror = hideViewerSpinner;
+      previewImg.src = viewUrl;
+      imageContainer.classList.remove('d-none');
+      imageContainer.classList.add('d-flex');
+    } else if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'rar'].includes(ext)) {
+      typeBadge.innerHTML = '<i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1"></i> ' + ext.toUpperCase() + ' File';
+      docIframe.classList.add('d-none');
+      unsupportedTitle.textContent = (filename || title) + ' (' + ext.toUpperCase() + ')';
+      unsupportedDownloadBtn.href = downloadUrl;
+      unsupportedContainer.classList.remove('d-none');
+      unsupportedContainer.classList.add('d-flex');
+      hideViewerSpinner();
+    } else {
+      typeBadge.innerHTML = '<i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1"></i> PDF Document';
+      docIframe.src = viewUrl;
+      // Fallback timer so browser PDF plugins that skip iframe onload never leave spinner stuck
+      viewerFallbackTimer = setTimeout(hideViewerSpinner, 1800);
+    }
   }
 
   if (typeof lucide !== 'undefined' && lucide.createIcons) {
@@ -520,10 +634,12 @@ function previewMaterial(id, title, type, url) {
   bsModal.show();
 }
 
-// Stop video playback when modal is closed
+// Stop video/document loading when modal is closed
 document.getElementById('materialViewerModal').addEventListener('hidden.bs.modal', function () {
-  document.getElementById('modalDocIframe').src = '';
+  clearTimeout(viewerFallbackTimer);
+  document.getElementById('modalDocIframe').src = 'about:blank';
   document.getElementById('modalVideoIframe').src = '';
+  document.getElementById('modalPreviewImage').src = '';
 });
 </script>
 

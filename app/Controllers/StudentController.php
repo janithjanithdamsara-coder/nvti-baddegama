@@ -150,7 +150,7 @@ class StudentController {
         // Subjects in student's class with material & assignment counts
         $matHiddenSubFilter = $hasVisibilityCol ? " AND m.is_hidden = 0" : "";
         $subStmt = $db->prepare("
-            SELECT s.id, s.subject_name, s.subject_code, s.description,
+            SELECT s.id, s.subject_name, s.subject_code, s.description, s.color_theme, s.icon,
                    u.name as teacher_name, u.email as teacher_email,
                    (SELECT COUNT(*) FROM materials m WHERE m.subject_id = s.id AND m.class_id = cs.class_id{$matHiddenSubFilter}) as materials_count,
                    (SELECT COUNT(*) FROM assignments a WHERE a.subject_id = s.id AND a.class_id = cs.class_id) as assignments_count
