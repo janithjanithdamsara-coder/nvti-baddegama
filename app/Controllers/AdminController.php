@@ -1235,6 +1235,68 @@ class AdminController {
         exit;
     }
 
+    /**
+     * Resolve the target batch/class ID for Admin Materials & Google Classroom Hub.
+     * Defaults to the current active batch and ensures active batches have curriculum subjects synced.
+     */
+    private function resolveMaterialsClassId(PDO $db, ?int $requestedClassId = null): int {
+        require_once __DIR__ . '/../Helpers/AttendanceManager.php';
+
+        $classId = 0;
+        $batchStatus = 'active';
+        if ($requestedClassId !== null && $requestedClassId > 0) {
+            $chk = $db->prepare("SELECT id, status FROM classes WHERE id = ? LIMIT 1");
+            $chk->execute([$requestedClassId]);
+            $row = $chk->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $classId = (int)$row['id'];
+                $batchStatus = (string)($row['status'] ?? 'active');
+            }
+        }
+
+        if ($classId <= 0) {
+            $activeBatch = AttendanceManager::ensureActiveBatch($db, 1);
+            $classId = (int)($activeBatch['id'] ?? 1);
+            $batchStatus = (string)($activeBatch['status'] ?? 'active');
+        }
+
+        // Keep active batches synced with all active curriculum subjects (matching Student Portal)
+        if ($classId > 0) {
+            if ($batchStatus === 'active') {
+                AttendanceManager::syncBatchSubjects($db, $classId);
+            } else {
+                $cntStmt = $db->prepare("SELECT COUNT(*) FROM class_subjects WHERE class_id = ?");
+                $cntStmt->execute([$classId]);
+                if ((int)$cntStmt->fetchColumn() === 0) {
+                    AttendanceManager::syncBatchSubjects($db, $classId);
+                }
+            }
+        }
+
+        return $classId;
+    }
+
+    /**
+     * Build redirect URL for admin_materials preserving selected batch and subject.
+     */
+    private function buildMaterialsRedirectUrl(int $classId, int $subjectId = 0): string {
+        return "index.php?page=admin_materials&class_id=" . $classId . ($subjectId > 0 ? "&subject_id=" . $subjectId : "");
+    }
+
+    /**
+     * Safely unlink a material file only if no remaining database rows reference it.
+     */
+    private function safeUnlinkMaterialFile(PDO $db, ?string $filePath): void {
+        if (empty($filePath)) {
+            return;
+        }
+        $chk = $db->prepare("SELECT COUNT(*) FROM materials WHERE file_path = ?");
+        $chk->execute([$filePath]);
+        if ((int)$chk->fetchColumn() === 0) {
+            @unlink(MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $filePath);
+        }
+    }
+
     public function materials(): void {
         $db = Database::getConnection();
         $subjectId = (int)($_GET['subject_id'] ?? 0);
@@ -1246,8 +1308,12 @@ class AdminController {
         // Fetch all teachers for dropdowns
         $teachers = $db->query("SELECT id, name, email FROM users WHERE role = 'teacher' ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
-        // Fetch default class
-        $classId = 1;
+        // Resolve active or explicitly selected batch/class
+        $requestedClassId = isset($_GET['class_id']) ? (int)$_GET['class_id'] : null;
+        $classId = $this->resolveMaterialsClassId($db, $requestedClassId);
+        $activeClassId = $classId;
+        $classes = AttendanceManager::getAllBatches();
+        $selectedBatch = AttendanceManager::getBatchById($classId);
 
         if ($subjectId > 0) {
             // ================= DETAIL / SUBJECT STREAM VIEW (Image 2) =================
@@ -1265,14 +1331,14 @@ class AdminController {
             $currentSubject = $subjStmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$currentSubject) {
-                // If not in class_subjects, fetch pure subject info
+                // If not in class_subjects, fetch pure subject info bound to current batch
                 $sOnly = $db->prepare("SELECT * FROM subjects WHERE id = ?");
                 $sOnly->execute([$subjectId]);
-                $currentSubject = $sOnly->fetch(PDO::FETCH_ASSOC);
-                $currentSubject['class_name'] = 'NVTI Baddegama ICT L5 - Batch 2026';
+                $currentSubject = $sOnly->fetch(PDO::FETCH_ASSOC) ?: ['id' => $subjectId, 'subject_name' => 'Module', 'subject_code' => 'MOD'];
+                $currentSubject['class_name'] = $selectedBatch['class_name'] ?? 'Active Batch';
                 $currentSubject['teacher_name'] = 'U.G.P.K. Nishantha';
                 $currentSubject['teacher_id'] = 2;
-                $currentSubject['class_id'] = 1;
+                $currentSubject['class_id'] = $classId;
             }
 
             // Fetch Materials for this Subject
@@ -1346,7 +1412,7 @@ class AdminController {
 
         } else {
             // ================= CLASSROOM GRID VIEW (Image 1) =================
-            $classroomsStmt = $db->query("
+            $classroomsStmt = $db->prepare("
                 SELECT s.id as subject_id, s.subject_name, s.subject_code, s.description, s.color_theme, s.icon,
                        cs.id as class_subject_id, cs.class_id, c.class_name,
                        u.id as teacher_id, u.name as teacher_name, u.email as teacher_email,
@@ -1358,18 +1424,36 @@ class AdminController {
                 JOIN classes c ON cs.class_id = c.id
                 LEFT JOIN teacher_assignments ta ON cs.id = ta.class_subject_id
                 LEFT JOIN users u ON ta.teacher_id = u.id
-                WHERE cs.class_id = 1
-                ORDER BY cs.id DESC
+                WHERE cs.class_id = ?
+                ORDER BY s.id ASC
             ");
+            $classroomsStmt->execute([$classId]);
             $classrooms = $classroomsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Classes list for modal
-            $classes = $db->query("SELECT id, class_name FROM classes ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+            // Total statistics scoped to the selected batch
+            $totMatStmt = $db->prepare("SELECT COUNT(*) FROM materials WHERE class_id = ?");
+            $totMatStmt->execute([$classId]);
+            $totalMaterials = (int)$totMatStmt->fetchColumn();
 
-            // Total statistics
-            $totalMaterials = $db->query("SELECT COUNT(*) FROM materials")->fetchColumn();
-            $totalHiddenMaterials = $db->query("SELECT COUNT(*) FROM materials WHERE is_hidden = 1")->fetchColumn();
-            $totalAssignments = $db->query("SELECT COUNT(*) FROM assignments")->fetchColumn();
+            $totHidStmt = $db->prepare("SELECT COUNT(*) FROM materials WHERE class_id = ? AND is_hidden = 1");
+            $totHidStmt->execute([$classId]);
+            $totalHiddenMaterials = (int)$totHidStmt->fetchColumn();
+
+            $totAsgStmt = $db->prepare("SELECT COUNT(*) FROM assignments WHERE class_id = ?");
+            $totAsgStmt->execute([$classId]);
+            $totalAssignments = (int)$totAsgStmt->fetchColumn();
+
+            // Check other batches that have materials available to copy/import
+            $srcStmt = $db->prepare("
+                SELECT c.id, c.class_name, c.status,
+                       (SELECT COUNT(*) FROM materials m WHERE m.class_id = c.id) as mat_count
+                FROM classes c
+                WHERE c.id != ?
+                HAVING mat_count > 0
+                ORDER BY c.id DESC
+            ");
+            $srcStmt->execute([$classId]);
+            $sourceBatches = $srcStmt->fetchAll(PDO::FETCH_ASSOC);
 
             $pageTitle = "Google Classroom Hub & Subject Modules";
             require_once __DIR__ . '/../Views/admin/materials.php';
@@ -1389,14 +1473,14 @@ class AdminController {
         $title        = trim($_POST['title'] ?? '');
         $description  = trim($_POST['description'] ?? '');
         $subjectId    = (int)($_POST['subject_id'] ?? 0);
-        $classId      = (int)($_POST['class_id'] ?? 1);
+        $classId      = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
         $categoryId   = (int)($_POST['category_id'] ?? 1);
         $teacherId    = (int)($_POST['teacher_id'] ?? $adminId);
         $materialType = $_POST['material_type'] ?? 'file';
 
         if (empty($title) || $subjectId <= 0) {
             Flash::error("Please provide a title and select a subject.");
-            header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
             exit;
         }
 
@@ -1408,14 +1492,14 @@ class AdminController {
         if ($materialType === 'file') {
             if (empty($_FILES['file_upload']) || $_FILES['file_upload']['error'] === UPLOAD_ERR_NO_FILE) {
                 Flash::error("Please choose a file to upload.");
-                header("Location: index.php?page=admin_materials&subject_id=$subjectId");
+                header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
                 exit;
             }
 
             $uploadRes = Uploader::upload($_FILES['file_upload'], MATERIAL_UPLOAD_PATH);
             if (!$uploadRes['success']) {
                 Flash::error("Upload failed: " . $uploadRes['error']);
-                header("Location: index.php?page=admin_materials&subject_id=$subjectId");
+                header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
                 exit;
             }
 
@@ -1426,7 +1510,7 @@ class AdminController {
             $url = trim($_POST['external_url'] ?? '');
             if (empty($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
                 Flash::error("Please provide a valid URL.");
-                header("Location: index.php?page=admin_materials&subject_id=$subjectId");
+                header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
                 exit;
             }
         }
@@ -1437,7 +1521,7 @@ class AdminController {
         ");
         $stmt->execute([$teacherId, $classId, $subjectId, $categoryId, $title, $description, $materialType, $filePath, $origName, $url, $fileSize]);
 
-        Auth::logAudit($adminId, 'ADMIN_UPLOAD_MATERIAL', "Admin uploaded material: $title for subject $subjectId");
+        Auth::logAudit($adminId, 'ADMIN_UPLOAD_MATERIAL', "Admin uploaded material: $title for subject $subjectId (class $classId)");
 
         // Google Classroom style: Notify all enrolled students via email
         $subStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
@@ -1452,7 +1536,7 @@ class AdminController {
         } else {
             Flash::success("Study material '{$title}' posted successfully to the classroom stream!");
         }
-        header("Location: index.php?page=admin_materials&subject_id=$subjectId");
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
         exit;
     }
 
@@ -1469,14 +1553,14 @@ class AdminController {
         $title        = trim($_POST['title'] ?? '');
         $instructions = trim($_POST['instructions'] ?? '');
         $subjectId    = (int)($_POST['subject_id'] ?? 0);
-        $classId      = (int)($_POST['class_id'] ?? 1);
+        $classId      = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
         $teacherId    = (int)($_POST['teacher_id'] ?? $adminId);
         $totalMarks   = (float)($_POST['total_marks'] ?? 100);
         $deadline     = trim($_POST['deadline'] ?? '');
 
         if (empty($title) || empty($instructions) || empty($deadline) || $subjectId <= 0) {
             Flash::error("Please fill in assignment title, instructions, and deadline.");
-            header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
             exit;
         }
 
@@ -1494,7 +1578,7 @@ class AdminController {
         ");
         $stmt->execute([$teacherId, $classId, $subjectId, $title, $instructions, $refFile, $totalMarks, $deadline]);
 
-        Auth::logAudit($adminId, 'ADMIN_CREATE_ASSIGNMENT', "Admin created assignment: $title with deadline $deadline");
+        Auth::logAudit($adminId, 'ADMIN_CREATE_ASSIGNMENT', "Admin created assignment: $title with deadline $deadline (class $classId)");
 
         // Google Classroom style: Notify all enrolled students via email
         $subStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
@@ -1509,7 +1593,7 @@ class AdminController {
         } else {
             Flash::success("Assignment '{$title}' posted successfully! Students can now submit their coursework.");
         }
-        header("Location: index.php?page=admin_materials&subject_id=$subjectId");
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
         exit;
     }
 
@@ -1522,11 +1606,12 @@ class AdminController {
 
         $assignmentId = (int)($_POST['assignment_id'] ?? 0);
         $subjectId    = (int)($_POST['subject_id'] ?? 0);
+        $classId      = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
         $newDeadline  = trim($_POST['deadline'] ?? '');
 
         if ($assignmentId <= 0 || empty($newDeadline)) {
             Flash::error("Invalid assignment or deadline date.");
-            header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
             exit;
         }
 
@@ -1535,7 +1620,7 @@ class AdminController {
 
         Auth::logAudit(Auth::id(), 'UPDATE_ASSIGNMENT_DEADLINE', "Updated assignment ID $assignmentId deadline to $newDeadline");
         Flash::success("Assignment deadline successfully updated to " . date('M d, Y h:i A', strtotime($newDeadline)) . "!");
-        header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
         exit;
     }
 
@@ -1548,22 +1633,24 @@ class AdminController {
 
         $matId = (int)($_POST['material_id'] ?? 0);
         $subjectId = (int)($_POST['subject_id'] ?? 0);
+        $classId = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
 
         if ($matId > 0) {
             $stmt = $db->prepare("SELECT file_path FROM materials WHERE id = ?");
             $stmt->execute([$matId]);
             $row = $stmt->fetch();
-            if ($row && !empty($row['file_path'])) {
-                @unlink(MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $row['file_path']);
-            }
 
             $del = $db->prepare("DELETE FROM materials WHERE id = ?");
             $del->execute([$matId]);
 
+            if ($row && !empty($row['file_path'])) {
+                $this->safeUnlinkMaterialFile($db, $row['file_path']);
+            }
+
             Flash::success("Study material has been deleted from classroom stream.");
         }
 
-        header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
         exit;
     }
 
@@ -1576,6 +1663,7 @@ class AdminController {
 
         $matId = (int)($_POST['material_id'] ?? 0);
         $subjectId = (int)($_POST['subject_id'] ?? 0);
+        $classId = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
 
         if ($matId > 0) {
             $stmt = $db->prepare("SELECT title, is_hidden FROM materials WHERE id = ?");
@@ -1593,7 +1681,7 @@ class AdminController {
             }
         }
 
-        header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
         exit;
     }
 
@@ -1606,11 +1694,12 @@ class AdminController {
 
         $action = trim($_POST['bulk_action'] ?? '');
         $subjectId = (int)($_POST['subject_id'] ?? 0);
+        $classId = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
         $materialIds = $_POST['material_ids'] ?? [];
 
         if (empty($materialIds) || !is_array($materialIds)) {
             Flash::error("Please select at least one material to perform this action.");
-            header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
             exit;
         }
 
@@ -1619,7 +1708,7 @@ class AdminController {
 
         if (empty($cleanIds)) {
             Flash::error("No valid materials selected.");
-            header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
             exit;
         }
 
@@ -1636,24 +1725,23 @@ class AdminController {
             Auth::logAudit(Auth::id(), 'BULK_UNHIDE_MATERIALS', "Unhidden " . count($cleanIds) . " materials");
             Flash::success(count($cleanIds) . " study materials are now visible to students.");
         } elseif ($action === 'delete') {
-            // Unlink files
             $fStmt = $db->prepare("SELECT file_path FROM materials WHERE id IN ($placeholders)");
             $fStmt->execute($cleanIds);
             $files = $fStmt->fetchAll();
-            foreach ($files as $f) {
-                if (!empty($f['file_path'])) {
-                    @unlink(MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $f['file_path']);
-                }
-            }
+
             $stmt = $db->prepare("DELETE FROM materials WHERE id IN ($placeholders)");
             $stmt->execute($cleanIds);
+
+            foreach ($files as $f) {
+                $this->safeUnlinkMaterialFile($db, $f['file_path'] ?? null);
+            }
             Auth::logAudit(Auth::id(), 'BULK_DELETE_MATERIALS', "Deleted " . count($cleanIds) . " materials");
             Flash::success(count($cleanIds) . " study materials have been permanently deleted.");
         } else {
             Flash::error("Invalid bulk action requested.");
         }
 
-        header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
         exit;
     }
 
@@ -1665,13 +1753,13 @@ class AdminController {
         $db = Database::getConnection();
 
         $subjectId = (int)($_POST['subject_id'] ?? 0);
-        $classId = (int)($_POST['class_id'] ?? 1);
+        $classId = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
         $action = trim($_POST['module_action'] ?? '');
         $redirectView = trim($_POST['redirect_view'] ?? 'subject'); // 'subject' or 'grid'
 
         if ($subjectId <= 0) {
             Flash::error("Invalid classroom module specified.");
-            header("Location: index.php?page=admin_materials");
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId));
             exit;
         }
 
@@ -1682,44 +1770,40 @@ class AdminController {
         if ($action === 'hide_all') {
             $stmt = $db->prepare("UPDATE materials SET is_hidden = 1 WHERE subject_id = ? AND class_id = ?");
             $stmt->execute([$subjectId, $classId]);
-            $count = $stmt->rowCount();
-            Auth::logAudit(Auth::id(), 'MODULE_HIDE_ALL_MATERIALS', "Hidden all materials for module $subName ($subjectId)");
+            Auth::logAudit(Auth::id(), 'MODULE_HIDE_ALL_MATERIALS', "Hidden all materials for module $subName ($subjectId, class $classId)");
             Flash::success("All materials in '{$subName}' have been hidden from students.");
         } elseif ($action === 'unhide_all') {
             $stmt = $db->prepare("UPDATE materials SET is_hidden = 0 WHERE subject_id = ? AND class_id = ?");
             $stmt->execute([$subjectId, $classId]);
-            $count = $stmt->rowCount();
-            Auth::logAudit(Auth::id(), 'MODULE_UNHIDE_ALL_MATERIALS', "Unhidden all materials for module $subName ($subjectId)");
+            Auth::logAudit(Auth::id(), 'MODULE_UNHIDE_ALL_MATERIALS', "Unhidden all materials for module $subName ($subjectId, class $classId)");
             Flash::success("All materials in '{$subName}' are now visible to students.");
         } elseif ($action === 'delete_all') {
-            // Delete all material files for this subject & class
             $fStmt = $db->prepare("SELECT file_path FROM materials WHERE subject_id = ? AND class_id = ?");
             $fStmt->execute([$subjectId, $classId]);
             $files = $fStmt->fetchAll();
-            foreach ($files as $f) {
-                if (!empty($f['file_path'])) {
-                    @unlink(MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $f['file_path']);
-                }
-            }
+
             $stmt = $db->prepare("DELETE FROM materials WHERE subject_id = ? AND class_id = ?");
             $stmt->execute([$subjectId, $classId]);
-            $count = $stmt->rowCount();
-            Auth::logAudit(Auth::id(), 'MODULE_DELETE_ALL_MATERIALS', "Deleted all materials for module $subName ($subjectId)");
+
+            foreach ($files as $f) {
+                $this->safeUnlinkMaterialFile($db, $f['file_path'] ?? null);
+            }
+            Auth::logAudit(Auth::id(), 'MODULE_DELETE_ALL_MATERIALS', "Deleted all materials for module $subName ($subjectId, class $classId)");
             Flash::success("All study materials in module '{$subName}' have been deleted.");
         } else {
             Flash::error("Unknown module operation.");
         }
 
         if ($redirectView === 'grid') {
-            header("Location: index.php?page=admin_materials");
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId));
         } else {
-            header("Location: index.php?page=admin_materials&subject_id=$subjectId");
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
         }
         exit;
     }
 
     /**
-     * Admin Global Batch Material Operations (Hide all across system, unhide all, or wipe)
+     * Admin Global Batch Material Operations (Hide all, unhide all, or wipe in selected batch)
      */
     public function globalMaterialsAction(): void {
         Csrf::checkOrAbort();
@@ -1727,64 +1811,143 @@ class AdminController {
 
         $action = trim($_POST['global_action'] ?? '');
         $targetSubjectId = (int)($_POST['target_subject_id'] ?? 0); // 0 = All Modules
+        $classId = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
 
         if ($action === 'hide_all') {
             if ($targetSubjectId > 0) {
-                $stmt = $db->prepare("UPDATE materials SET is_hidden = 1 WHERE subject_id = ?");
-                $stmt->execute([$targetSubjectId]);
-                $count = $stmt->rowCount();
-                Auth::logAudit(Auth::id(), 'MODULE_HIDE_ALL_MATERIALS', "Hidden all materials for subject ID $targetSubjectId");
+                $stmt = $db->prepare("UPDATE materials SET is_hidden = 1 WHERE subject_id = ? AND class_id = ?");
+                $stmt->execute([$targetSubjectId, $classId]);
+                Auth::logAudit(Auth::id(), 'MODULE_HIDE_ALL_MATERIALS', "Hidden all materials for subject ID $targetSubjectId (class $classId)");
                 Flash::success("All study materials for the selected module are now HIDDEN from students (safe for new batch).");
             } else {
-                $db->query("UPDATE materials SET is_hidden = 1");
-                $count = $db->query("SELECT COUNT(*) FROM materials")->fetchColumn();
-                Auth::logAudit(Auth::id(), 'GLOBAL_HIDE_ALL_MATERIALS', "Hidden all $count materials system-wide for new batch");
-                Flash::success("All study materials ($count items) across all modules are now HIDDEN from students (safe for new batch). You or lecturers can unhide them as lessons progress.");
+                $stmt = $db->prepare("UPDATE materials SET is_hidden = 1 WHERE class_id = ?");
+                $stmt->execute([$classId]);
+                $cntStmt = $db->prepare("SELECT COUNT(*) FROM materials WHERE class_id = ?");
+                $cntStmt->execute([$classId]);
+                $count = (int)$cntStmt->fetchColumn();
+                Auth::logAudit(Auth::id(), 'GLOBAL_HIDE_ALL_MATERIALS', "Hidden all $count materials in class $classId");
+                Flash::success("All study materials ($count items) in this batch are now HIDDEN from students. You or lecturers can unhide them as lessons progress.");
             }
         } elseif ($action === 'unhide_all') {
             if ($targetSubjectId > 0) {
-                $stmt = $db->prepare("UPDATE materials SET is_hidden = 0 WHERE subject_id = ?");
-                $stmt->execute([$targetSubjectId]);
+                $stmt = $db->prepare("UPDATE materials SET is_hidden = 0 WHERE subject_id = ? AND class_id = ?");
+                $stmt->execute([$targetSubjectId, $classId]);
                 Flash::success("All study materials in the selected module are now VISIBLE to students.");
             } else {
-                $db->query("UPDATE materials SET is_hidden = 0");
-                $count = $db->query("SELECT COUNT(*) FROM materials")->fetchColumn();
-                Auth::logAudit(Auth::id(), 'GLOBAL_UNHIDE_ALL_MATERIALS', "Unhidden all $count materials system-wide");
-                Flash::success("All study materials ($count items) across all modules are now VISIBLE to students.");
+                $stmt = $db->prepare("UPDATE materials SET is_hidden = 0 WHERE class_id = ?");
+                $stmt->execute([$classId]);
+                $cntStmt = $db->prepare("SELECT COUNT(*) FROM materials WHERE class_id = ?");
+                $cntStmt->execute([$classId]);
+                $count = (int)$cntStmt->fetchColumn();
+                Auth::logAudit(Auth::id(), 'GLOBAL_UNHIDE_ALL_MATERIALS', "Unhidden all $count materials in class $classId");
+                Flash::success("All study materials ($count items) in this batch are now VISIBLE to students.");
             }
         } elseif ($action === 'delete_all') {
-            require_once __DIR__ . '/../Helpers/Uploader.php';
             if ($targetSubjectId > 0) {
-                $fStmt = $db->prepare("SELECT file_path FROM materials WHERE subject_id = ?");
-                $fStmt->execute([$targetSubjectId]);
+                $fStmt = $db->prepare("SELECT file_path FROM materials WHERE subject_id = ? AND class_id = ?");
+                $fStmt->execute([$targetSubjectId, $classId]);
                 $files = $fStmt->fetchAll();
-                foreach ($files as $f) {
-                    if (!empty($f['file_path'])) {
-                        @unlink(MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $f['file_path']);
-                    }
-                }
-                $del = $db->prepare("DELETE FROM materials WHERE subject_id = ?");
-                $del->execute([$targetSubjectId]);
+
+                $del = $db->prepare("DELETE FROM materials WHERE subject_id = ? AND class_id = ?");
+                $del->execute([$targetSubjectId, $classId]);
                 $count = $del->rowCount();
-                Auth::logAudit(Auth::id(), 'MODULE_DELETE_ALL_MATERIALS', "Permanently deleted $count materials for module $targetSubjectId");
+
+                foreach ($files as $f) {
+                    $this->safeUnlinkMaterialFile($db, $f['file_path'] ?? null);
+                }
+                Auth::logAudit(Auth::id(), 'MODULE_DELETE_ALL_MATERIALS', "Permanently deleted $count materials for module $targetSubjectId (class $classId)");
                 Flash::success("Permanently deleted $count study materials from selected module.");
             } else {
-                // Wipe all materials across all modules
-                $files = $db->query("SELECT file_path FROM materials")->fetchAll();
+                $fStmt = $db->prepare("SELECT file_path FROM materials WHERE class_id = ?");
+                $fStmt->execute([$classId]);
+                $files = $fStmt->fetchAll();
+
+                $del = $db->prepare("DELETE FROM materials WHERE class_id = ?");
+                $del->execute([$classId]);
+                $count = $del->rowCount();
+
                 foreach ($files as $f) {
-                    if (!empty($f['file_path'])) {
-                        @unlink(MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $f['file_path']);
-                    }
+                    $this->safeUnlinkMaterialFile($db, $f['file_path'] ?? null);
                 }
-                $count = $db->query("DELETE FROM materials")->rowCount();
-                Auth::logAudit(Auth::id(), 'GLOBAL_DELETE_ALL_MATERIALS', "Permanently deleted all $count materials system-wide");
-                Flash::success("Permanently deleted all $count study materials across the LMS.");
+                Auth::logAudit(Auth::id(), 'GLOBAL_DELETE_ALL_MATERIALS', "Permanently deleted all $count materials in class $classId");
+                Flash::success("Permanently deleted all $count study materials in this batch.");
             }
         } else {
             Flash::error("Invalid action requested.");
         }
 
-        header("Location: index.php?page=admin_materials");
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId));
+        exit;
+    }
+
+    /**
+     * Copy study materials (and optionally assignments) from a previous batch into the selected batch.
+     */
+    public function copyBatchMaterials(): void {
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+
+        $sourceClassId = (int)($_POST['source_class_id'] ?? 0);
+        $targetClassId = $this->resolveMaterialsClassId($db, isset($_POST['target_class_id']) ? (int)$_POST['target_class_id'] : null);
+        $importHidden  = !empty($_POST['import_hidden']) ? 1 : 0;
+
+        if ($sourceClassId <= 0 || $targetClassId <= 0 || $sourceClassId === $targetClassId) {
+            Flash::error("Please select two different batches to copy materials between.");
+            header("Location: " . $this->buildMaterialsRedirectUrl($targetClassId));
+            exit;
+        }
+
+        // Ensure target batch has all active subjects synced
+        AttendanceManager::syncBatchSubjects($db, $targetClassId);
+
+        $srcStmt = $db->prepare("SELECT * FROM materials WHERE class_id = ?");
+        $srcStmt->execute([$sourceClassId]);
+        $srcMaterials = $srcStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($srcMaterials)) {
+            Flash::error("No study materials found in the selected source batch.");
+            header("Location: " . $this->buildMaterialsRedirectUrl($targetClassId));
+            exit;
+        }
+
+        $dupChk = $db->prepare("SELECT COUNT(*) FROM materials WHERE class_id = ? AND subject_id = ? AND title = ?");
+        $insStmt = $db->prepare("
+            INSERT INTO materials (teacher_id, class_id, subject_id, category_id, title, description, material_type, file_path, original_filename, external_url, file_size_bytes, is_hidden, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ");
+
+        $copied = 0;
+        foreach ($srcMaterials as $m) {
+            $dupChk->execute([$targetClassId, (int)$m['subject_id'], $m['title']]);
+            if ((int)$dupChk->fetchColumn() > 0) {
+                continue;
+            }
+            $insStmt->execute([
+                (int)$m['teacher_id'],
+                $targetClassId,
+                (int)$m['subject_id'],
+                (int)$m['category_id'],
+                $m['title'],
+                $m['description'],
+                $m['material_type'],
+                $m['file_path'],
+                $m['original_filename'],
+                $m['external_url'],
+                (int)($m['file_size_bytes'] ?? 0),
+                $importHidden,
+            ]);
+            $copied++;
+        }
+
+        Auth::logAudit(Auth::id(), 'COPY_BATCH_MATERIALS', "Copied $copied materials from class $sourceClassId to class $targetClassId (hidden=$importHidden)");
+        if ($copied > 0) {
+            $visMsg = $importHidden ? " (currently hidden — unhide when ready)" : " and made visible to students in this batch";
+            Flash::success("Copied $copied study material(s) into the selected batch{$visMsg}!");
+        } else {
+            Flash::success("All study materials from that batch already exist in the current batch.");
+        }
+
+        header("Location: " . $this->buildMaterialsRedirectUrl($targetClassId));
         exit;
     }
 
@@ -1797,6 +1960,7 @@ class AdminController {
 
         $asgId = (int)($_POST['assignment_id'] ?? 0);
         $subjectId = (int)($_POST['subject_id'] ?? 0);
+        $classId = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
 
         if ($asgId > 0) {
             $del = $db->prepare("DELETE FROM assignments WHERE id = ?");
@@ -1805,7 +1969,7 @@ class AdminController {
             Flash::success("Assignment has been deleted.");
         }
 
-        header("Location: index.php?page=admin_materials" . ($subjectId ? "&subject_id=$subjectId" : ""));
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
         exit;
     }
 
@@ -1822,11 +1986,11 @@ class AdminController {
         $colorTheme  = trim($_POST['color_theme'] ?? 'blue');
         $icon        = trim($_POST['icon'] ?? '');
         $teacherId   = (int)($_POST['teacher_id'] ?? 2);
-        $classId     = (int)($_POST['class_id'] ?? 1);
+        $classId     = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
 
         if (empty($subjectName) || empty($subjectCode)) {
             Flash::error("Please provide both Class / Module Name and Subject Code.");
-            header("Location: index.php?page=admin_materials");
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId));
             exit;
         }
 
@@ -1896,7 +2060,7 @@ class AdminController {
 
         Auth::logAudit(Auth::id(), 'CREATE_CLASSROOM_MODULE', "Created new classroom module: $subjectName ($subjectCode)");
         Flash::success("New class module '{$subjectName}' created successfully and added to Google Classroom Hub!");
-        header("Location: index.php?page=admin_materials");
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId));
         exit;
     }
 
@@ -1908,7 +2072,7 @@ class AdminController {
         $db = Database::getConnection();
 
         $subjectId = (int)($_POST['subject_id'] ?? 0);
-        $classId   = (int)($_POST['class_id'] ?? 1);
+        $classId   = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
 
         if ($subjectId > 0) {
             // Find class_subject_id
@@ -1937,7 +2101,7 @@ class AdminController {
             Flash::success("Class module has been deleted successfully.");
         }
 
-        header("Location: index.php?page=admin_materials");
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId));
         exit;
     }
 

@@ -214,6 +214,9 @@ switch ($page) {
     case 'admin_global_materials_action':
         (new AdminController())->globalMaterialsAction();
         break;
+    case 'admin_copy_batch_materials':
+        (new AdminController())->copyBatchMaterials();
+        break;
     case 'admin_delete_assignment':
         (new AdminController())->deleteAssignment();
         break;

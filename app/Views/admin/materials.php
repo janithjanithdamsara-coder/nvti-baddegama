@@ -25,27 +25,39 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
         <!-- Header Banner -->
         <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
           <div class="card-body p-4">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
               <div>
-                <div class="d-flex align-items-center gap-2 mb-1">
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                   <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-semibold">
                     <i class="bi bi-mortarboard-fill me-1"></i> Google Classroom Hub
                   </span>
                   <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1">
                     NVQ Level 5 CBT
                   </span>
+                  <?php if (($selectedBatch['status'] ?? 'active') === 'active'): ?>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-semibold">
+                      <i class="bi bi-check-circle-fill me-1"></i> Active Batch: <?= e($selectedBatch['class_name'] ?? 'Current Cohort') ?>
+                    </span>
+                  <?php else: ?>
+                    <span class="badge bg-secondary-subtle text-secondary border px-2.5 py-1 fw-semibold">
+                      <i class="bi bi-archive-fill me-1"></i> Archived Batch: <?= e($selectedBatch['class_name'] ?? 'Archived Cohort') ?>
+                    </span>
+                  <?php endif; ?>
                 </div>
                 <h3 class="fw-bold text-dark mb-1">Subject Classes &amp; Learning Modules</h3>
                 <p class="text-muted small mb-0">
-                  Select a class to manage study notes, stream postings, create coursework assignments, and adjust deadlines.
+                  Select a class to manage study notes, stream postings, coursework assignments, and deadlines for students in this cohort.
                 </p>
                 <div class="d-flex align-items-center gap-2 flex-wrap mt-2">
+                  <span class="badge bg-light text-dark border rounded-pill px-2.5 py-1 small">
+                    <i class="bi bi-journal-bookmark-fill text-danger me-1"></i> <?= count($classrooms ?? []) ?> Subjects Synced
+                  </span>
                   <span class="badge bg-light text-dark border rounded-pill px-2.5 py-1 small">
                     <i class="bi bi-collection-fill text-primary me-1"></i> <?= (int)($totalMaterials ?? 0) ?> Total Materials
                   </span>
                   <?php if (!empty($totalHiddenMaterials)): ?>
                     <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5 py-1 fw-bold small">
-                      <i class="bi bi-eye-slash-fill me-1"></i> <?= (int)$totalHiddenMaterials ?> Hidden (New Batch Mode)
+                      <i class="bi bi-eye-slash-fill me-1"></i> <?= (int)$totalHiddenMaterials ?> Hidden
                     </span>
                   <?php else: ?>
                     <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 small">
@@ -55,92 +67,124 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                 </div>
               </div>
 
-              <!-- Top Action Controls -->
-              <div class="d-flex align-items-center gap-2 flex-wrap">
-                <!-- Batch Material Visibility & Reset Button -->
-                <button type="button" class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold text-dark d-inline-flex align-items-center gap-2 shadow-xs" data-bs-toggle="modal" data-bs-target="#batchMaterialControlModal">
-                  <i class="bi bi-sliders2-vertical fs-6"></i>
-                  <span>Batch Material Visibility / Reset</span>
-                </button>
+              <!-- Top Action Controls & Batch Switcher -->
+              <div class="d-flex flex-column align-items-stretch align-items-lg-end gap-2">
+                <div class="d-flex align-items-center gap-2">
+                  <label for="adminMaterialsBatchSelect" class="small fw-bold text-secondary text-nowrap mb-0">
+                    <i class="bi bi-layers me-1"></i> Cohort:
+                  </label>
+                  <select id="adminMaterialsBatchSelect" class="form-select form-select-sm rounded-pill fw-semibold border-secondary-subtle shadow-xs" style="min-width: 240px;"
+                          onchange="window.location.href='index.php?page=admin_materials&class_id=' + this.value">
+                    <?php foreach (($classes ?? []) as $cl): ?>
+                      <option value="<?= (int)$cl['id'] ?>" <?= ((int)$cl['id'] === (int)$activeClassId) ? 'selected' : '' ?>>
+                        <?= e($cl['class_name']) ?> (<?= ($cl['status'] ?? '') === 'active' ? 'Active' : 'Archived' ?>)
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
 
-                <button type="button" class="btn btn-primary rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2" style="background: #7A1418; border-color: #7A1418;" data-bs-toggle="modal" data-bs-target="#createClassModal">
-                  <i class="bi bi-plus-lg fs-6"></i>
-                  <span>+ Create Class Module</span>
-                </button>
+                <div class="d-flex align-items-center gap-2 flex-wrap justify-content-lg-end">
+                  <!-- Batch Material Visibility & Reset Button -->
+                  <button type="button" class="btn btn-warning btn-sm rounded-pill px-3.5 py-2 fw-bold text-dark d-inline-flex align-items-center gap-2 shadow-xs" data-bs-toggle="modal" data-bs-target="#batchMaterialControlModal">
+                    <i class="bi bi-sliders2-vertical fs-6"></i>
+                    <span>Batch Visibility &amp; Copy Hub</span>
+                  </button>
+
+                  <button type="button" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2" style="background: #7A1418; border-color: #7A1418;" data-bs-toggle="modal" data-bs-target="#createClassModal">
+                    <i class="bi bi-plus-lg fs-6"></i>
+                    <span>+ Create Class Module</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Classroom Cards Grid (Exactly like Google Classroom) -->
+        <?php if ((int)($totalMaterials ?? 0) === 0 && !empty($sourceBatches)): ?>
+          <!-- Helpful 1-Click Sync Banner for New Batches -->
+          <div class="card border border-warning-subtle rounded-4 mb-4 shadow-xs" style="background: #fffbeb;">
+            <div class="card-body p-3 p-md-4">
+              <form action="index.php?page=admin_copy_batch_materials" method="POST" class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
+                <?= Csrf::field() ?>
+                <input type="hidden" name="target_class_id" value="<?= (int)$activeClassId ?>">
+                <div class="d-flex align-items-start gap-3">
+                  <div class="rounded-circle bg-warning bg-opacity-25 text-warning-emphasis d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+                    <i class="bi bi-files fs-5"></i>
+                  </div>
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">No Study Materials Uploaded Yet for <?= e($selectedBatch['class_name'] ?? 'This Batch') ?></h6>
+                    <p class="small text-secondary mb-2 mb-lg-0">
+                      You can upload fresh notes into each module card below, or copy existing curriculum notes from an earlier batch in 1 click.
+                    </p>
+                    <div class="form-check form-check-inline mt-1 mb-0">
+                      <input class="form-check-input" type="checkbox" name="import_hidden" value="1" id="bannerImportHidden">
+                      <label class="form-check-label small text-muted" for="bannerImportHidden">Import as hidden initially (uncheck to show to students immediately)</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-2 flex-shrink-0">
+                  <select name="source_class_id" class="form-select form-select-sm rounded-pill fw-semibold" style="min-width: 220px;" required>
+                    <?php foreach ($sourceBatches as $sb): ?>
+                      <option value="<?= (int)$sb['id'] ?>"><?= e($sb['class_name']) ?> (<?= (int)$sb['mat_count'] ?> notes)</option>
+                    <?php endforeach; ?>
+                  </select>
+                  <button type="submit" class="btn btn-dark btn-sm rounded-pill px-3.5 py-2 fw-bold text-nowrap">
+                    <i class="bi bi-cloud-download me-1"></i> Copy Notes to This Batch
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        <?php endif; ?>
+
+        <!-- Classroom Cards Grid (Synced with Student Portal Modules) -->
         <div class="row g-4 mb-4">
           <?php 
-            // Color Presets for Google Classroom themes
             $themePalettes = [
-              'blue'     => ['bg' => 'linear-gradient(135deg, #1967d2 0%, #174ea6 100%)', 'icon' => 'bi-database-fill-gear', 'avatar_color' => '#5f6368'],
+              'blue'     => ['bg' => 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', 'icon' => 'bi-database-fill-gear', 'avatar_color' => '#334155'],
               'maroon'   => ['bg' => 'linear-gradient(135deg, #7A1418 0%, #991b1b 100%)', 'icon' => 'bi-camera-reels-fill', 'avatar_color' => '#7A1418'],
-              'dark'     => ['bg' => 'linear-gradient(135deg, #455a64 0%, #37474f 100%)', 'icon' => 'bi-code-slash', 'avatar_color' => '#5f6368'],
-              'charcoal' => ['bg' => 'linear-gradient(135deg, #334155 0%, #1e293b 100%)', 'icon' => 'bi-globe-americas', 'avatar_color' => '#5f6368'],
+              'dark'     => ['bg' => 'linear-gradient(135deg, #455a64 0%, #37474f 100%)', 'icon' => 'bi-code-slash', 'avatar_color' => '#334155'],
+              'charcoal' => ['bg' => 'linear-gradient(135deg, #334155 0%, #1e293b 100%)', 'icon' => 'bi-globe-americas', 'avatar_color' => '#334155'],
               'indigo'   => ['bg' => 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)', 'icon' => 'bi-hdd-network-fill', 'avatar_color' => '#3b82f6'],
               'slate'    => ['bg' => 'linear-gradient(135deg, #374151 0%, #1f2937 100%)', 'icon' => 'bi-file-earmark-check-fill', 'avatar_color' => '#d97706'],
               'teal'     => ['bg' => 'linear-gradient(135deg, #0f766e 0%, #115e59 100%)', 'icon' => 'bi-brush-fill', 'avatar_color' => '#0d9488'],
-              'green'    => ['bg' => 'linear-gradient(135deg, #065f46 0%, #047857 100%)', 'icon' => 'bi-journal-code', 'avatar_color' => '#059669'],
-              'amber'    => ['bg' => 'linear-gradient(135deg, #b45309 0%, #92400e 100%)', 'icon' => 'bi-mortarboard-fill', 'avatar_color' => '#d97706'],
-              'purple'   => ['bg' => 'linear-gradient(135deg, #581c87 0%, #3b0764 100%)', 'icon' => 'bi-cpu-fill', 'avatar_color' => '#7e22ce'],
+              'green'    => ['bg' => 'linear-gradient(135deg, #065f46 0%, #059669 100%)', 'icon' => 'bi-journal-code', 'avatar_color' => '#059669'],
+              'amber'    => ['bg' => 'linear-gradient(135deg, #78350f 0%, #d97706 100%)', 'icon' => 'bi-mortarboard-fill', 'avatar_color' => '#d97706'],
+              'purple'   => ['bg' => 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)', 'icon' => 'bi-cpu-fill', 'avatar_color' => '#7c3aed'],
             ];
-
-            // Classroom Theme Palettes & Illustration Icons (Mirroring Google Classroom screenshot)
-            $classThemes = [
-              1 => ['bg' => 'linear-gradient(135deg, #1967d2 0%, #174ea6 100%)', 'sub' => 'Database Design & Development', 'icon' => 'bi-database-fill-gear', 'tag' => 'Database II', 'avatar' => 'N', 'avatar_color' => '#5f6368'],
-              2 => ['bg' => 'linear-gradient(135deg, #455a64 0%, #37474f 100%)', 'sub' => 'Software Development (PHP & OOP)', 'icon' => 'bi-code-slash', 'tag' => 'Programming 26', 'avatar' => 'N', 'avatar_color' => '#5f6368'],
-              3 => ['bg' => 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)', 'sub' => 'NVQ L05 - Cloud & Security', 'icon' => 'bi-hdd-network-fill', 'tag' => 'ICTDip අලුත්', 'avatar' => 'D', 'avatar_color' => '#3b82f6'],
-              4 => ['bg' => 'linear-gradient(135deg, #374151 0%, #1f2937 100%)', 'sub' => 'ICT V - Baddegama Requirements', 'icon' => 'bi-file-earmark-check-fill', 'tag' => '2026_ICT5', 'avatar' => 'H', 'avatar_color' => '#d97706'],
-              6 => ['bg' => 'linear-gradient(135deg, #0f766e 0%, #115e59 100%)', 'sub' => 'Computer Graphics designing', 'icon' => 'bi-brush-fill', 'tag' => 'Graphics26{NVQ5}', 'avatar' => 'N', 'avatar_color' => '#5f6368'],
-              7 => ['bg' => 'linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%)', 'sub' => 'Cinematography & Video Production', 'icon' => 'bi-camera-reels-fill', 'tag' => 'Cinematography 2026', 'avatar' => 'N', 'avatar_color' => '#5f6368'],
-              8 => ['bg' => 'linear-gradient(135deg, #334155 0%, #1e293b 100%)', 'sub' => 'Web Design, Development & Hosting', 'icon' => 'bi-globe-americas', 'tag' => 'Web Design & Hosting', 'avatar' => 'N', 'avatar_color' => '#5f6368'],
-            ];
+            $paletteKeys = array_keys($themePalettes);
+            $cardIdx = 0;
 
             foreach ($classrooms as $c): 
               $sId = (int)$c['subject_id'];
-              $userColorKey = $c['color_theme'] ?? 'blue';
-              $palette = $themePalettes[$userColorKey] ?? $themePalettes['blue'];
+              $userColorKey = (!empty($c['color_theme']) && isset($themePalettes[$c['color_theme']]))
+                ? $c['color_theme']
+                : $paletteKeys[$cardIdx % count($paletteKeys)];
+              $cardIdx++;
+              $palette = $themePalettes[$userColorKey];
 
-              $theme = $classThemes[$sId] ?? [
-                'bg' => $palette['bg'],
-                'sub' => !empty($c['description']) ? $c['description'] : $c['subject_code'],
-                'icon' => !empty($c['icon']) ? $c['icon'] : $palette['icon'],
-                'tag' => $c['subject_name'],
-                'avatar' => 'N',
-                'avatar_color' => $palette['avatar_color']
-              ];
-              if (!empty($c['icon'])) {
-                $theme['icon'] = $c['icon'];
-              }
-              if (!empty($c['color_theme']) && isset($themePalettes[$c['color_theme']])) {
-                $theme['bg'] = $themePalettes[$c['color_theme']]['bg'];
-              }
-              $teacherName = $c['teacher_name'] ?? 'U.G.P.K. Nishantha';
-              if (stripos($teacherName, 'Nishantha') !== false) {
-                  $avatarLetter = 'N';
-              } elseif (stripos($teacherName, 'Gayan') !== false) {
-                  $avatarLetter = 'G';
-              } else {
-                  $avatarLetter = strtoupper(substr($teacherName, 0, 1));
-              }
+              $cardBg = $palette['bg'];
+              $cardIcon = !empty($c['icon']) ? $c['icon'] : $palette['icon'];
+              $avatarColor = $palette['avatar_color'];
+              $cardTitle = $c['subject_name'];
+              $cardSubtitle = !empty($c['description']) ? $c['description'] : $c['subject_code'];
+
+              $teacherName = $c['teacher_name'] ?: 'U.G.P.K. Nishantha';
+              $avatarLetter = strtoupper(substr($teacherName, 0, 1));
           ?>
             <div class="col-12 col-md-6 col-xl-4 col-xxl-3">
               <div class="card border-0 rounded-4 shadow-sm h-100 bg-white overflow-hidden g-classroom-card transition-hover position-relative d-flex flex-column" style="min-height: 290px;">
-                <!-- Top Colorful Banner Header (Google Classroom Style with Centered Text & Ample Padding) -->
-                <div class="position-relative text-white overflow-hidden d-flex flex-column justify-content-between" style="background: <?= $theme['bg'] ?>; min-height: 145px; padding: 22px 22px 18px 22px; border-top-left-radius: 1rem; border-top-right-radius: 1rem;">
+                <!-- Top Colorful Banner Header -->
+                <div class="position-relative text-white overflow-hidden d-flex flex-column justify-content-between" style="background: <?= $cardBg ?>; min-height: 150px; padding: 22px 22px 18px 22px; border-top-left-radius: 1rem; border-top-right-radius: 1rem;">
                   <div class="d-flex justify-content-between align-items-start position-relative" style="z-index: 2;">
                     <div class="pe-2" style="max-width: 95%;">
-                      <a href="index.php?page=admin_materials&subject_id=<?= $sId ?>" class="text-white text-decoration-none">
-                        <h4 class="fw-bold text-white mb-1 text-truncate text-hover-underline" style="font-size: 1.25rem; letter-spacing: -0.2px; line-height: 1.3;" title="<?= e($c['subject_name']) ?>">
-                          <?= e($theme['tag']) ?>
+                      <a href="index.php?page=admin_materials&subject_id=<?= $sId ?>&class_id=<?= (int)$activeClassId ?>" class="text-white text-decoration-none">
+                        <h4 class="fw-bold text-white mb-1 text-truncate text-hover-underline" style="font-size: 1.15rem; letter-spacing: -0.2px; line-height: 1.3;" title="<?= e($cardTitle) ?>">
+                          <?= e($cardTitle) ?>
                         </h4>
                       </a>
-                      <div class="text-white-50 text-truncate" style="font-size: 0.83rem; line-height: 1.35;">
-                        <?= e($theme['sub']) ?>
+                      <div class="text-white-50 text-truncate" style="font-size: 0.82rem; line-height: 1.35;" title="<?= e($cardSubtitle) ?>">
+                        <?= e($cardSubtitle) ?>
                       </div>
                     </div>
                   </div>
@@ -154,14 +198,14 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
 
                   <!-- Decorative Right-side Icon Outline -->
                   <div class="position-absolute end-0 bottom-0 p-3 opacity-20 text-white pointer-events-none" style="font-size: 4rem; line-height: 0.8; transform: translate(6px, 6px);">
-                    <i class="bi <?= $theme['icon'] ?>"></i>
+                    <i class="bi <?= e($cardIcon) ?>"></i>
                   </div>
                 </div>
 
-                <!-- Floating Round Avatar Badge (Google Classroom Signature Feature) -->
-                <div class="position-absolute" style="top: 116px; right: 22px; z-index: 5;">
+                <!-- Floating Round Avatar Badge -->
+                <div class="position-absolute" style="top: 120px; right: 22px; z-index: 5;">
                   <div class="rounded-circle shadow d-flex align-items-center justify-content-center text-white fw-bold border border-3 border-white" 
-                       style="width: 58px; height: 58px; font-size: 1.35rem; background-color: <?= $theme['avatar_color'] ?>;">
+                       style="width: 56px; height: 56px; font-size: 1.3rem; background-color: <?= $avatarColor ?>;">
                     <?= $avatarLetter ?>
                   </div>
                 </div>
@@ -177,7 +221,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                     </span>
                   </div>
 
-                  <!-- Stats Pills & Bottom Quick Actions (Clearly Separated) -->
+                  <!-- Stats Pills & Bottom Quick Actions -->
                   <div class="pt-2 border-top d-flex justify-content-between align-items-center">
                     <div class="d-flex align-items-center gap-1.5 flex-wrap">
                       <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1" style="font-size: 0.72rem;">
@@ -196,7 +240,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                     <!-- Bottom Right Separated Actions: Open, Quick Batch Menu & Delete -->
                     <div class="d-flex align-items-center gap-1.5" style="position: relative; z-index: 6;">
                       <!-- Open Classroom Button -->
-                      <a href="index.php?page=admin_materials&subject_id=<?= $sId ?>" class="btn btn-sm btn-light border text-primary fw-bold rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1 shadow-xs hover-open-btn" title="Open Classroom Stream" style="font-size: 0.75rem;">
+                      <a href="index.php?page=admin_materials&subject_id=<?= $sId ?>&class_id=<?= (int)$activeClassId ?>" class="btn btn-sm btn-light border text-primary fw-bold rounded-pill px-2.5 py-1 d-inline-flex align-items-center gap-1 shadow-xs hover-open-btn" title="Open Classroom Stream" style="font-size: 0.75rem;">
                         <i class="bi bi-box-arrow-in-right"></i> Open
                       </a>
 
@@ -211,7 +255,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                             <form action="index.php?page=admin_module_materials_action" method="POST" onsubmit="return confirm('Hide all study materials in this class module from students?');">
                               <?= Csrf::field() ?>
                               <input type="hidden" name="subject_id" value="<?= $sId ?>">
-                              <input type="hidden" name="class_id" value="1">
+                              <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                               <input type="hidden" name="module_action" value="hide_all">
                               <input type="hidden" name="redirect_view" value="grid">
                               <button type="submit" class="dropdown-item py-1.5">
@@ -223,7 +267,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                             <form action="index.php?page=admin_module_materials_action" method="POST">
                               <?= Csrf::field() ?>
                               <input type="hidden" name="subject_id" value="<?= $sId ?>">
-                              <input type="hidden" name="class_id" value="1">
+                              <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                               <input type="hidden" name="module_action" value="unhide_all">
                               <input type="hidden" name="redirect_view" value="grid">
                               <button type="submit" class="dropdown-item py-1.5">
@@ -236,7 +280,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                             <form action="index.php?page=admin_module_materials_action" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to permanently delete all study materials in this module? Uploaded files will be erased.');">
                               <?= Csrf::field() ?>
                               <input type="hidden" name="subject_id" value="<?= $sId ?>">
-                              <input type="hidden" name="class_id" value="1">
+                              <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                               <input type="hidden" name="module_action" value="delete_all">
                               <input type="hidden" name="redirect_view" value="grid">
                               <button type="submit" class="dropdown-item py-1.5 text-danger fw-semibold">
@@ -246,7 +290,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                           </li>
                           <li><hr class="dropdown-divider my-1"></li>
                           <li>
-                            <button type="button" class="dropdown-item py-1.5 text-danger fw-semibold" onclick="confirmDeleteClassModule(event, <?= $sId ?>, '<?= e(addslashes($theme['tag'])) ?>')">
+                            <button type="button" class="dropdown-item py-1.5 text-danger fw-semibold" onclick="confirmDeleteClassModule(event, <?= $sId ?>, '<?= e(addslashes($cardTitle)) ?>')">
                               <i class="bi bi-x-circle text-danger me-2"></i> Delete Classroom Card
                             </button>
                           </li>
@@ -257,7 +301,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                 </div>
 
                 <!-- Full Card Clickable Overlay Link -->
-                <a href="index.php?page=admin_materials&subject_id=<?= $sId ?>" class="stretched-link" aria-label="Open <?= e($theme['tag']) ?>"></a>
+                <a href="index.php?page=admin_materials&subject_id=<?= $sId ?>&class_id=<?= (int)$activeClassId ?>" class="stretched-link" aria-label="Open <?= e($cardTitle) ?>"></a>
               </div>
             </div>
           <?php endforeach; ?>
@@ -285,13 +329,21 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
         <!-- ============================================================== -->
 
         <!-- Back Button & Breadcrumbs -->
-        <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
-          <a href="index.php?page=admin_materials" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm bg-white">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+          <a href="index.php?page=admin_materials&class_id=<?= (int)$activeClassId ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-sm bg-white">
             <i class="bi bi-arrow-left"></i>
             <span>All Classrooms</span>
           </a>
 
-          <div class="d-flex align-items-center gap-2">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <select class="form-select form-select-sm rounded-pill fw-semibold border-secondary-subtle bg-white" style="min-width: 210px;"
+                    onchange="window.location.href='index.php?page=admin_materials&subject_id=<?= (int)$currentSubject['id'] ?>&class_id=' + this.value">
+              <?php foreach (($classes ?? []) as $cl): ?>
+                <option value="<?= (int)$cl['id'] ?>" <?= ((int)$cl['id'] === (int)$activeClassId) ? 'selected' : '' ?>>
+                  <?= e($cl['class_name']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
             <span class="badge bg-light text-dark border px-2.5 py-1 rounded-pill">
               <i class="bi bi-shield-check text-primary me-1"></i> Administrator Mode
             </span>
@@ -342,7 +394,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                     <form action="index.php?page=admin_module_materials_action" method="POST" onsubmit="return confirm('Hide all study materials in this module from students? (Students will not see these until you unhide them)');">
                       <?= Csrf::field() ?>
                       <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
-                      <input type="hidden" name="class_id" value="1">
+                      <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                       <input type="hidden" name="module_action" value="hide_all">
                       <button type="submit" class="dropdown-item py-1.5">
                         <i class="bi bi-eye-slash text-secondary me-2"></i> Hide All Materials (නව Batch සඳහා සඟවන්න)
@@ -353,7 +405,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                     <form action="index.php?page=admin_module_materials_action" method="POST">
                       <?= Csrf::field() ?>
                       <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
-                      <input type="hidden" name="class_id" value="1">
+                      <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                       <input type="hidden" name="module_action" value="unhide_all">
                       <button type="submit" class="dropdown-item py-1.5">
                         <i class="bi bi-eye text-success me-2"></i> Unhide All Materials (සියල්ල ළමයින්ට පෙන්වන්න)
@@ -365,7 +417,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                     <form action="index.php?page=admin_module_materials_action" method="POST" onsubmit="return confirm('WARNING: Are you sure you want to PERMANENTLY DELETE ALL study materials in this module? Uploaded files will be erased.');">
                       <?= Csrf::field() ?>
                       <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
-                      <input type="hidden" name="class_id" value="1">
+                      <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                       <input type="hidden" name="module_action" value="delete_all">
                       <button type="submit" class="dropdown-item py-1.5 text-danger fw-bold">
                         <i class="bi bi-trash3 text-danger me-2"></i> Delete All Materials in Module (සියල්ල මකන්න)
@@ -467,6 +519,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
               <form id="bulkMaterialsForm" action="index.php?page=admin_bulk_materials" method="POST">
                 <?= Csrf::field() ?>
                 <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
+                <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                 <input type="hidden" name="bulk_action" id="bulkActionInput" value="">
 
                 <!-- Bulk Selection Toolbar -->
@@ -572,6 +625,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                                       <?= Csrf::field() ?>
                                       <input type="hidden" name="assignment_id" value="<?= (int)$item['id'] ?>">
                                       <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
+                                      <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                                       <button type="submit" class="dropdown-item py-1.5 small text-danger fw-semibold">
                                         <i class="bi bi-trash3 me-2"></i> Delete Assignment
                                       </button>
@@ -584,6 +638,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                                       <?= Csrf::field() ?>
                                       <input type="hidden" name="material_id" value="<?= (int)$item['id'] ?>">
                                       <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
+                                      <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                                       <button type="submit" class="dropdown-item py-1.5 small fw-semibold <?= $isHidden ? 'text-success' : 'text-secondary' ?>">
                                         <?php if ($isHidden): ?>
                                           <i class="bi bi-eye text-success me-2"></i> Unhide &amp; Show to Students
@@ -599,6 +654,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                                       <?= Csrf::field() ?>
                                       <input type="hidden" name="material_id" value="<?= (int)$item['id'] ?>">
                                       <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
+                                      <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                                       <button type="submit" class="dropdown-item py-1.5 small text-danger fw-semibold">
                                         <i class="bi bi-trash3 me-2"></i> Delete Material
                                       </button>
@@ -655,6 +711,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                                   <?= Csrf::field() ?>
                                   <input type="hidden" name="material_id" value="<?= (int)$item['id'] ?>">
                                   <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
+                                  <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
                                   <?php if ($isHidden): ?>
                                     <button type="submit" class="btn btn-outline-success btn-sm rounded-pill px-2.5 py-1 fw-bold d-inline-flex align-items-center gap-1 shadow-xs" title="Unhide this material so students can view and download">
                                       <i class="bi bi-eye-fill"></i> Unhide
@@ -705,7 +762,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
       <form action="index.php?page=admin_upload_material" method="POST" enctype="multipart/form-data">
         <?= Csrf::field() ?>
         <input type="hidden" name="subject_id" value="<?= (int)($currentSubject['id'] ?? 0) ?>">
-        <input type="hidden" name="class_id" value="1">
+        <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
         <input type="hidden" name="material_type" value="file">
 
         <div class="modal-header border-bottom py-3 px-4 bg-light">
@@ -772,7 +829,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
       <form action="index.php?page=admin_upload_material" method="POST">
         <?= Csrf::field() ?>
         <input type="hidden" name="subject_id" value="<?= (int)($currentSubject['id'] ?? 0) ?>">
-        <input type="hidden" name="class_id" value="1">
+        <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
         <input type="hidden" name="category_id" value="6"> <!-- Video Lessons -->
 
         <div class="modal-header border-bottom py-3 px-4 bg-light">
@@ -826,7 +883,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
       <form action="index.php?page=admin_create_assignment" method="POST" enctype="multipart/form-data">
         <?= Csrf::field() ?>
         <input type="hidden" name="subject_id" value="<?= (int)($currentSubject['id'] ?? 0) ?>">
-        <input type="hidden" name="class_id" value="1">
+        <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
 
         <div class="modal-header border-bottom py-3 px-4 bg-light">
           <div class="d-flex align-items-center gap-2">
@@ -884,6 +941,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
         <?= Csrf::field() ?>
         <input type="hidden" name="assignment_id" id="deadlineModalAsgId" value="">
         <input type="hidden" name="subject_id" value="<?= (int)($currentSubject['id'] ?? 0) ?>">
+        <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
 
         <div class="modal-header border-bottom py-3 px-4 bg-light">
           <div class="d-flex align-items-center gap-2">
@@ -1011,10 +1069,12 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
               <select name="class_id" class="form-select" required>
                 <?php if (!empty($classes)): ?>
                   <?php foreach ($classes as $cl): ?>
-                    <option value="<?= $cl['id'] ?>"><?= e($cl['class_name']) ?></option>
+                    <option value="<?= (int)$cl['id'] ?>" <?= ((int)$cl['id'] === (int)$activeClassId) ? 'selected' : '' ?>>
+                      <?= e($cl['class_name']) ?> (<?= ($cl['status'] ?? '') === 'active' ? 'Active' : 'Archived' ?>)
+                    </option>
                   <?php endforeach; ?>
                 <?php else: ?>
-                  <option value="1">NVTI Baddegama ICT L5 - Batch 2026</option>
+                  <option value="<?= (int)$activeClassId ?>">Current Active Batch</option>
                 <?php endif; ?>
               </select>
             </div>
@@ -1246,7 +1306,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
         <form action="index.php?page=admin_delete_classroom" method="POST">
           <?= Csrf::field() ?>
           <input type="hidden" name="subject_id" id="delClassModuleSubjectId" value="">
-          <input type="hidden" name="class_id" value="1">
+          <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
           <div class="d-flex gap-2 justify-content-center">
             <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">Yes, Delete</button>
@@ -1268,22 +1328,61 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
               <i class="bi bi-sliders2-vertical me-1"></i> BATCH TRANSITION &amp; VISIBILITY HUB
             </span>
           </div>
-          <h5 class="modal-title fw-bold text-white mb-0">Study Material Visibility &amp; Batch Management</h5>
+          <h5 class="modal-title fw-bold text-white mb-0">
+            Study Material Visibility &amp; Batch Copy (<?= e($selectedBatch['class_name'] ?? 'Current Batch') ?>)
+          </h5>
         </div>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
-      <form action="index.php?page=admin_global_materials_action" method="POST" id="globalMaterialsForm">
-        <?= Csrf::field() ?>
-        <div class="modal-body p-4 bg-light">
+      <div class="modal-body p-4 bg-light">
+        <?php if (!empty($sourceBatches)): ?>
+          <!-- Copy / Import from Previous Batch -->
+          <div class="card border border-primary-subtle rounded-4 bg-white p-3.5 mb-3 shadow-xs">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1 fw-bold">
+                <i class="bi bi-files me-1"></i> COPY NOTES FROM EARLIER BATCH
+              </span>
+            </div>
+            <h6 class="fw-bold text-dark mb-1">Import Study Materials into <?= e($selectedBatch['class_name'] ?? 'This Batch') ?></h6>
+            <p class="text-secondary small mb-3">
+              කලින් Batch එකක දාලා තියෙන PDF / YouTube / Notes මේ Batch එකේ ළමයින්ටත් ලබා දීමට 1 click එකෙන් copy කරන්න.
+            </p>
+            <form action="index.php?page=admin_copy_batch_materials" method="POST" class="d-flex flex-column gap-2">
+              <?= Csrf::field() ?>
+              <input type="hidden" name="target_class_id" value="<?= (int)$activeClassId ?>">
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                <select name="source_class_id" class="form-select form-select-sm flex-grow-1 fw-semibold" required>
+                  <?php foreach ($sourceBatches as $sb): ?>
+                    <option value="<?= (int)$sb['id'] ?>"><?= e($sb['class_name']) ?> (<?= (int)$sb['mat_count'] ?> notes)</option>
+                  <?php endforeach; ?>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-bold text-nowrap">
+                  <i class="bi bi-cloud-download me-1"></i> Copy Materials Here
+                </button>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" name="import_hidden" value="1" id="modalImportHidden">
+                <label class="form-check-label small text-muted" for="modalImportHidden">
+                  Import as hidden initially (uncheck to make notes visible to students immediately)
+                </label>
+              </div>
+            </form>
+          </div>
+        <?php endif; ?>
+
+        <form action="index.php?page=admin_global_materials_action" method="POST" id="globalMaterialsForm">
+          <?= Csrf::field() ?>
+          <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
+
           <!-- Target Selector -->
           <div class="card border rounded-4 bg-white p-3.5 mb-3 shadow-xs">
             <label class="form-label fw-bold text-dark mb-1">
               <i class="bi bi-layers-fill text-primary me-1"></i> Select Target Subject / Class Module:
             </label>
-            <p class="text-muted small mb-2">Choose whether you want to apply this action across ALL modules in the diploma or to a specific class module.</p>
+            <p class="text-muted small mb-2">Choose whether you want to apply this action across ALL modules in this batch or to a specific class module.</p>
             <select name="target_subject_id" class="form-select border-secondary-subtle rounded-3 fw-semibold">
-              <option value="0" selected>⚡ All Modules System-Wide (සියලුම Subject Classes සඳහා)</option>
+              <option value="0" selected>⚡ All Modules in This Batch (මෙම Batch එකේ සියලුම Modules සඳහා)</option>
               <?php foreach (($classrooms ?? []) as $cls): ?>
                 <option value="<?= (int)$cls['subject_id'] ?>">
                   <?= e($cls['subject_name']) ?> (<?= e($cls['subject_code']) ?> &bull; <?= (int)$cls['materials_count'] ?> notes)
@@ -1301,13 +1400,13 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
             </div>
             <h6 class="fw-bold text-dark mb-1">Hide or Unhide Study Materials (සඟවන්න / පෙන්වන්න)</h6>
             <p class="text-secondary small mb-3">
-              පරණ Upload කර ඇති Study Materials (PDF, Doc, YouTube Links) <strong>Delete නොකර</strong>, නව Batch එකේ ළමයින්ට නොපෙනෙන පරිදි Hide කර තබා ගත හැක. පසුව සර්ලාට හෝ Adminට පාඩම උගන්වන විට අදාළ Material එක Unhide කර ළමයින්ට ලබාදිය හැක.
+              Upload කර ඇති Study Materials (PDF, Doc, YouTube Links) <strong>Delete නොකර</strong>, Batch එකේ ළමයින්ට නොපෙනෙන පරිදි Hide කර තබා ගත හැක. පසුව පාඩම උගන්වන විට Unhide කර ළමයින්ට ලබාදිය හැක.
             </p>
 
             <div class="d-flex flex-wrap gap-2">
               <button type="submit" name="global_action" value="hide_all" class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold text-dark shadow-xs d-inline-flex align-items-center gap-2">
                 <i class="bi bi-eye-slash-fill"></i>
-                <span>Hide Materials (නව Batch සඳහා සඟවන්න)</span>
+                <span>Hide Materials (සඟවන්න)</span>
               </button>
 
               <button type="submit" name="global_action" value="unhide_all" class="btn btn-outline-success rounded-pill px-3.5 py-2 fw-bold shadow-xs d-inline-flex align-items-center gap-2">
@@ -1326,22 +1425,22 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
             </div>
             <h6 class="fw-bold text-dark mb-1">Permanently Delete Study Materials (ස්ථිරවම මකා දැමීම)</h6>
             <p class="text-danger small mb-3">
-              අවවාදයයි: ඔබ තෝරාගත් Module එකෙහි (හෝ All Modules වල) ඇති Study Materials සහ Upload කර ඇති භෞතික Files පද්ධතියෙන් ස්ථිරවම Delete වේ.
+              අවවාදයයි: ඔබ තෝරාගත් Module එකෙහි (හෝ මෙම Batch එකේ සියලු Modules වල) ඇති Study Materials පද්ධතියෙන් ස්ථිරවම Delete වේ.
             </p>
 
             <div>
-              <button type="submit" name="global_action" value="delete_all" class="btn btn-outline-danger btn-sm rounded-pill px-3.5 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-xs" onclick="return confirm('WARNING: Are you absolutely sure? All selected study materials and physical files will be permanently erased and cannot be recovered.');">
+              <button type="submit" name="global_action" value="delete_all" class="btn btn-outline-danger btn-sm rounded-pill px-3.5 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-xs" onclick="return confirm('WARNING: Are you absolutely sure? Selected study materials in this batch will be permanently deleted.');">
                 <i class="bi bi-trash3-fill"></i>
                 <span>Permanently Delete Selected Materials</span>
               </button>
             </div>
           </div>
-        </div>
+        </form>
+      </div>
 
-        <div class="modal-footer bg-white border-top px-4 py-2.5">
-          <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5" data-bs-dismiss="modal">Close</button>
-        </div>
-      </form>
+      <div class="modal-footer bg-white border-top px-4 py-2.5">
+        <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3.5" data-bs-dismiss="modal">Close</button>
+      </div>
     </div>
   </div>
 </div>
