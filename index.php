@@ -127,6 +127,24 @@ switch ($page) {
     case 'admin_delete_student':
         (new AdminController())->deleteStudent();
         break;
+    case 'admin_applications':
+        (new AdminController())->applications();
+        break;
+    case 'admin_sync_applications':
+        (new AdminController())->syncApplications();
+        break;
+    case 'admin_application_status':
+        (new AdminController())->updateApplicationStatus();
+        break;
+    case 'admin_enroll_applicant':
+        (new AdminController())->enrollApplicant();
+        break;
+    case 'admin_save_application':
+        (new AdminController())->saveApplication();
+        break;
+    case 'admin_export_applications_csv':
+        (new AdminController())->exportApplicationsCsv();
+        break;
     case 'admin_teachers':
         (new AdminController())->teachers();
         break;

@@ -51,6 +51,11 @@ $roleBadgeText = match ($role) {
         <i data-lucide="users" class="sidebar-icon"></i>
         <span class="sidebar-link-text">Student Management</span>
       </a>
+      <a href="index.php?page=admin_applications" class="sidebar-link <?= $currentRoute === 'admin_applications' ? 'active' : '' ?>" title="Candidate Applications">
+        <i data-lucide="user-plus" class="sidebar-icon"></i>
+        <span class="sidebar-link-text">Online Applications</span>
+        <span class="badge bg-warning text-dark rounded-pill ms-auto px-2 py-0.5 fw-bold" style="font-size: 0.65rem;">New</span>
+      </a>
       <a href="index.php?page=admin_teachers" class="sidebar-link <?= $currentRoute === 'admin_teachers' ? 'active' : '' ?>" title="Teacher Accounts">
         <i data-lucide="user-check" class="sidebar-icon"></i>
         <span class="sidebar-link-text">Teacher Accounts</span>

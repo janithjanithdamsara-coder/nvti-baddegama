@@ -74,6 +74,10 @@ define('BREVO_API_KEY', getenv('BREVO_API_KEY') ?: '');
 define('MAIL_FROM_EMAIL', getenv('MAIL_FROM_EMAIL') ?: 'sahashrajanith@gmail.com');
 define('MAIL_FROM_NAME', getenv('MAIL_FROM_NAME') ?: 'NVTI Baddegama National Diploma');
 
+// NVTI Baddegama Main Website Candidate Application Sync API
+define('NVTI_MAIN_SITE_API_URL', getenv('NVTI_MAIN_SITE_API_URL') ?: 'https://nvtibaddegama.site/api/get_applications.php');
+define('NVTI_MAIN_SITE_API_KEY', getenv('NVTI_MAIN_SITE_API_KEY') ?: 'NVTI_BADDEGAMA_SEC_KEY_2026_DIPLOMA_XYZ');
+
 // Session Configuration (Strict & Secure with unique project session name)
 if (session_status() === PHP_SESSION_NONE) {
     session_name('NVTI_BADDEGAMA_DIPLOMA_SESSION');

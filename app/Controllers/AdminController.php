@@ -320,6 +320,411 @@ class AdminController {
         exit;
     }
 
+    /**
+     * Candidate Online Applications Hub
+     */
+    public function applications(): void {
+        Auth::requireRole(['admin']);
+        $db = Database::getConnection();
+
+        $search       = trim($_GET['search'] ?? '');
+        $statusFilter = trim($_GET['status'] ?? 'all');
+        $courseFilter = trim($_GET['course'] ?? 'all');
+        $alFilter     = trim($_GET['al'] ?? 'all');
+        $olFilter     = trim($_GET['ol'] ?? 'all');
+
+        $where = ["1=1"];
+        $params = [];
+
+        if (!empty($search)) {
+            $where[] = "(a.full_name LIKE ? OR a.nic LIKE ? OR a.student_id LIKE ? OR a.contact_no LIKE ? OR a.whatsapp_no LIKE ?)";
+            $term = "%{$search}%";
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+        }
+
+        if ($statusFilter !== 'all' && in_array($statusFilter, ['pending', 'called_for_interview', 'selected', 'enrolled', 'rejected'])) {
+            $where[] = "a.status = ?";
+            $params[] = $statusFilter;
+        }
+
+        if ($courseFilter !== 'all') {
+            $where[] = "(a.course_option_one LIKE ? OR a.course_option_two LIKE ?)";
+            $term = "%{$courseFilter}%";
+            $params[] = $term;
+            $params[] = $term;
+        }
+
+        if ($alFilter !== 'all' && in_array($alFilter, ['science', 'commerce', 'arts', 'tech', 'other'])) {
+            $where[] = "a.al_category = ?";
+            $params[] = $alFilter;
+        }
+
+        if ($olFilter === 'passed') {
+            $where[] = "a.ol_pass_status = 'Yes'";
+        } elseif ($olFilter === 'failed') {
+            $where[] = "a.ol_pass_status = 'No'";
+        }
+
+        $whereSql = implode(' AND ', $where);
+
+        $stmt = $db->prepare("
+            SELECT a.*, u.email as enrolled_email
+            FROM student_applications a
+            LEFT JOIN users u ON a.enrolled_user_id = u.id
+            WHERE {$whereSql}
+            ORDER BY a.application_date DESC
+        ");
+        $stmt->execute($params);
+        $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Compute summary counts
+        $totalApps     = (int)$db->query("SELECT COUNT(*) FROM student_applications")->fetchColumn();
+        $pendingApps   = (int)$db->query("SELECT COUNT(*) FROM student_applications WHERE status = 'pending'")->fetchColumn();
+        $interviewApps = (int)$db->query("SELECT COUNT(*) FROM student_applications WHERE status = 'called_for_interview'")->fetchColumn();
+        $selectedApps  = (int)$db->query("SELECT COUNT(*) FROM student_applications WHERE status = 'selected'")->fetchColumn();
+        $enrolledApps  = (int)$db->query("SELECT COUNT(*) FROM student_applications WHERE status = 'enrolled'")->fetchColumn();
+        $ictApps       = (int)$db->query("SELECT COUNT(*) FROM student_applications WHERE course_option_one LIKE '%ICT%' OR course_option_two LIKE '%ICT%'")->fetchColumn();
+
+        // Active batches for enrollment dropdown
+        $batches = $db->query("SELECT id, class_name, academic_year FROM classes WHERE status = 'active' ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+        $pageTitle = "Online Candidate Applications Hub";
+        require_once __DIR__ . '/../Views/admin/applications.php';
+    }
+
+    /**
+     * Sync Applications from NVTI Baddegama Website (REST API via cURL)
+     */
+    public function syncApplications(): void {
+        Auth::requireRole(['admin']);
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+
+        $apiUrl = NVTI_MAIN_SITE_API_URL;
+        $apiKey = NVTI_MAIN_SITE_API_KEY;
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $apiUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "X-API-KEY: {$apiKey}",
+            "Accept: application/json"
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_USERAGENT, "NVTI-Baddegama-LMS-Sync/1.0");
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false || !empty($curlError)) {
+            Flash::warning("Could not reach remote server ($apiUrl). Error: " . ($curlError ?: 'Connection timed out') . ". Once get_applications.php is uploaded to the cPanel hosting, live sync will populate instantly.");
+            header('Location: index.php?page=admin_applications');
+            exit;
+        }
+
+        $json = json_decode($response, true);
+        if (!$json || ($json['status'] ?? '') !== 'success' || !isset($json['data'])) {
+            $msg = $json['message'] ?? 'Invalid JSON response from remote website';
+            Flash::warning("Remote API response (HTTP $httpCode): $msg");
+            header('Location: index.php?page=admin_applications');
+            exit;
+        }
+
+        $records = $json['data'];
+        $syncedNew = 0;
+        $syncedUpdated = 0;
+
+        $upsertStmt = $db->prepare("
+            INSERT INTO student_applications 
+            (external_id, student_id, full_name, nic, address, dob, contact_no, whatsapp_no, 
+             ol_pass_status, ol_english_grade, ol_maths_grade, ol_science_grade, 
+             al_category, course_option_one, course_option_two, application_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                full_name = VALUES(full_name),
+                address = VALUES(address),
+                contact_no = VALUES(contact_no),
+                whatsapp_no = VALUES(whatsapp_no),
+                course_option_one = VALUES(course_option_one),
+                course_option_two = VALUES(course_option_two)
+        ");
+
+        foreach ($records as $r) {
+            $externalId = !empty($r['external_id']) ? (int)$r['external_id'] : (!empty($r['id']) ? (int)$r['id'] : null);
+            $studentId  = trim($r['Student_id'] ?? $r['student_id'] ?? ('APP-' . substr(md5($r['nic'] ?? uniqid()), 0, 8)));
+            $fullName   = trim($r['full_name'] ?? '');
+            $nic        = strtoupper(trim($r['nic'] ?? ''));
+            $address    = trim($r['address'] ?? '');
+            $dob        = !empty($r['dob']) ? trim($r['dob']) : null;
+            $contactNo  = trim($r['contact_no'] ?? '');
+            $whatsappNo = trim($r['whatsapp_no'] ?? $contactNo);
+            $olStatus   = (strcasecmp($r['ol_pass_status'] ?? '', 'No') === 0) ? 'No' : 'Yes';
+            $olEng      = strtoupper(trim($r['ol_english_grade'] ?? ''));
+            $olMath     = strtoupper(trim($r['ol_maths_grade'] ?? ''));
+            $olSci      = strtoupper(trim($r['ol_science_grade'] ?? ''));
+            $alCat      = strtolower(trim($r['al_category'] ?? 'tech'));
+            if (!in_array($alCat, ['science', 'commerce', 'arts', 'tech', 'other'])) {
+                $alCat = 'tech';
+            }
+            $opt1       = trim($r['course_option_one'] ?? 'National Diploma in ICT (NVQ Level 5)');
+            $opt2       = trim($r['course_option_two'] ?? '');
+            $appDate    = !empty($r['application_date']) ? trim($r['application_date']) : date('Y-m-d H:i:s');
+
+            if (!empty($nic) && !empty($fullName)) {
+                $upsertStmt->execute([
+                    $externalId, $studentId, $fullName, $nic, $address, $dob,
+                    $contactNo, $whatsappNo, $olStatus, $olEng, $olMath, $olSci,
+                    $alCat, $opt1, $opt2, $appDate
+                ]);
+                if ($upsertStmt->rowCount() === 1) {
+                    $syncedNew++;
+                } else {
+                    $syncedUpdated++;
+                }
+            }
+        }
+
+        Auth::logAudit(Auth::id(), 'SYNC_APPLICATIONS', "Synced candidate applications from main site. New: $syncedNew, Updated: $syncedUpdated");
+        Flash::success("Sync successful! Processed " . count($records) . " applications from NVTI main site ($syncedNew new candidates added, $syncedUpdated refreshed).");
+        header('Location: index.php?page=admin_applications');
+        exit;
+    }
+
+    /**
+     * Update Candidate Application Status
+     */
+    public function updateApplicationStatus(): void {
+        Auth::requireRole(['admin']);
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+
+        $appId  = (int)($_POST['application_id'] ?? 0);
+        $status = trim($_POST['status'] ?? 'pending');
+        $notes  = trim($_POST['admin_notes'] ?? '');
+
+        if ($appId > 0 && in_array($status, ['pending', 'called_for_interview', 'selected', 'enrolled', 'rejected'])) {
+            $stmt = $db->prepare("UPDATE student_applications SET status = ?, admin_notes = ? WHERE id = ?");
+            $stmt->execute([$status, $notes, $appId]);
+
+            Auth::logAudit(Auth::id(), 'UPDATE_APPLICATION_STATUS', "Updated candidate application ID $appId status to $status");
+            Flash::success("Application status updated to " . ucfirst(str_replace('_', ' ', $status)) . ".");
+        }
+
+        header('Location: index.php?page=admin_applications');
+        exit;
+    }
+
+    /**
+     * 1-Click Convert Candidate to Enrolled Student in Batch
+     */
+    public function enrollApplicant(): void {
+        Auth::requireRole(['admin']);
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+
+        $appId   = (int)($_POST['application_id'] ?? 0);
+        $classId = (int)($_POST['class_id'] ?? 1); // NVTI Baddegama ICT L5 - Batch 2026
+        $courseId = 1;
+
+        if ($appId <= 0) {
+            Flash::error("Invalid candidate application.");
+            header('Location: index.php?page=admin_applications');
+            exit;
+        }
+
+        $appStmt = $db->prepare("SELECT * FROM student_applications WHERE id = ?");
+        $appStmt->execute([$appId]);
+        $app = $appStmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$app) {
+            Flash::error("Candidate record not found.");
+            header('Location: index.php?page=admin_applications');
+            exit;
+        }
+
+        if ($app['status'] === 'enrolled' && !empty($app['enrolled_user_id'])) {
+            Flash::warning("This candidate has already been enrolled as a student (User ID #{$app['enrolled_user_id']}).");
+            header('Location: index.php?page=admin_applications');
+            exit;
+        }
+
+        // Check if student with this NIC already exists in users/profiles
+        $checkNic = $db->prepare("SELECT user_id FROM student_profiles WHERE nic = ?");
+        $checkNic->execute([$app['nic']]);
+        $existingProfile = $checkNic->fetch(PDO::FETCH_ASSOC);
+
+        if ($existingProfile) {
+            $userId = (int)$existingProfile['user_id'];
+            $db->prepare("UPDATE student_applications SET status = 'enrolled', is_processed = 1, enrolled_user_id = ? WHERE id = ?")
+               ->execute([$userId, $appId]);
+            Flash::info("Student with NIC {$app['nic']} already exists in LMS. Application has been linked to User #{$userId}.");
+            header('Location: index.php?page=admin_applications');
+            exit;
+        }
+
+        // Generate student email: e.g. student_code or sanitized firstname.nic@nvti.edu.lk
+        $sanitizedName = strtolower(preg_replace('/[^a-zA-Z]/', '', explode(' ', $app['full_name'])[0]));
+        $email = $sanitizedName . '.' . substr($app['nic'], -4) . '@nvti.edu.lk';
+
+        // Check uniqueness of generated email
+        $chkEmail = $db->prepare("SELECT id FROM users WHERE email = ?");
+        $chkEmail->execute([$email]);
+        if ($chkEmail->fetch()) {
+            $email = $sanitizedName . '.' . $app['nic'] . '@nvti.edu.lk';
+        }
+
+        // Generate temporary password
+        $rawPassword = 'Nvti@' . substr($app['nic'], -4);
+        $passwordHash = password_hash($rawPassword, PASSWORD_ARGON2ID);
+
+        // Insert into users
+        $insUser = $db->prepare("INSERT INTO users (name, email, password_hash, role, status) VALUES (?, ?, ?, 'student', 'active')");
+        $insUser->execute([$app['full_name'], $email, $passwordHash]);
+        $userId = (int)$db->lastInsertId();
+
+        // Student code & MIS
+        $studentCode = $app['student_id'] ?: ('STU-' . date('Y') . '-' . str_pad($userId, 4, '0', STR_PAD_LEFT));
+
+        // Insert into student_profiles
+        $insProf = $db->prepare("
+            INSERT INTO student_profiles 
+            (user_id, student_code, mis_number, phone, whatsapp_number, nic, address, course_id, class_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $insProf->execute([
+            $userId, $studentCode, $studentCode, $app['contact_no'], $app['whatsapp_no'],
+            $app['nic'], $app['address'], $courseId, $classId
+        ]);
+
+        // Insert enrollment
+        $insEnr = $db->prepare("INSERT INTO enrollments (user_id, course_id, class_id, status) VALUES (?, ?, ?, 'active')");
+        $insEnr->execute([$userId, $courseId, $classId]);
+
+        // Update application record
+        $db->prepare("UPDATE student_applications SET status = 'enrolled', is_processed = 1, enrolled_user_id = ? WHERE id = ?")
+           ->execute([$userId, $appId]);
+
+        Auth::logAudit(Auth::id(), 'ENROLL_APPLICANT', "Enrolled applicant {$app['full_name']} (ID $appId) as student user #$userId");
+
+        Flash::success("Candidate {$app['full_name']} enrolled successfully to Batch 2026! Login Email: <strong>{$email}</strong> | Temp Password: <strong>{$rawPassword}</strong>");
+        header('Location: index.php?page=admin_applications');
+        exit;
+    }
+
+    /**
+     * Manual Application Entry (For walk-in candidates submitting paper forms at NVTI Baddegama)
+     */
+    public function saveApplication(): void {
+        Auth::requireRole(['admin']);
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+
+        $fullName   = trim($_POST['full_name'] ?? '');
+        $nic        = strtoupper(trim($_POST['nic'] ?? ''));
+        $address    = trim($_POST['address'] ?? '');
+        $dob        = !empty($_POST['dob']) ? trim($_POST['dob']) : null;
+        $contactNo  = trim($_POST['contact_no'] ?? '');
+        $whatsappNo = trim($_POST['whatsapp_no'] ?? $contactNo);
+        $olStatus   = ($_POST['ol_pass_status'] ?? 'Yes') === 'No' ? 'No' : 'Yes';
+        $olEng      = strtoupper(trim($_POST['ol_english_grade'] ?? ''));
+        $olMath     = strtoupper(trim($_POST['ol_maths_grade'] ?? ''));
+        $olSci      = strtoupper(trim($_POST['ol_science_grade'] ?? ''));
+        $alCat      = trim($_POST['al_category'] ?? 'tech');
+        $opt1       = trim($_POST['course_option_one'] ?? 'National Diploma in ICT (NVQ Level 5)');
+        $opt2       = trim($_POST['course_option_two'] ?? '');
+        $studentId  = 'APP-' . date('Y') . '-' . strtoupper(substr(uniqid(), -5));
+
+        if (empty($fullName) || empty($nic) || empty($contactNo)) {
+            Flash::error("Candidate Full Name, NIC, and Contact Number are required.");
+            header('Location: index.php?page=admin_applications');
+            exit;
+        }
+
+        // Check NIC duplication
+        $check = $db->prepare("SELECT id FROM student_applications WHERE nic = ?");
+        $check->execute([$nic]);
+        if ($check->fetch()) {
+            Flash::error("An application with NIC $nic has already been registered in the system.");
+            header('Location: index.php?page=admin_applications');
+            exit;
+        }
+
+        $ins = $db->prepare("
+            INSERT INTO student_applications 
+            (student_id, full_name, nic, address, dob, contact_no, whatsapp_no, ol_pass_status, 
+             ol_english_grade, ol_maths_grade, ol_science_grade, al_category, course_option_one, course_option_two, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+        ");
+        $ins->execute([
+            $studentId, $fullName, $nic, $address, $dob, $contactNo, $whatsappNo,
+            $olStatus, $olEng, $olMath, $olSci, $alCat, $opt1, $opt2
+        ]);
+
+        Auth::logAudit(Auth::id(), 'MANUAL_CREATE_APPLICATION', "Registered candidate application for $fullName ($nic)");
+        Flash::success("Candidate application for '$fullName' has been registered successfully with ID $studentId.");
+        header('Location: index.php?page=admin_applications');
+        exit;
+    }
+
+    /**
+     * Export Applications CSV
+     */
+    public function exportApplicationsCsv(): void {
+        Auth::requireRole(['admin']);
+        $db = Database::getConnection();
+
+        $apps = $db->query("
+            SELECT student_id, full_name, nic, contact_no, whatsapp_no, dob, 
+                   ol_pass_status, ol_english_grade, ol_maths_grade, ol_science_grade, 
+                   al_category, course_option_one, course_option_two, status, application_date
+            FROM student_applications 
+            ORDER BY application_date DESC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $filename = "NVTI_Baddegama_Applications_" . date('Y-m-d') . ".csv";
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        $out = fopen('php://output', 'w');
+        fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
+
+        fputcsv($out, [
+            'Ref ID', 'Full Name', 'NIC', 'Contact No', 'WhatsApp No', 'DOB',
+            'O/L Passed', 'O/L English', 'O/L Maths', 'O/L Science',
+            'A/L Stream', 'Course Option 1', 'Course Option 2', 'Status', 'Applied Date'
+        ]);
+
+        foreach ($apps as $a) {
+            fputcsv($out, [
+                $a['student_id'],
+                $a['full_name'],
+                $a['nic'],
+                $a['contact_no'],
+                $a['whatsapp_no'],
+                $a['dob'],
+                $a['ol_pass_status'],
+                $a['ol_english_grade'],
+                $a['ol_maths_grade'],
+                $a['ol_science_grade'],
+                strtoupper($a['al_category']),
+                $a['course_option_one'],
+                $a['course_option_two'],
+                ucfirst(str_replace('_', ' ', $a['status'])),
+                $a['application_date']
+            ]);
+        }
+        fclose($out);
+        exit;
+    }
+
     public function teachers(): void {
         $db = Database::getConnection();
         $teachers = $db->query("

@@ -367,3 +367,36 @@ INSERT INTO `materials` (`id`, `teacher_id`, `class_id`, `subject_id`, `category
 -- Sample Assignment
 INSERT INTO `assignments` (`id`, `teacher_id`, `class_id`, `subject_id`, `title`, `instructions`, `reference_file`, `total_marks`, `deadline`, `status`) VALUES
 (1, 3, 1, 2, 'Assignment 01: Secure Login & CRUD System in PHP', 'Develop a PHP application with user registration, login with password_hash, and role-based redirect. Upload your project as a ZIP or PDF report.', NULL, 100.00, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 7 DAY), 'active');
+
+
+-- =====================================================
+-- Candidate Applications from NVTI Baddegama Website
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `student_applications` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `external_id` int(10) UNSIGNED DEFAULT NULL,
+  `student_id` varchar(50) NOT NULL,
+  `full_name` varchar(255) NOT NULL,
+  `nic` varchar(20) NOT NULL,
+  `address` text DEFAULT NULL,
+  `dob` date DEFAULT NULL,
+  `contact_no` varchar(20) NOT NULL,
+  `whatsapp_no` varchar(20) DEFAULT NULL,
+  `ol_pass_status` enum('Yes','No') NOT NULL DEFAULT 'Yes',
+  `ol_english_grade` varchar(5) DEFAULT NULL,
+  `ol_maths_grade` varchar(5) DEFAULT NULL,
+  `ol_science_grade` varchar(5) DEFAULT NULL,
+  `al_category` enum('science','commerce','arts','tech','other') NOT NULL DEFAULT 'tech',
+  `course_option_one` varchar(100) NOT NULL,
+  `course_option_two` varchar(100) DEFAULT NULL,
+  `application_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('pending','called_for_interview','selected','enrolled','rejected') NOT NULL DEFAULT 'pending',
+  `is_processed` tinyint(1) DEFAULT 0,
+  `enrolled_user_id` int(11) DEFAULT NULL,
+  `admin_notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_app_nic` (`nic`),
+  KEY `idx_app_status` (`status`),
+  KEY `idx_app_date` (`application_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
