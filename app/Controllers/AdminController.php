@@ -1598,10 +1598,15 @@ class AdminController {
         $teacherId    = (int)($_POST['teacher_id'] ?? $adminId);
         $totalMarks   = (float)($_POST['total_marks'] ?? 100);
         $deadline     = trim($_POST['deadline'] ?? '');
+        $returnTo     = trim($_POST['return_to'] ?? 'materials');
+
+        $redirectUrl = ($returnTo === 'assignments')
+            ? "index.php?page=admin_assignments&class_id=" . $classId
+            : $this->buildMaterialsRedirectUrl($classId, $subjectId);
 
         if (empty($title) || empty($instructions) || empty($deadline) || $subjectId <= 0) {
             Flash::error("Please fill in assignment title, instructions, and deadline.");
-            header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
+            header("Location: " . $redirectUrl);
             exit;
         }
 
@@ -1630,11 +1635,11 @@ class AdminController {
         $notified = Mailer::notifyNewAssignment($classId, $title, $subName, $posterName, $deadline, (int)$totalMarks, $instructions);
 
         if ($notified > 0) {
-            Flash::success("Assignment '{$title}' posted successfully and $notified students were notified via Email!");
+            Flash::success("Assignment <strong>" . htmlspecialchars($title) . "</strong> posted successfully and $notified students were notified via Email!");
         } else {
-            Flash::success("Assignment '{$title}' posted successfully! Students can now submit their coursework.");
+            Flash::success("Assignment <strong>" . htmlspecialchars($title) . "</strong> posted successfully! Students can now submit their coursework.");
         }
-        header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
+        header("Location: " . $redirectUrl);
         exit;
     }
 
@@ -1649,19 +1654,25 @@ class AdminController {
         $subjectId    = (int)($_POST['subject_id'] ?? 0);
         $classId      = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
         $newDeadline  = trim($_POST['deadline'] ?? '');
+        $returnTo     = trim($_POST['return_to'] ?? 'materials');
+        $filterParam  = trim($_POST['filter_class'] ?? (string)$classId);
+
+        $redirectUrl = ($returnTo === 'assignments')
+            ? "index.php?page=admin_assignments&class_id=" . urlencode($filterParam)
+            : $this->buildMaterialsRedirectUrl($classId, $subjectId);
 
         if ($assignmentId <= 0 || empty($newDeadline)) {
             Flash::error("Invalid assignment or deadline date.");
-            header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
+            header("Location: " . $redirectUrl);
             exit;
         }
 
-        $stmt = $db->prepare("UPDATE assignments SET deadline = ? WHERE id = ?");
+        $stmt = $db->prepare("UPDATE assignments SET deadline = ?, status = 'active' WHERE id = ?");
         $stmt->execute([$newDeadline, $assignmentId]);
 
         Auth::logAudit(Auth::id(), 'UPDATE_ASSIGNMENT_DEADLINE', "Updated assignment ID $assignmentId deadline to $newDeadline");
-        Flash::success("Assignment deadline successfully updated to " . date('M d, Y h:i A', strtotime($newDeadline)) . "!");
-        header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
+        Flash::success("Assignment deadline successfully updated to <strong>" . date('M d, Y h:i A', strtotime($newDeadline)) . "</strong>!");
+        header("Location: " . $redirectUrl);
         exit;
     }
 
@@ -1999,18 +2010,33 @@ class AdminController {
         Csrf::checkOrAbort();
         $db = Database::getConnection();
 
-        $asgId = (int)($_POST['assignment_id'] ?? 0);
+        $asgId     = (int)($_POST['assignment_id'] ?? 0);
         $subjectId = (int)($_POST['subject_id'] ?? 0);
-        $classId = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
+        $classId   = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
+        $returnTo  = trim($_POST['return_to'] ?? 'materials');
+        $filterParam = trim($_POST['filter_class'] ?? (string)$classId);
 
         if ($asgId > 0) {
+            $fStmt = $db->prepare("SELECT reference_file FROM assignments WHERE id = ?");
+            $fStmt->execute([$asgId]);
+            $refFile = $fStmt->fetchColumn();
+
             $del = $db->prepare("DELETE FROM assignments WHERE id = ?");
             $del->execute([$asgId]);
 
+            if (!empty($refFile)) {
+                @unlink(ASSIGNMENT_UPLOAD_PATH . DIRECTORY_SEPARATOR . $refFile);
+            }
+
+            Auth::logAudit(Auth::id(), 'DELETE_ASSIGNMENT', "Deleted assignment ID $asgId");
             Flash::success("Assignment has been deleted.");
         }
 
-        header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
+        $redirectUrl = ($returnTo === 'assignments')
+            ? "index.php?page=admin_assignments&class_id=" . urlencode($filterParam)
+            : $this->buildMaterialsRedirectUrl($classId, $subjectId);
+
+        header("Location: " . $redirectUrl);
         exit;
     }
 
@@ -2147,18 +2173,44 @@ class AdminController {
     }
 
     public function assignments(): void {
+        require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $db = Database::getConnection();
-        $assignments = $db->query("
-            SELECT a.*, u.name as teacher_name, s.subject_name, cl.class_name,
+
+        $activeBatch = AttendanceManager::ensureActiveBatch($db, 1);
+        $activeClassId = (int)($activeBatch['id'] ?? 1);
+        AttendanceManager::syncBatchSubjects($db, $activeClassId);
+
+        $rawClassParam = $_GET['class_id'] ?? (string)$activeClassId;
+        $showAllBatches = ($rawClassParam === 'all');
+        $selectedClassId = $showAllBatches ? 0 : (int)$rawClassParam;
+        if (!$showAllBatches && $selectedClassId <= 0) {
+            $selectedClassId = $activeClassId;
+        }
+
+        $sql = "
+            SELECT a.*, u.name as teacher_name, s.subject_name, s.subject_code, cl.class_name,
                    (SELECT COUNT(*) FROM submissions sub WHERE sub.assignment_id = a.id) as submission_count
             FROM assignments a
             JOIN users u ON a.teacher_id = u.id
             JOIN subjects s ON a.subject_id = s.id
             JOIN classes cl ON a.class_id = cl.id
-            ORDER BY a.created_at DESC
-        ")->fetchAll();
+        ";
+        $params = [];
+        if (!$showAllBatches && $selectedClassId > 0) {
+            $sql .= " WHERE a.class_id = ?";
+            $params[] = $selectedClassId;
+        }
+        $sql .= " ORDER BY a.deadline DESC, a.created_at DESC";
 
-        $pageTitle = "Assignments Overview";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $assignments = $stmt->fetchAll();
+
+        $classes = AttendanceManager::getAllBatches();
+        $subjects = $db->query("SELECT id, subject_code, subject_name FROM subjects WHERE status = 'active' ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $teachers = $db->query("SELECT id, name, email FROM users WHERE role = 'teacher' ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+        $pageTitle = "Assignments Overview & Deadlines";
         require_once __DIR__ . '/../Views/admin/assignments.php';
     }
 

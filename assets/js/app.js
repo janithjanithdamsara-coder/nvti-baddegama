@@ -184,4 +184,27 @@ document.addEventListener('DOMContentLoaded', function () {
       icon.classList.toggle('bi-eye-slash', isHidden);
     }
   });
+
+  // Shared Extend / Update Assignment Deadline modal helpers (Admin & Teacher)
+  window.openExtendDeadlineModal = function (modalId, asgId, title, currentDeadline) {
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) return;
+    const idInput = modalEl.querySelector('[data-deadline-id]');
+    const titleInput = modalEl.querySelector('[data-deadline-title]');
+    const dtInput = modalEl.querySelector('[data-deadline-input]');
+    if (idInput) idInput.value = asgId;
+    if (titleInput) titleInput.value = title;
+    if (dtInput) dtInput.value = currentDeadline || '';
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  };
+
+  window.applyDeadlineExtension = function (inputSelector, daysToAdd) {
+    const dtInput = document.querySelector(inputSelector);
+    if (!dtInput) return;
+    const parsed = dtInput.value ? new Date(dtInput.value) : new Date();
+    const base = (!isNaN(parsed.getTime()) && parsed > new Date()) ? parsed : new Date();
+    base.setTime(base.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+    const pad = (n) => String(n).padStart(2, '0');
+    dtInput.value = `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}T${pad(base.getHours())}:${pad(base.getMinutes())}`;
+  };
 });

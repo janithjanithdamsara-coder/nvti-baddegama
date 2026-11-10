@@ -76,10 +76,22 @@ require_once __DIR__ . '/../layouts/navbar.php';
                         <span class="badge bg-success-subtle text-success">Active</span>
                       <?php endif; ?>
                     </td>
-                    <td class="text-end">
-                      <a href="index.php?page=teacher_submissions&assignment_id=<?= $a['id'] ?>" class="btn btn-sm btn-primary">
-                        <i class="bi bi-eye-fill me-1"></i> View & Grade (<?= (int)$a['total_submissions'] ?>)
+                    <td class="text-end text-nowrap">
+                      <button type="button"
+                              class="btn btn-sm btn-outline-warning text-dark fw-semibold me-1"
+                              onclick="openExtendDeadlineModal('teacherDeadlineModal', <?= (int)$a['id'] ?>, '<?= e(addslashes($a['title'])) ?>', '<?= date('Y-m-d\TH:i', strtotime($a['deadline'])) ?>')">
+                        <i class="bi bi-calendar2-plus me-1"></i> <?= $isPast ? 'Re-open / Extend' : 'Extend Deadline' ?>
+                      </button>
+                      <a href="index.php?page=teacher_submissions&assignment_id=<?= $a['id'] ?>" class="btn btn-sm btn-primary me-1">
+                        <i class="bi bi-eye-fill me-1"></i> View &amp; Grade (<?= (int)$a['total_submissions'] ?>)
                       </a>
+                      <form action="index.php?page=teacher_delete_assignment" method="POST" class="d-inline" onsubmit="return confirm('Delete this assignment and all its submission records?');">
+                        <?= Csrf::field() ?>
+                        <input type="hidden" name="assignment_id" value="<?= (int)$a['id'] ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Assignment">
+                          <i class="bi bi-trash3"></i>
+                        </button>
+                      </form>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -111,20 +123,20 @@ require_once __DIR__ . '/../layouts/navbar.php';
             </div>
 
             <div class="col-md-5">
-              <label class="form-label fw-semibold small text-secondary">Subject & Batch *</label>
+              <label class="form-label fw-semibold small text-secondary">Subject &amp; Batch *</label>
               <select name="subject_class" class="form-select" required>
                 <option value="">-- Choose Subject --</option>
                 <?php foreach ($assignedClasses as $ac): ?>
-                  <option value="<?= $ac['subject_id'] ?>_<?= $ac['class_id'] ?>">
-                    <?= e($ac['subject_code']) ?> - <?= e($ac['class_name']) ?>
+                  <option value="<?= (int)$ac['subject_id'] ?>_<?= (int)$ac['class_id'] ?>">
+                    <?= e($ac['subject_code']) ?> - <?= e($ac['subject_name']) ?> (<?= e($ac['class_name']) ?>)
                   </option>
                 <?php endforeach; ?>
               </select>
             </div>
 
             <div class="col-md-6">
-              <label class="form-label fw-semibold small text-secondary">Deadline Date & Time *</label>
-              <input type="datetime-local" name="deadline" class="form-control" required>
+              <label class="form-label fw-semibold small text-secondary">Deadline Date &amp; Time *</label>
+              <input type="datetime-local" name="deadline" class="form-control" value="<?= date('Y-m-d\T23:59', strtotime('+7 days')) ?>" required>
             </div>
 
             <div class="col-md-6">
@@ -147,6 +159,49 @@ require_once __DIR__ . '/../layouts/navbar.php';
         <div class="modal-footer bg-light py-2 px-4">
           <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
           <button type="submit" class="btn btn-primary btn-sm px-4 fw-bold">Publish Assignment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Extend / Update Assignment Deadline -->
+<div class="modal fade" id="teacherDeadlineModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+      <div class="modal-header bg-light border-bottom py-3 px-4">
+        <h6 class="modal-title fw-bold text-dark mb-0"><i class="bi bi-calendar2-range text-warning me-2"></i>Extend / Change Deadline</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="index.php?page=teacher_update_assignment_deadline" method="POST">
+        <?= Csrf::field() ?>
+        <input type="hidden" name="assignment_id" value="" data-deadline-id>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label fw-semibold small text-secondary">Assignment</label>
+            <input type="text" class="form-control bg-light fw-bold" readonly data-deadline-title>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold small text-secondary">Quick Extend</label>
+            <div class="d-flex flex-wrap gap-2">
+              <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold" onclick="applyDeadlineExtension('#teacherDeadlineInput', 1)">+24 Hours</button>
+              <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold" onclick="applyDeadlineExtension('#teacherDeadlineInput', 3)">+3 Days</button>
+              <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold" onclick="applyDeadlineExtension('#teacherDeadlineInput', 7)">+1 Week</button>
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label fw-semibold small text-secondary">New Deadline Date &amp; Time *</label>
+            <input type="datetime-local" name="deadline" id="teacherDeadlineInput" class="form-control" required data-deadline-input>
+            <small class="text-muted">Closed assignments are automatically re-opened when extended to a future date.</small>
+          </div>
+        </div>
+        <div class="modal-footer bg-light py-2 px-4">
+          <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-warning btn-sm rounded-pill px-4 fw-bold text-dark">
+            <i class="bi bi-check2-circle me-1"></i> Save New Deadline
+          </button>
         </div>
       </form>
     </div>

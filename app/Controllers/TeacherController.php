@@ -252,22 +252,50 @@ class TeacherController {
     }
 
     public function assignments(): void {
+        require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $db = Database::getConnection();
         $teacherId = Auth::id();
 
-        // Teacher's assigned subjects & classes
+        $activeBatch = AttendanceManager::ensureActiveBatch($db, 1);
+        $activeClassId = (int)($activeBatch['id'] ?? 1);
+        AttendanceManager::syncBatchSubjects($db, $activeClassId);
+
+        // Active batch subjects (always available for lecturers in current intake)
+        $activeSubStmt = $db->prepare("
+            SELECT s.id as subject_id, s.subject_name, s.subject_code, c.id as class_id, c.class_name, c.status as class_status
+            FROM class_subjects cs
+            JOIN subjects s ON cs.subject_id = s.id
+            JOIN classes c ON cs.class_id = c.id
+            WHERE cs.class_id = ? AND s.status = 'active'
+            ORDER BY s.id ASC
+        ");
+        $activeSubStmt->execute([$activeClassId]);
+        $assignedClasses = $activeSubStmt->fetchAll();
+
+        // Merge any explicitly assigned teacher_assignments from other active/archived batches without duplicates
         $subStmt = $db->prepare("
-            SELECT s.id as subject_id, s.subject_name, s.subject_code, c.id as class_id, c.class_name
+            SELECT s.id as subject_id, s.subject_name, s.subject_code, c.id as class_id, c.class_name, c.status as class_status
             FROM teacher_assignments ta
             JOIN class_subjects cs ON ta.class_subject_id = cs.id
             JOIN subjects s ON cs.subject_id = s.id
             JOIN classes c ON cs.class_id = c.id
-            WHERE ta.teacher_id = ?
+            WHERE ta.teacher_id = ? AND cs.class_id != ?
+            ORDER BY c.id DESC, s.id ASC
         ");
-        $subStmt->execute([$teacherId]);
-        $assignedClasses = $subStmt->fetchAll();
+        $subStmt->execute([$teacherId, $activeClassId]);
+        $seenKeys = [];
+        foreach ($assignedClasses as $ac) {
+            $seenKeys[$ac['subject_id'] . '_' . $ac['class_id']] = true;
+        }
+        foreach ($subStmt->fetchAll() as $extra) {
+            $k = $extra['subject_id'] . '_' . $extra['class_id'];
+            if (!isset($seenKeys[$k])) {
+                $assignedClasses[] = $extra;
+                $seenKeys[$k] = true;
+            }
+        }
 
-        // Assignments created by teacher
+        // Assignments created by teacher (active batch first)
         $asgStmt = $db->prepare("
             SELECT a.*, s.subject_name, s.subject_code, c.class_name,
                    (SELECT COUNT(*) FROM submissions sub WHERE sub.assignment_id = a.id) as total_submissions,
@@ -276,9 +304,9 @@ class TeacherController {
             JOIN subjects s ON a.subject_id = s.id
             JOIN classes c ON a.class_id = c.id
             WHERE a.teacher_id = ?
-            ORDER BY a.created_at DESC
+            ORDER BY (a.class_id = ?) DESC, a.deadline DESC, a.created_at DESC
         ");
-        $asgStmt->execute([$teacherId]);
+        $asgStmt->execute([$teacherId, $activeClassId]);
         $assignments = $asgStmt->fetchAll();
 
         $pageTitle = "Teacher - Assignments";
@@ -333,6 +361,66 @@ class TeacherController {
             Flash::success("Assignment '$title' created and $notified students were notified via Email!");
         } else {
             Flash::success("Assignment '$title' created successfully!");
+        }
+        header('Location: index.php?page=teacher_assignments');
+        exit;
+    }
+
+    /**
+     * Teacher Update / Extend Assignment Deadline
+     */
+    public function updateAssignmentDeadline(): void {
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+        $teacherId    = Auth::id();
+        $assignmentId = (int)($_POST['assignment_id'] ?? 0);
+        $newDeadline  = trim($_POST['deadline'] ?? '');
+
+        if ($assignmentId <= 0 || empty($newDeadline)) {
+            Flash::error("Please provide a valid new deadline date and time.");
+            header('Location: index.php?page=teacher_assignments');
+            exit;
+        }
+
+        $stmt = $db->prepare("UPDATE assignments SET deadline = ?, status = 'active' WHERE id = ? AND teacher_id = ?");
+        $stmt->execute([$newDeadline, $assignmentId, $teacherId]);
+
+        if ($stmt->rowCount() > 0) {
+            Auth::logAudit($teacherId, 'TEACHER_UPDATE_DEADLINE', "Updated assignment ID $assignmentId deadline to $newDeadline");
+            Flash::success("Deadline successfully extended/updated to <strong>" . date('M d, Y h:i A', strtotime($newDeadline)) . "</strong>!");
+        } else {
+            Flash::error("Could not update deadline (assignment not found or permission denied).");
+        }
+        header('Location: index.php?page=teacher_assignments');
+        exit;
+    }
+
+    /**
+     * Teacher Delete Own Assignment
+     */
+    public function deleteAssignment(): void {
+        Csrf::checkOrAbort();
+        $db = Database::getConnection();
+        $teacherId    = Auth::id();
+        $assignmentId = (int)($_POST['assignment_id'] ?? 0);
+
+        if ($assignmentId > 0) {
+            $fStmt = $db->prepare("SELECT reference_file FROM assignments WHERE id = ? AND teacher_id = ?");
+            $fStmt->execute([$assignmentId, $teacherId]);
+            $refFile = $fStmt->fetchColumn();
+
+            $del = $db->prepare("DELETE FROM assignments WHERE id = ? AND teacher_id = ?");
+            $del->execute([$assignmentId, $teacherId]);
+
+            if ($del->rowCount() > 0) {
+                if (!empty($refFile)) {
+                    @unlink(ASSIGNMENT_UPLOAD_PATH . DIRECTORY_SEPARATOR . $refFile);
+                }
+                Auth::logAudit($teacherId, 'TEACHER_DELETE_ASSIGNMENT', "Deleted assignment ID $assignmentId");
+                Flash::success("Assignment has been deleted.");
+            } else {
+                Flash::error("Assignment not found or permission denied.");
+            }
         }
         header('Location: index.php?page=teacher_assignments');
         exit;

@@ -285,6 +285,12 @@ switch ($page) {
     case 'teacher_create_assignment':
         (new TeacherController())->createAssignment();
         break;
+    case 'teacher_update_assignment_deadline':
+        (new TeacherController())->updateAssignmentDeadline();
+        break;
+    case 'teacher_delete_assignment':
+        (new TeacherController())->deleteAssignment();
+        break;
     case 'teacher_submissions':
         (new TeacherController())->submissions();
         break;
