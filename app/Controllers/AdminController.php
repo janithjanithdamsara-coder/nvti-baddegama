@@ -62,7 +62,7 @@ class AdminController {
     public function students(): void {
         $db = Database::getConnection();
         $search = trim($_GET['search'] ?? '');
-        $batchStatus = trim($_GET['batch_status'] ?? 'active'); // 'active' or 'archived'
+        $batchStatus = trim($_GET['batch_status'] ?? 'active'); // 'active', 'pending', or 'archived'
         $classFilter = (int)($_GET['class_id'] ?? 0);
 
         // Fetch all batches with student counts
@@ -76,6 +76,8 @@ class AdminController {
 
         $activeBatches = array_values(array_filter($allBatches, fn($b) => $b['status'] === 'active'));
         $archivedBatches = array_values(array_filter($allBatches, fn($b) => $b['status'] === 'archived'));
+
+        $pendingStudentsCount = (int)$db->query("SELECT COUNT(*) FROM users WHERE role = 'student' AND status = 'pending'")->fetchColumn();
 
         $activeStudentsCount = 0;
         foreach ($activeBatches as $ab) {
@@ -92,7 +94,7 @@ class AdminController {
         // Query students based on batch status tab and optional class filter
         $sql = "
             SELECT u.id, u.name, u.email, u.status, u.created_at, 
-                   sp.student_code, sp.phone, sp.nic, sp.class_id,
+                   sp.student_code, sp.mis_number, sp.phone, sp.nic, sp.class_id,
                    c.class_name, c.status as class_status, c.academic_year, 
                    co.course_name
             FROM users u
@@ -105,6 +107,8 @@ class AdminController {
 
         if ($batchStatus === 'archived') {
             $sql .= " AND c.status = 'archived'";
+        } elseif ($batchStatus === 'pending') {
+            $sql .= " AND u.status = 'pending'";
         } else {
             $sql .= " AND (c.status = 'active' OR c.status IS NULL)";
         }
@@ -176,6 +180,10 @@ class AdminController {
         $stmt->execute([$courseId, $className, $academicYear ?: (date('Y') . '/' . (date('Y') + 1)), $status]);
         $newBatchId = (int)$db->lastInsertId();
 
+        // Automatically link active curriculum subjects to this new batch
+        require_once __DIR__ . '/../Helpers/AttendanceManager.php';
+        AttendanceManager::syncBatchSubjects($db, $newBatchId);
+
         Auth::logAudit(Auth::id(), 'CREATE_BATCH', "Created new batch: $className (ID: $newBatchId, Status: $status)");
         Flash::success("New academic batch \"$className\" successfully created!");
         header('Location: index.php?page=admin_students&batch_status=' . $status . '&class_id=' . $newBatchId);
@@ -246,11 +254,12 @@ class AdminController {
 
     public function createStudent(): void {
         Csrf::checkOrAbort();
+        require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
         $nic = strtoupper(trim($_POST['nic'] ?? ''));
         $phone = trim($_POST['phone'] ?? '');
-        $classId = (int)($_POST['class_id'] ?? 1);
+        $requestedClassId = (int)($_POST['class_id'] ?? 0);
         $courseId = (int)($_POST['course_id'] ?? 1);
         $tempPassword = $_POST['password'] ?? 'nvti1234';
 
@@ -261,6 +270,18 @@ class AdminController {
         }
 
         $db = Database::getConnection();
+
+        // Ensure valid active batch (fallback to active batch, never archived ID 1)
+        $classId = 0;
+        if ($requestedClassId > 0) {
+            $clsChk = $db->prepare("SELECT id FROM classes WHERE id = ? AND status = 'active' LIMIT 1");
+            $clsChk->execute([$requestedClassId]);
+            $classId = (int)$clsChk->fetchColumn();
+        }
+        if ($classId <= 0) {
+            $activeBatch = AttendanceManager::ensureActiveBatch($db, $courseId);
+            $classId = (int)$activeBatch['id'];
+        }
 
         // Check if email already exists
         $check = $db->prepare("SELECT id FROM users WHERE email = ?");
@@ -309,16 +330,88 @@ class AdminController {
         Csrf::checkOrAbort();
         $id = (int)($_POST['student_id'] ?? 0);
         $status = $_POST['status'] ?? 'active';
+        $redirectTab = trim($_POST['redirect_tab'] ?? 'active');
 
         if (in_array($status, ['active', 'pending', 'suspended'], true) && $id > 0) {
             $db = Database::getConnection();
-            $stmt = $db->prepare("UPDATE users SET status = ? WHERE id = ? AND role = 'student'");
-            $stmt->execute([$status, $id]);
 
-            Auth::logAudit(Auth::id(), 'UPDATE_STUDENT_STATUS', "Changed student ID $id status to $status");
-            Flash::success("Student status updated to $status.");
+            // Fetch student info before updating so we know if they are being approved
+            $infoStmt = $db->prepare("
+                SELECT u.id, u.name, u.email, u.status as prev_status,
+                       sp.student_code, sp.mis_number, sp.class_id,
+                       c.class_name, co.course_name
+                FROM users u
+                LEFT JOIN student_profiles sp ON u.id = sp.user_id
+                LEFT JOIN classes c ON sp.class_id = c.id
+                LEFT JOIN courses co ON sp.course_id = co.id
+                WHERE u.id = ? AND u.role = 'student'
+                LIMIT 1
+            ");
+            $infoStmt->execute([$id]);
+            $student = $infoStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($student) {
+                $stmt = $db->prepare("UPDATE users SET status = ? WHERE id = ? AND role = 'student'");
+                $stmt->execute([$status, $id]);
+
+                Auth::logAudit(Auth::id(), 'UPDATE_STUDENT_STATUS', "Changed student ID $id ({$student['name']}) status to $status");
+
+                // If approving/activating a pending or suspended student -> send official confirmation email!
+                if ($status === 'active' && $student['prev_status'] !== 'active') {
+                    // Ensure enrollment is active
+                    if (!empty($student['class_id'])) {
+                        $db->prepare("UPDATE enrollments SET status = 'active' WHERE student_id = ? AND class_id = ?")
+                           ->execute([$id, $student['class_id']]);
+                    }
+
+                    require_once __DIR__ . '/../Helpers/Mailer.php';
+                    $loginUrl = BASE_URL . 'index.php?page=login';
+                    $sName = htmlspecialchars($student['name']);
+                    $sEmail = $student['email'];
+                    $sCode = htmlspecialchars($student['student_code'] ?? 'NVTI-ST');
+                    $sMis = htmlspecialchars($student['mis_number'] ?? 'Assigned');
+                    $sBatch = htmlspecialchars($student['class_name'] ?? 'NVTI Baddegama ICT L5');
+                    $sCourse = htmlspecialchars($student['course_name'] ?? 'National Diploma in ICT (NVQ Level 5)');
+
+                    $subject = "Account Approved & Course Enrollment Confirmed - NVTI Baddegama";
+                    $htmlBody = "
+                    <div style='background-color: #f8fafc; padding: 30px 15px; font-family: \"Plus Jakarta Sans\", Arial, sans-serif;'>
+                      <div style='max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 16px rgba(0,0,0,0.06);'>
+                        <div style='background: linear-gradient(135deg, #7A1418 0%, #991b1b 100%); padding: 26px 28px; text-align: center; color: #ffffff;'>
+                          <div style='display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 999px; font-size: 12px; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 10px;'>NVTI BADDEGAMA &bull; VTA</div>
+                          <h2 style='margin: 0; font-size: 21px; font-weight: 700;'>Enrollment Verified &amp; Account Approved!</h2>
+                        </div>
+                        <div style='padding: 28px; color: #334155; font-size: 14px; line-height: 1.6;'>
+                          <p style='margin-top: 0;'>Dear <strong>{$sName}</strong>,</p>
+                          <p>Great news! Your registration for the <strong>{$sCourse}</strong> has been verified and approved by the NVTI Baddegama Administration. Your student portal account is now <strong>ACTIVE</strong>.</p>
+                          <div style='background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #7A1418; border-radius: 8px; padding: 14px 16px; margin: 18px 0;'>
+                            <div style='margin-bottom: 6px;'><strong>Student Code:</strong> <span style='font-family: monospace; color: #7A1418;'>{$sCode}</span></div>
+                            <div style='margin-bottom: 6px;'><strong>MIS Number:</strong> <span style='font-family: monospace;'>{$sMis}</span></div>
+                            <div style='margin-bottom: 6px;'><strong>Batch:</strong> {$sBatch}</div>
+                            <div><strong>Login Email:</strong> {$sEmail}</div>
+                          </div>
+                          <p>You can now sign in to access your study materials, assignments, timetable, and attendance records:</p>
+                          <div style='text-align: center; margin: 24px 0;'>
+                            <a href='{$loginUrl}' style='display: inline-block; background: #7A1418; color: #ffffff; text-decoration: none; font-weight: 700; padding: 12px 28px; border-radius: 999px; font-size: 14px;'>Sign In to Student Portal &rarr;</a>
+                          </div>
+                          <p style='color: #64748b; font-size: 12px; margin-bottom: 0;'>If you have any questions, please contact the NVTI Baddegama ICT Department.</p>
+                        </div>
+                      </div>
+                    </div>";
+
+                    $mailRes = Mailer::send($sEmail, $subject, $htmlBody, $student['name']);
+                    if (!empty($mailRes['success'])) {
+                        Flash::success("Student <strong>{$sName}</strong> has been confirmed &amp; approved! A confirmation email has been sent to <strong>{$sEmail}</strong>.");
+                    } else {
+                        Flash::warning("Student <strong>{$sName}</strong> has been approved and can now sign in, but the email notification failed: " . htmlspecialchars($mailRes['message'] ?? 'SMTP error'));
+                    }
+                } else {
+                    Flash::success("Student status updated to " . ucfirst($status) . ".");
+                }
+            }
         }
-        header('Location: index.php?page=admin_students');
+        $validTab = in_array($redirectTab, ['active', 'pending', 'archived'], true) ? $redirectTab : 'active';
+        header('Location: index.php?page=admin_students&batch_status=' . $validTab);
         exit;
     }
 
@@ -335,6 +428,49 @@ class AdminController {
             Flash::success("Student account removed.");
         }
         header('Location: index.php?page=admin_students');
+        exit;
+    }
+
+    /**
+     * Move a student from an Old/Archived batch into the current Active batch
+     */
+    public function moveStudentToBatch(): void {
+        Csrf::checkOrAbort();
+        require_once __DIR__ . '/../Helpers/AttendanceManager.php';
+        $studentId = (int)($_POST['student_id'] ?? 0);
+        $targetClassId = (int)($_POST['class_id'] ?? 0);
+
+        if ($studentId > 0) {
+            $db = Database::getConnection();
+            if ($targetClassId <= 0) {
+                $activeBatch = AttendanceManager::ensureActiveBatch($db, 1);
+                $targetClassId = (int)$activeBatch['id'];
+            }
+
+            // Update student_profiles class_id
+            $db->prepare("UPDATE student_profiles SET class_id = ? WHERE user_id = ?")
+               ->execute([$targetClassId, $studentId]);
+
+            // Ensure active enrollment in target batch
+            $enrChk = $db->prepare("SELECT id FROM enrollments WHERE student_id = ? AND class_id = ?");
+            $enrChk->execute([$studentId, $targetClassId]);
+            if ($enrChk->fetch()) {
+                $db->prepare("UPDATE enrollments SET status = 'active' WHERE student_id = ? AND class_id = ?")
+                   ->execute([$studentId, $targetClassId]);
+            } else {
+                $db->prepare("INSERT INTO enrollments (student_id, class_id, status) VALUES (?, ?, 'active')")
+                   ->execute([$studentId, $targetClassId]);
+            }
+
+            // Ensure user account is active
+            $db->prepare("UPDATE users SET status = 'active' WHERE id = ? AND role = 'student'")
+               ->execute([$studentId]);
+
+            Auth::logAudit(Auth::id(), 'MOVE_STUDENT_BATCH', "Moved student ID $studentId to active batch ID $targetClassId");
+            Flash::success("Student has been moved to the Active Batch and activated.");
+        }
+
+        header('Location: index.php?page=admin_students&batch_status=active');
         exit;
     }
 

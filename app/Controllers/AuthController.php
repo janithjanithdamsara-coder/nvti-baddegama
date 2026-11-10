@@ -54,7 +54,7 @@ class AuthController {
         if ($user && password_verify($password, $user['password'])) {
             if ($user['status'] === 'pending') {
                 Auth::logLoginAttempt($loginInput, false);
-                Flash::warning('Your student account is pending approval by an administrator.');
+                Flash::warning('Your student registration is pending verification by NVTI Baddegama Administration. You will receive an approval email once your course enrollment is confirmed.');
                 header('Location: index.php?page=login');
                 exit;
             }
@@ -146,9 +146,14 @@ class AuthController {
         if (Auth::check()) {
             $this->redirectByRole(Auth::role());
         }
+        require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $db = Database::getConnection();
         $course = $db->query("SELECT * FROM courses WHERE status = 'active' ORDER BY id ASC LIMIT 1")->fetch();
-        $class  = $db->query("SELECT * FROM classes WHERE status = 'active' ORDER BY id ASC LIMIT 1")->fetch();
+        $activeBatches = $db->query("SELECT * FROM classes WHERE status = 'active' ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+        if (empty($activeBatches)) {
+            $activeBatches = [AttendanceManager::ensureActiveBatch($db, (int)($course['id'] ?? 1))];
+        }
+        $class = $activeBatches[0];
 
         $pageTitle = "Student Registration";
         require_once __DIR__ . '/../Views/auth/register.php';
@@ -156,6 +161,7 @@ class AuthController {
 
     public function handleRegister(): void {
         Csrf::checkOrAbort();
+        require_once __DIR__ . '/../Helpers/AttendanceManager.php';
 
         $fullName       = trim($_POST['name'] ?? '');
         $email          = trim($_POST['email'] ?? '');
@@ -164,7 +170,7 @@ class AuthController {
         $nic            = strtoupper(trim($_POST['nic'] ?? ''));
         $address        = trim($_POST['address'] ?? '');
         $courseId       = !empty($_POST['course_id']) ? (int)$_POST['course_id'] : 1;
-        $classId        = !empty($_POST['class_id']) ? (int)$_POST['class_id'] : 1;
+        $requestedClassId = !empty($_POST['class_id']) ? (int)$_POST['class_id'] : 0;
         $password       = $_POST['password'] ?? '';
         $confirmPassword = $_POST['confirm_password'] ?? '';
 
@@ -196,6 +202,18 @@ class AuthController {
 
         $db = Database::getConnection();
 
+        // Strictly resolve an ACTIVE batch (never enroll new students into an Old / Archived batch!)
+        $classId = 0;
+        if ($requestedClassId > 0) {
+            $clsChk = $db->prepare("SELECT id FROM classes WHERE id = ? AND status = 'active' LIMIT 1");
+            $clsChk->execute([$requestedClassId]);
+            $classId = (int)$clsChk->fetchColumn();
+        }
+        if ($classId <= 0) {
+            $activeBatch = AttendanceManager::ensureActiveBatch($db, $courseId);
+            $classId = (int)$activeBatch['id'];
+        }
+
         // Check if email already registered
         $stmt = $db->prepare("SELECT id FROM users WHERE email = ?");
         $stmt->execute([$email]);
@@ -221,8 +239,8 @@ class AuthController {
 
             $passwordHash = password_hash($password, PASSWORD_BCRYPT);
             
-            // Insert User (status = 'active')
-            $userStmt = $db->prepare("INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, 'student', 'active')");
+            // Insert User (status = 'pending' until Admin confirms course enrollment)
+            $userStmt = $db->prepare("INSERT INTO users (name, email, password, role, status) VALUES (?, ?, ?, 'student', 'pending')");
             $userStmt->execute([$fullName, $email, $passwordHash]);
             $userId = (int)$db->lastInsertId();
 
@@ -238,27 +256,17 @@ class AuthController {
             ");
             $profStmt->execute([$userId, $studentCode, $misNumber, $phone, $finalWhatsapp, $nic, $address, $courseId, $classId]);
 
-            // Auto enroll in selected class
+            // Auto enroll in active class (enrollment starts pending/active once user is verified)
             if ($classId) {
                 $enrollStmt = $db->prepare("INSERT INTO enrollments (student_id, class_id, status) VALUES (?, ?, 'active')");
                 $enrollStmt->execute([$userId, $classId]);
             }
 
-            Auth::logAudit($userId, 'STUDENT_REGISTER', "Student self-registered with Code: $studentCode, MIS: $misNumber");
+            Auth::logAudit($userId, 'STUDENT_REGISTER_PENDING', "Student registered ($studentCode) - awaiting Admin verification.");
             $db->commit();
 
-            // Auto login the newly registered student
-            $newUser = [
-                'id'    => $userId,
-                'name'  => $fullName,
-                'email' => $email,
-                'role'  => 'student',
-                'image' => null
-            ];
-            Auth::login($newUser);
-
-            Flash::success("Welcome to NVTI Baddegama Diploma Portal, $fullName! Your student profile has been created successfully (Student Code: $studentCode).");
-            header('Location: index.php?page=student_dashboard');
+            Flash::info("Registration submitted successfully, $fullName! Your profile is now pending confirmation by the NVTI Baddegama Administration. Once confirmed as a diploma student, you will receive an approval email at <strong>$email</strong> and can sign in.");
+            header('Location: index.php?page=login');
             exit;
         } catch (Exception $e) {
             $db->rollBack();

@@ -32,6 +32,60 @@ class AttendanceManager {
     }
 
     /**
+     * Ensure all active curriculum subjects are linked to a batch (class_subjects)
+     */
+    public static function syncBatchSubjects(PDO $db, int $classId): void {
+        if ($classId <= 0) return;
+        $subjIds = $db->query("SELECT id FROM subjects WHERE status = 'active'")->fetchAll(PDO::FETCH_COLUMN);
+        if (!empty($subjIds)) {
+            $ins = $db->prepare("INSERT IGNORE INTO class_subjects (class_id, subject_id) VALUES (?, ?)");
+            foreach ($subjIds as $sid) {
+                $ins->execute([$classId, (int)$sid]);
+            }
+        }
+    }
+
+    /**
+     * Ensure at least one active batch exists for student enrollment/registration
+     * Never returns an archived batch. Creates a new active intake batch if all are archived.
+     */
+    public static function ensureActiveBatch(PDO $db, int $courseId = 1): array {
+        $stmt = $db->query("SELECT * FROM classes WHERE status = 'active' ORDER BY id DESC LIMIT 1");
+        $active = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($active) {
+            return $active;
+        }
+
+        // No active batch exists -> create a fresh active intake batch
+        $yr = date('Y');
+        $className = "NVTI Baddegama ICT L5 - Batch " . $yr;
+        $academicYear = $yr . '/' . ($yr + 1);
+
+        // Avoid duplicate exact name if archived batch already has that name
+        $dupChk = $db->prepare("SELECT COUNT(*) FROM classes WHERE class_name = ?");
+        $dupChk->execute([$className]);
+        if ((int)$dupChk->fetchColumn() > 0) {
+            $className = "NVTI Baddegama ICT L5 - Intake " . date('M Y');
+        }
+
+        $ins = $db->prepare("INSERT INTO classes (course_id, class_name, academic_year, status) VALUES (?, ?, ?, 'active')");
+        $ins->execute([$courseId, $className, $academicYear]);
+        $newId = (int)$db->lastInsertId();
+
+        self::syncBatchSubjects($db, $newId);
+
+        $row = $db->prepare("SELECT * FROM classes WHERE id = ? LIMIT 1");
+        $row->execute([$newId]);
+        return $row->fetch(PDO::FETCH_ASSOC) ?: [
+            'id' => $newId,
+            'course_id' => $courseId,
+            'class_name' => $className,
+            'academic_year' => $academicYear,
+            'status' => 'active'
+        ];
+    }
+
+    /**
      * Get batch details by ID
      */
     public static function getBatchById(int $classId): ?array {

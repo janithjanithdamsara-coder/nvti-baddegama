@@ -127,6 +127,9 @@ switch ($page) {
     case 'admin_delete_student':
         (new AdminController())->deleteStudent();
         break;
+    case 'admin_move_student_batch':
+        (new AdminController())->moveStudentToBatch();
+        break;
     case 'admin_applications':
         (new AdminController())->applications();
         break;

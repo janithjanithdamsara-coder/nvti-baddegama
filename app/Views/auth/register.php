@@ -175,9 +175,29 @@ require_once __DIR__ . '/../layouts/navbar.php';
             <form action="index.php?page=register_process" method="POST" autocomplete="off" id="studentRegisterForm">
               <?= Csrf::field() ?>
 
-              <!-- Hidden Course & Class binding -->
+              <!-- Hidden Course Binding -->
               <input type="hidden" name="course_id" value="<?= (int)($course['id'] ?? 1) ?>">
-              <input type="hidden" name="class_id" value="<?= (int)($class['id'] ?? 1) ?>">
+
+              <!-- Active Batch Assignment Notice / Selector -->
+              <?php if (!empty($activeBatches) && count($activeBatches) > 1): ?>
+                <div class="mb-4">
+                  <label class="form-label fw-semibold small text-secondary">Select Active Academic Batch *</label>
+                  <select name="class_id" class="form-select reg-form-control" required>
+                    <?php foreach ($activeBatches as $ab): ?>
+                      <option value="<?= (int)$ab['id'] ?>"><?= e($ab['class_name']) ?> (<?= e($ab['academic_year']) ?>)</option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+              <?php else: ?>
+                <input type="hidden" name="class_id" value="<?= (int)($class['id'] ?? 0) ?>">
+                <div class="alert border-0 rounded-4 p-3 mb-4 d-flex align-items-center gap-2.5" style="background: #f0fdf4; border-left: 4px solid #10b981 !important;">
+                  <i class="bi bi-broadcast text-success fs-5"></i>
+                  <div class="small">
+                    <span class="text-muted">Enrolling Into Active Batch:</span>
+                    <strong class="text-dark ms-1"><?= e($class['class_name'] ?? 'Current Active Intake') ?></strong>
+                  </div>
+                </div>
+              <?php endif; ?>
 
               <!-- SECTION 1: PERSONAL INFORMATION -->
               <div class="mb-4 pb-2">

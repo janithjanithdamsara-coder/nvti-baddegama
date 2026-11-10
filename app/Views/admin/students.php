@@ -120,6 +120,25 @@ $search = trim($_GET['search'] ?? '');
         </div>
       </div>
 
+      <?php if (!empty($pendingStudentsCount) && $batchStatus !== 'pending'): ?>
+        <!-- Pending Registration Approval Callout -->
+        <div class="alert border-0 shadow-sm rounded-4 p-3 mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3" style="background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%); border-left: 5px solid #f59e0b !important;">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-white p-2.5 d-flex align-items-center justify-content-center shadow-xs text-warning flex-shrink-0" style="width: 44px; height: 44px;">
+              <i class="bi bi-person-fill-exclamation fs-4"></i>
+            </div>
+            <div>
+              <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-0.5 mb-0.5" style="font-size: 0.72rem;">ACTION REQUIRED</span>
+              <h6 class="fw-bold text-dark mb-0"><?= (int)$pendingStudentsCount ?> Newly Registered Student<?= $pendingStudentsCount > 1 ? 's' : '' ?> Awaiting Course Verification</h6>
+              <small class="text-secondary">Confirm they belong to the diploma course to activate their portal login &amp; send confirmation email.</small>
+            </div>
+          </div>
+          <a href="index.php?page=admin_students&batch_status=pending" class="btn btn-warning btn-sm rounded-pill px-3.5 py-2 fw-bold text-dark shadow-xs text-nowrap">
+            <i class="bi bi-check2-square me-1"></i> Review Pending Approvals (<?= (int)$pendingStudentsCount ?>) &rarr;
+          </a>
+        </div>
+      <?php endif; ?>
+
       <!-- Batch Switcher Tabs & Filter Hub (Spacious & Clean Layout) -->
       <div class="card border rounded-4 bg-white shadow-sm p-3 p-md-3.5 mb-4">
         <!-- Row 1: Batch Status Tabs & Reset -->
@@ -133,6 +152,18 @@ $search = trim($_GET['search'] ?? '');
                style="<?= ($batchStatus === 'active') ? 'background: #7A1418; border-color: #7A1418;' : '' ?> font-size: 0.88rem;">
               <i class="bi bi-broadcast me-1.5 <?= ($batchStatus === 'active') ? 'text-warning' : 'text-success' ?>"></i> 
               Active Batch Students (<?= $activeStudentsCount ?>)
+            </a>
+
+            <a href="index.php?page=admin_students&batch_status=pending" 
+               class="btn rounded-pill px-3.5 py-2 fw-semibold <?= ($batchStatus === 'pending') ? 'btn-warning text-dark shadow-sm border-warning' : 'btn-light border text-secondary' ?>" 
+               style="font-size: 0.88rem;">
+              <i class="bi bi-hourglass-split me-1.5 <?= ($batchStatus === 'pending') ? 'text-dark' : 'text-warning' ?>"></i> 
+              Pending Approval
+              <?php if (!empty($pendingStudentsCount)): ?>
+                <span class="badge bg-danger text-white rounded-pill ms-1"><?= (int)$pendingStudentsCount ?></span>
+              <?php else: ?>
+                (0)
+              <?php endif; ?>
             </a>
 
             <a href="index.php?page=admin_students&batch_status=archived" 
@@ -316,49 +347,75 @@ $search = trim($_GET['search'] ?? '');
 
                     <!-- Actions -->
                     <td class="text-end pe-3 py-3">
-                      <div class="dropdown">
-                        <button class="btn btn-sm btn-light border dropdown-toggle rounded-pill px-3 py-1 shadow-xs" type="button" data-bs-toggle="dropdown" style="font-size: 0.78rem;">
-                          Manage
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
-                          <li>
-                            <button type="button" class="dropdown-item py-1.5 fw-semibold text-primary" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['student_code'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')">
-                              <i class="bi bi-file-earmark-check me-2"></i>Verification Docs
+                      <div class="d-inline-flex align-items-center justify-content-end gap-1.5">
+                        <?php if ($st['status'] === 'pending'): ?>
+                          <form action="index.php?page=admin_update_student_status" method="POST" class="d-inline m-0" onsubmit="return confirm('Confirm this student belongs to the NVTI Diploma course and send approval email?');">
+                            <?= Csrf::field() ?>
+                            <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
+                            <input type="hidden" name="status" value="active">
+                            <input type="hidden" name="redirect_tab" value="<?= e($batchStatus) ?>">
+                            <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold shadow-xs d-inline-flex align-items-center gap-1" style="font-size: 0.76rem;" title="Confirm & Approve Student">
+                              <i class="bi bi-check-circle-fill"></i> Approve
                             </button>
-                          </li>
-                          <li><hr class="dropdown-divider my-1"></li>
-                          <?php if ($st['status'] !== 'active'): ?>
+                          </form>
+                        <?php endif; ?>
+
+                        <div class="dropdown d-inline-block">
+                          <button class="btn btn-sm btn-light border dropdown-toggle rounded-pill px-3 py-1 shadow-xs" type="button" data-bs-toggle="dropdown" style="font-size: 0.78rem;">
+                            Manage
+                          </button>
+                          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
                             <li>
-                              <form action="index.php?page=admin_update_student_status" method="POST">
+                              <button type="button" class="dropdown-item py-1.5 fw-semibold text-primary" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['student_code'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')">
+                                <i class="bi bi-file-earmark-check me-2"></i>Verification Docs
+                              </button>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <?php if ($st['class_status'] === 'archived'): ?>
+                              <li>
+                                <form action="index.php?page=admin_move_student_batch" method="POST" onsubmit="return confirm('Move this student into the current Active Batch and activate their login?');">
+                                  <?= Csrf::field() ?>
+                                  <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
+                                  <button type="submit" class="dropdown-item text-primary fw-semibold py-1.5"><i class="bi bi-arrow-up-right-circle me-2"></i>Move to Active Batch</button>
+                                </form>
+                              </li>
+                            <?php endif; ?>
+
+                            <?php if ($st['status'] !== 'active'): ?>
+                              <li>
+                                <form action="index.php?page=admin_update_student_status" method="POST">
+                                  <?= Csrf::field() ?>
+                                  <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
+                                  <input type="hidden" name="status" value="active">
+                                  <input type="hidden" name="redirect_tab" value="<?= e($batchStatus) ?>">
+                                  <button type="submit" class="dropdown-item text-success fw-semibold py-1.5"><i class="bi bi-check-circle me-2"></i><?= ($st['status'] === 'pending') ? 'Confirm &amp; Send Email' : 'Set as Active' ?></button>
+                                </form>
+                              </li>
+                            <?php endif; ?>
+
+                            <?php if ($st['status'] !== 'suspended'): ?>
+                              <li>
+                                <form action="index.php?page=admin_update_student_status" method="POST">
+                                  <?= Csrf::field() ?>
+                                  <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
+                                  <input type="hidden" name="status" value="suspended">
+                                  <input type="hidden" name="redirect_tab" value="<?= e($batchStatus) ?>">
+                                  <button type="submit" class="dropdown-item text-warning py-1.5"><i class="bi bi-pause-circle me-2"></i>Suspend Account</button>
+                                </form>
+                              </li>
+                            <?php endif; ?>
+
+                            <li><hr class="dropdown-divider my-1"></li>
+
+                            <li>
+                              <form action="index.php?page=admin_delete_student" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this student record?');">
                                 <?= Csrf::field() ?>
                                 <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
-                                <input type="hidden" name="status" value="active">
-                                <button type="submit" class="dropdown-item text-success py-1.5"><i class="bi bi-check-circle me-2"></i>Set as Active</button>
+                                <button type="submit" class="dropdown-item text-danger py-1.5"><i class="bi bi-trash3 me-2"></i>Delete Record</button>
                               </form>
                             </li>
-                          <?php endif; ?>
-
-                          <?php if ($st['status'] !== 'suspended'): ?>
-                            <li>
-                              <form action="index.php?page=admin_update_student_status" method="POST">
-                                <?= Csrf::field() ?>
-                                <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
-                                <input type="hidden" name="status" value="suspended">
-                                <button type="submit" class="dropdown-item text-warning py-1.5"><i class="bi bi-pause-circle me-2"></i>Suspend Account</button>
-                              </form>
-                            </li>
-                          <?php endif; ?>
-
-                          <li><hr class="dropdown-divider my-1"></li>
-
-                          <li>
-                            <form action="index.php?page=admin_delete_student" method="POST" onsubmit="return confirm('Are you sure you want to permanently delete this student record?');">
-                              <?= Csrf::field() ?>
-                              <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
-                              <button type="submit" class="dropdown-item text-danger py-1.5"><i class="bi bi-trash3 me-2"></i>Delete Record</button>
-                            </form>
-                          </li>
-                        </ul>
+                          </ul>
+                        </div>
                       </div>
                     </td>
                   </tr>
