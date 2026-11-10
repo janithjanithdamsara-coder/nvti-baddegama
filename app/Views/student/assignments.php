@@ -37,7 +37,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
             <div class="col-lg-6">
               <div class="card border-0 shadow-sm rounded-4 h-100 d-flex flex-column justify-content-between overflow-hidden">
                 <div>
-                  <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+                  <div class="card-header bg-white py-3 px-3 px-md-4 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div>
                       <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-1"><?= e($a['subject_code']) ?></span>
                       <h5 class="fw-bold mb-0 text-dark"><?= e($a['title']) ?></h5>

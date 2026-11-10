@@ -56,14 +56,15 @@ require_once __DIR__ . '/../layouts/navbar.php';
           <h5 class="fw-bold mb-0 text-dark">Weekly Session Schedule</h5>
         </div>
 
-        <div class="table-responsive">
+        <!-- Desktop Timetable -->
+        <div class="d-none d-md-block table-responsive">
           <table class="table table-hover table-custom mb-0">
             <thead>
               <tr>
                 <th>Day</th>
                 <th>Time Window</th>
                 <th>Shift</th>
-                <th>Subject & Module</th>
+                <th>Subject &amp; Module</th>
                 <th>Lecturer</th>
                 <th>Location / Lab</th>
               </tr>
@@ -101,6 +102,38 @@ require_once __DIR__ . '/../layouts/navbar.php';
               <?php endif; ?>
             </tbody>
           </table>
+        </div>
+
+        <!-- Mobile Timetable Cards (< 768px) -->
+        <div class="d-md-none p-3 bg-light">
+          <?php if (empty($sessions)): ?>
+            <div class="text-center py-4 text-muted small">No scheduled sessions found for your batch.</div>
+          <?php else: ?>
+            <div class="d-flex flex-column gap-2.5">
+              <?php foreach ($sessions as $s): ?>
+                <?php $isMorn = (strtotime($s['start_time']) < strtotime('12:30:00')); ?>
+                <div class="card border rounded-4 p-3 bg-white shadow-xs">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold text-dark fs-6"><?= e($s['day_of_week']) ?></span>
+                    <?php if ($isMorn): ?>
+                      <span class="badge slot-badge-morning rounded-pill px-2.5 py-1"><i class="bi bi-sun-fill me-1"></i> Morning</span>
+                    <?php else: ?>
+                      <span class="badge slot-badge-afternoon rounded-pill px-2.5 py-1"><i class="bi bi-sunset-fill me-1"></i> Afternoon</span>
+                    <?php endif; ?>
+                  </div>
+                  <div class="fw-bold text-dark mb-0.5"><?= e($s['subject_name']) ?></div>
+                  <div class="small text-muted font-monospace mb-2"><?= e($s['subject_code']) ?></div>
+                  <div class="pt-2 border-top d-flex flex-wrap justify-content-between align-items-center gap-2 small">
+                    <span class="fw-semibold text-dark"><i class="bi bi-clock text-primary me-1"></i><?= date('h:i A', strtotime($s['start_time'])) ?> - <?= date('h:i A', strtotime($s['end_time'])) ?></span>
+                    <span class="badge bg-light text-secondary border"><?= e($s['hall_or_link']) ?></span>
+                  </div>
+                  <div class="small text-primary fw-medium mt-1.5">
+                    <i class="bi bi-person me-1"></i><?= e($s['teacher_name']) ?>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
         </div>
       </div>
 

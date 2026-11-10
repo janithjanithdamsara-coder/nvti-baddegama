@@ -227,12 +227,13 @@ $search     = trim($_GET['search'] ?? '');
                     </div>
                   </div>
 
-                  <!-- Module Topics Table -->
+                  <!-- Module Topics Table (Desktop) & Cards (Mobile) -->
                   <div class="card-body p-0">
                     <?php if (empty($topics)): ?>
                       <div class="p-3 text-center text-muted small">No sub-topics recorded for this module yet.</div>
                     <?php else: ?>
-                      <div class="table-responsive">
+                      <!-- Desktop View -->
+                      <div class="d-none d-md-block table-responsive">
                         <table class="table table-hover align-middle mb-0" style="font-size: 0.83rem;">
                           <thead>
                             <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">
@@ -244,7 +245,6 @@ $search     = trim($_GET['search'] ?? '');
                           </thead>
                           <tbody>
                             <?php foreach ($topics as $tp): 
-                              // Split sub-topics by semicolon for clean bullet-point display
                               $subItems = array_filter(array_map('trim', explode(';', $tp['sub_topics'] ?? '')));
                             ?>
                               <tr>
@@ -294,6 +294,43 @@ $search     = trim($_GET['search'] ?? '');
                           </tbody>
                         </table>
                       </div>
+
+                      <!-- Mobile Card List (< 768px) -->
+                      <div class="d-md-none p-3 bg-light d-flex flex-column gap-2.5">
+                        <?php foreach ($topics as $tp): 
+                          $subItems = array_filter(array_map('trim', explode(';', $tp['sub_topics'] ?? '')));
+                        ?>
+                          <div class="card border rounded-3 p-3 bg-white shadow-xs">
+                            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                              <div class="d-flex align-items-center gap-2 min-w-0">
+                                <span class="badge rounded-circle p-1 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="background: #f1f5f9; color: #334155; width: 28px; height: 28px; font-weight: 700; font-size: 0.75rem;">
+                                  <?= sprintf('%02d', $tp['topic_no']) ?>
+                                </span>
+                                <div class="min-w-0">
+                                  <div class="fw-bold text-dark lh-sm" style="font-size: 0.88rem;"><?= e($tp['topic_title']) ?></div>
+                                  <small class="text-muted" style="font-size: 0.72rem;"><?= e($mod['module_code']) ?>.T<?= $tp['topic_no'] ?></small>
+                                </div>
+                              </div>
+                              <span class="badge rounded-pill px-2 py-1 font-monospace flex-shrink-0" style="background: #f8fafc; color: #1e293b; border: 1px solid #cbd5e1; font-size: 0.7rem;">
+                                <i data-lucide="clock" style="width: 11px; height: 11px;" class="me-1 align-middle"></i><?= e($tp['allocated_hours']) ?>
+                              </span>
+                            </div>
+
+                            <?php if (!empty($subItems)): ?>
+                              <div class="pt-2 border-top d-flex flex-column gap-1.5">
+                                <?php foreach ($subItems as $sub): ?>
+                                  <div class="d-flex align-items-start gap-2" style="line-height: 1.4;">
+                                    <span class="text-success mt-0.5 flex-shrink-0" style="display: inline-flex;">
+                                      <i data-lucide="check-circle-2" style="width: 13px; height: 13px;"></i>
+                                    </span>
+                                    <span class="text-secondary" style="font-size: 0.8rem;"><?= e($sub) ?></span>
+                                  </div>
+                                <?php endforeach; ?>
+                              </div>
+                            <?php endif; ?>
+                          </div>
+                        <?php endforeach; ?>
+                      </div>
                     <?php endif; ?>
                   </div>
                 </div>
@@ -310,27 +347,34 @@ $search     = trim($_GET['search'] ?? '');
 
 <!-- ================= TVEC GUIDE BOOK VIEWER MODAL ================= -->
 <div class="modal fade" id="tvecGuideModal" tabindex="-1" aria-labelledby="tvecGuideModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 92vw; height: 90vh;">
-    <div class="modal-content rounded-4 border-0 shadow-lg h-100 overflow-hidden">
-      <div class="modal-header border-bottom py-2.5 px-3 px-md-4" style="background: linear-gradient(90deg, #7A1418, #90161b); color: #ffffff;">
-        <div class="d-flex align-items-center gap-2.5">
-          <span class="badge bg-white text-danger rounded-circle p-1.5 d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+  <div class="modal-dialog modal-xl modal-fullscreen-md-down modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+      <div class="modal-header border-bottom py-2.5 px-3 px-md-4 d-flex align-items-center justify-content-between gap-2" style="background: linear-gradient(90deg, #7A1418, #90161b); color: #ffffff;">
+        <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0 overflow-hidden">
+          <span class="badge bg-white text-danger rounded-circle p-1.5 d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width: 30px; height: 30px;">
             <i data-lucide="book-open" style="width: 16px; height: 16px;"></i>
           </span>
-          <div>
-            <h6 class="modal-title fw-bold mb-0 text-white" id="tvecGuideModalLabel">TVEC NVQ Level 5 ICT Curriculum Guide Book (K72T001)</h6>
-            <small class="text-white-50" style="font-size: 0.72rem;">National Apprentice and Industrial Training Authority (NAITA) &bull; TVEC Sri Lanka</small>
+          <div class="min-w-0">
+            <h6 class="modal-title fw-bold mb-0 text-white text-truncate" id="tvecGuideModalLabel">TVEC NVQ Level 5 ICT Guide Book (K72T001)</h6>
+            <small class="text-white-50 d-block text-truncate" style="font-size: 0.72rem;">NAITA &bull; TVEC Sri Lanka</small>
           </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
-          <a href="index.php?page=view_curriculum_guide" target="_blank" class="btn btn-sm btn-light rounded-pill px-2.5 py-1 text-danger fw-semibold d-inline-flex align-items-center gap-1">
-            <i data-lucide="external-link" style="width: 13px; height: 13px;"></i> Open in New Tab
+        <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+          <a href="index.php?page=view_curriculum_guide" target="_blank" class="btn btn-sm btn-light rounded-pill px-2.5 py-1 text-danger fw-semibold d-inline-flex align-items-center gap-1" title="Open in New Tab">
+            <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
+            <span class="d-none d-md-inline">Open in New Tab</span>
           </a>
-          <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close btn-close-white shadow-none ms-1 flex-shrink-0" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
       </div>
-      <div class="modal-body p-0 bg-dark h-100">
-        <iframe id="guideBookIframe" src="" style="width: 100%; height: 100%; min-height: 75vh; border: none;"></iframe>
+      <div class="modal-body p-0 bg-dark" style="height: 76vh; min-height: 400px;">
+        <iframe id="guideBookIframe" src="" class="w-100 h-100 border-0"></iframe>
+      </div>
+      <div class="modal-footer bg-white border-top py-2 px-3 d-flex d-md-none justify-content-between">
+        <span class="small text-muted">TVEC Curriculum Guide</span>
+        <button type="button" class="btn btn-danger btn-sm rounded-pill px-4 fw-bold" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg me-1"></i> Close
+        </button>
       </div>
     </div>
   </div>

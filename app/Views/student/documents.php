@@ -257,25 +257,32 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
 <!-- ================= INLINE DOCUMENT PREVIEW MODAL ================= -->
 <div class="modal fade" id="previewDocModal" tabindex="-1" aria-labelledby="previewDocModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 900px;">
-    <div class="modal-content border-0 rounded-4 shadow">
-      <div class="modal-header border-bottom py-3 px-4 bg-light">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-file-earmark-text-fill text-primary fs-5"></i>
-          <div>
-            <h6 class="modal-title fw-bold text-dark mb-0" id="previewDocTitle">Document Preview</h6>
-            <small class="text-muted" id="previewDocFilename"></small>
+  <div class="modal-dialog modal-xl modal-fullscreen-md-down modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 rounded-4 shadow overflow-hidden">
+      <div class="modal-header border-bottom py-2.5 px-3 px-md-4 bg-light d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0 overflow-hidden">
+          <i class="bi bi-file-earmark-text-fill text-primary fs-5 flex-shrink-0"></i>
+          <div class="min-w-0">
+            <h6 class="modal-title fw-bold text-dark mb-0 text-truncate" id="previewDocTitle">Document Preview</h6>
+            <small class="text-muted d-block text-truncate" id="previewDocFilename"></small>
           </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
-          <a href="#" id="previewNewTabBtn" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
-            <i class="bi bi-box-arrow-up-right me-1"></i> Open in New Tab
+        <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+          <a href="#" id="previewNewTabBtn" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 px-md-3" title="Open in New Tab">
+            <i class="bi bi-box-arrow-up-right"></i>
+            <span class="d-none d-md-inline ms-1">Open in New Tab</span>
           </a>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close ms-1 flex-shrink-0" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
       </div>
-      <div class="modal-body p-0" style="min-height: 520px; background: #525659;">
-        <iframe id="docPreviewFrame" src="" style="width: 100%; height: 600px; border: none;"></iframe>
+      <div class="modal-body p-0" style="min-height: 400px; height: 75vh; background: #525659;">
+        <iframe id="docPreviewFrame" src="" class="w-100 h-100 border-0"></iframe>
+      </div>
+      <div class="modal-footer bg-white border-top py-2 px-3 d-flex d-md-none justify-content-between">
+        <span class="small text-muted">Document Preview</span>
+        <button type="button" class="btn btn-danger btn-sm rounded-pill px-4 fw-bold" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg me-1"></i> Close
+        </button>
       </div>
     </div>
   </div>

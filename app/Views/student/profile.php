@@ -47,8 +47,8 @@ $photo = !empty($student['profile_image']) ? $student['profile_image'] : '';
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="px-4 pt-3 border-bottom bg-light">
-          <ul class="nav nav-tabs border-0" id="profileTabs" role="tablist">
+        <div class="px-3 px-md-4 pt-3 border-bottom bg-light overflow-auto">
+          <ul class="nav nav-tabs border-0 flex-nowrap text-nowrap" id="profileTabs" role="tablist">
             <li class="nav-item">
               <button class="nav-link active fw-semibold" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
                 <i class="bi bi-person-lines-fill me-1.5"></i>Profile Overview

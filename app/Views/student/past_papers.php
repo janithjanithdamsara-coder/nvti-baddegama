@@ -367,33 +367,43 @@ function getStudentPaperTheme($paper, $palettes) {
 <!-- Examination Paper Modal Viewer                                 -->
 <!-- ============================================================== -->
 <div class="modal fade" id="paperViewerModal" tabindex="-1" aria-labelledby="modalPaperTitle" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
+  <div class="modal-dialog modal-xl modal-fullscreen-md-down modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-      <!-- Modal Header -->
-      <div class="modal-header border-bottom py-2.5 px-4 bg-white">
-        <div class="d-flex align-items-center gap-2 min-w-0">
+      <!-- Modal Header (Zero Overflow on Mobile) -->
+      <div class="modal-header border-bottom py-2.5 px-3 px-md-4 bg-white d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0 overflow-hidden">
           <div class="rounded-circle p-1.5 bg-danger-subtle text-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
             <i class="bi bi-file-earmark-pdf-fill fs-6"></i>
           </div>
           <div class="min-w-0">
             <h6 class="modal-title fw-bold text-dark mb-0 text-truncate" id="modalPaperTitle">Examination Paper Preview</h6>
-            <small class="text-muted">In-browser Secure Paper Reader</small>
+            <small class="text-muted d-block text-truncate">In-browser Secure Paper Reader</small>
           </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
-          <a id="modalPaperOpenTabBtn" href="#" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-medium">
-            <i class="bi bi-box-arrow-up-right me-1"></i> Open in New Tab
+        <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+          <a id="modalPaperOpenTabBtn" href="#" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 px-md-3 fw-medium" title="Open in New Tab">
+            <i class="bi bi-box-arrow-up-right"></i>
+            <span class="d-none d-md-inline ms-1">Open in New Tab</span>
           </a>
-          <a id="modalPaperDownloadBtn" href="#" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold" style="background: #7A1418; border-color: #7A1418;">
-            <i class="bi bi-download me-1"></i> Download
+          <a id="modalPaperDownloadBtn" href="#" class="btn btn-sm btn-primary rounded-pill px-2.5 px-md-3 fw-bold" style="background: #7A1418; border-color: #7A1418;" title="Download">
+            <i class="bi bi-download"></i>
+            <span class="d-none d-md-inline ms-1">Download</span>
           </a>
-          <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close ms-1 flex-shrink-0" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
       </div>
 
       <!-- Modal Body -->
-      <div class="modal-body p-0 bg-dark position-relative" style="height: 75vh;">
+      <div class="modal-body p-0 bg-dark position-relative" style="height: 75vh; min-height: 400px;">
         <iframe id="modalPaperIframe" src="" class="w-100 h-100 border-0"></iframe>
+      </div>
+
+      <!-- Mobile Friendly Footer Bar (Guaranteed Easy Close on Mobile) -->
+      <div class="modal-footer bg-white border-top py-2 px-3 d-flex d-md-none justify-content-between">
+        <span class="small text-muted">Exam Paper Reader</span>
+        <button type="button" class="btn btn-danger btn-sm rounded-pill px-4 fw-bold" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg me-1"></i> Close
+        </button>
       </div>
     </div>
   </div>

@@ -11,32 +11,19 @@ require_once __DIR__ . '/../layouts/navbar.php';
       <?= Flash::render() ?>
 
       <!-- Welcome Banner -->
-      <div class="card border rounded-4 mb-4 p-4 bg-white shadow-sm">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-          <div>
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <span class="badge bg-success-subtle text-success fw-bold px-3 py-1.5 rounded-pill"><i class="bi bi-mortarboard-fill me-1"></i> Student Portal</span>
-              <?php if (!empty($profile['mis_number'])): ?>
-                <span class="badge bg-primary text-white font-monospace px-2.5 py-1 rounded-pill fw-bold">
-                  <i class="bi bi-person-badge-fill me-1"></i><?= e($profile['mis_number']) ?>
-                </span>
-              <?php endif; ?>
-              <span class="badge bg-light text-dark border fw-bold rounded-pill"><?= e($profile['student_code'] ?? 'NVTI-ST') ?></span>
-            </div>
-            <h3 class="fw-bold mb-1 text-dark">Hello, <?= e(Auth::name()) ?>!</h3>
-            <p class="mb-0 text-muted"><?= e($profile['course_name'] ?? 'National Diploma in ICT') ?> &bull; <?= e($profile['class_name'] ?? 'NVTI Baddegama') ?></p>
+      <div class="card border rounded-4 mb-4 p-3 p-md-4 bg-white shadow-sm">
+        <div>
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <span class="badge bg-success-subtle text-success fw-bold px-3 py-1.5 rounded-pill"><i class="bi bi-mortarboard-fill me-1"></i> Student Portal</span>
+            <?php if (!empty($profile['mis_number'])): ?>
+              <span class="badge bg-primary text-white font-monospace px-2.5 py-1 rounded-pill fw-bold">
+                <i class="bi bi-person-badge-fill me-1"></i><?= e($profile['mis_number']) ?>
+              </span>
+            <?php endif; ?>
+            <span class="badge bg-light text-dark border fw-bold rounded-pill"><?= e($profile['student_code'] ?? 'NVTI-ST') ?></span>
           </div>
-          <div class="d-flex gap-2">
-            <a href="index.php?page=student_materials" class="btn btn-primary fw-bold btn-sm px-3 shadow-sm rounded-pill">
-              <i class="bi bi-book-half me-1"></i> Study Notes
-            </a>
-            <a href="index.php?page=student_attendance" class="btn btn-outline-success btn-sm px-3 rounded-pill fw-semibold">
-              <i class="bi bi-graph-up-arrow me-1"></i> My Attendance
-            </a>
-            <a href="index.php?page=student_assignments" class="btn btn-outline-secondary btn-sm px-3 rounded-pill">
-              <i class="bi bi-pencil-square me-1"></i> Assignments
-            </a>
-          </div>
+          <h3 class="fw-bold mb-1 text-dark">Hello, <?= e(Auth::name()) ?>!</h3>
+          <p class="mb-0 text-muted small"><?= e($profile['course_name'] ?? 'National Diploma in ICT') ?> &bull; <?= e($profile['class_name'] ?? 'NVTI Baddegama') ?></p>
         </div>
       </div>
 
@@ -214,12 +201,12 @@ require_once __DIR__ . '/../layouts/navbar.php';
               <?php else: ?>
                 <div class="list-group list-group-flush">
                   <?php foreach ($recentMaterials as $m): ?>
-                    <div class="list-group-item px-0 py-2.5 d-flex justify-content-between align-items-center border-bottom">
-                      <div>
-                        <div class="fw-bold text-dark text-truncate" style="max-width: 320px;"><?= e($m['title']) ?></div>
-                        <small class="text-muted"><?= e($m['subject_name']) ?> &bull; <?= e($m['teacher_name']) ?></small>
+                    <div class="list-group-item px-0 py-2.5 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 border-bottom">
+                      <div class="min-w-0 w-100">
+                        <div class="fw-bold text-dark text-truncate"><?= e($m['title']) ?></div>
+                        <small class="text-muted d-block text-truncate"><?= e($m['subject_name']) ?> &bull; <?= e($m['teacher_name']) ?></small>
                       </div>
-                      <div class="d-flex align-items-center gap-1.5">
+                      <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
                         <a href="index.php?page=view_material&id=<?= $m['id'] ?>" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill px-2.5" title="View / Read Material">
                           <i class="bi bi-eye"></i> View
                         </a>
@@ -237,21 +224,23 @@ require_once __DIR__ . '/../layouts/navbar.php';
       </div>
 
       <!-- Active Coursework Submissions -->
-      <div class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+      <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+        <div class="card-header bg-white py-3 px-3 px-md-4 d-flex justify-content-between align-items-center border-bottom flex-wrap gap-2">
           <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clipboard2-check text-primary me-2"></i>Active Coursework &amp; Submissions</h5>
-          <a href="index.php?page=student_assignments" class="btn btn-sm btn-outline-primary">All Assignments</a>
+          <a href="index.php?page=student_assignments" class="btn btn-sm btn-outline-primary rounded-pill px-3">All Assignments</a>
         </div>
-        <div class="table-responsive">
+
+        <!-- Desktop Table -->
+        <div class="d-none d-md-block table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
-                <th>Title</th>
+                <th class="ps-4">Title</th>
                 <th>Subject</th>
                 <th>Deadline</th>
                 <th>Status</th>
                 <th>Marks</th>
-                <th class="text-end">Action</th>
+                <th class="text-end pe-4">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -262,7 +251,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
               <?php else: ?>
                 <?php foreach ($assignments as $a): ?>
                   <tr>
-                    <td class="fw-bold text-dark"><?= e($a['title']) ?></td>
+                    <td class="ps-4 fw-bold text-dark"><?= e($a['title']) ?></td>
                     <td><?= e($a['subject_name']) ?></td>
                     <td>
                       <span class="badge bg-light text-dark border">
@@ -283,7 +272,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                     <td>
                       <?= ($a['marks'] !== null) ? '<strong>' . e($a['marks']) . '</strong> / ' . e($a['total_marks'] ?? $a['max_marks'] ?? 100) : '<span class="text-muted">-</span>' ?>
                     </td>
-                    <td class="text-end">
+                    <td class="text-end pe-4">
                       <a href="index.php?page=student_assignments" class="btn btn-sm btn-outline-primary rounded-pill px-3">
                         <?= ($a['submission_id']) ? 'View Status' : 'Submit Now' ?>
                       </a>
@@ -293,6 +282,48 @@ require_once __DIR__ . '/../layouts/navbar.php';
               <?php endif; ?>
             </tbody>
           </table>
+        </div>
+
+        <!-- Mobile Coursework Cards (< 768px) -->
+        <div class="d-md-none p-3 bg-light">
+          <?php if (empty($assignments)): ?>
+            <div class="text-center py-4 text-muted small">No active coursework found.</div>
+          <?php else: ?>
+            <div class="d-flex flex-column gap-2.5">
+              <?php foreach ($assignments as $a): ?>
+                <div class="card border rounded-4 p-3 bg-white shadow-xs">
+                  <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div class="min-w-0">
+                      <h6 class="fw-bold text-dark mb-0.5 lh-sm"><?= e($a['title']) ?></h6>
+                      <small class="text-muted d-block"><?= e($a['subject_name']) ?></small>
+                    </div>
+                    <div class="flex-shrink-0">
+                      <?php if ($a['submission_status'] === 'graded'): ?>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Graded</span>
+                      <?php elseif ($a['submission_status'] === 'submitted'): ?>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">Submitted</span>
+                      <?php elseif ($a['submission_status'] === 'late'): ?>
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill">Late</span>
+                      <?php else: ?>
+                        <span class="badge bg-secondary-subtle text-secondary border rounded-pill">Not Submitted</span>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center pt-2 border-top small">
+                    <div>
+                      <span class="text-muted"><i class="bi bi-clock me-1"></i><?= date('M d, Y', strtotime($a['deadline'])) ?></span>
+                      <?php if ($a['marks'] !== null): ?>
+                        <span class="ms-2 fw-bold text-success">Marks: <?= e($a['marks']) ?>/<?= e($a['total_marks'] ?? $a['max_marks'] ?? 100) ?></span>
+                      <?php endif; ?>
+                    </div>
+                    <a href="index.php?page=student_assignments" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold">
+                      <?= ($a['submission_id']) ? 'View' : 'Submit' ?>
+                    </a>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
         </div>
       </div>
 

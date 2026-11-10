@@ -224,7 +224,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
           </div>
 
           <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+            <table class="table table-hover align-middle mb-0 mobile-rollcall-table" style="font-size: 0.88rem;">
               <thead class="table-light text-secondary text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
                 <tr>
                   <th style="width: 45px;" class="text-center py-2.5">#</th>

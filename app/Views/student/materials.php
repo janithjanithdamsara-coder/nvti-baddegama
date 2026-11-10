@@ -13,36 +13,21 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
     <div class="container-fluid">
       <?= Flash::render() ?>
 
-      <!-- Header Banner with Quick Links -->
+      <!-- Header Banner -->
       <div class="card border rounded-4 mb-4 p-3 p-md-4 bg-white shadow-sm">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-          <div>
-            <div class="d-flex align-items-center gap-2 mb-1.5">
-              <span class="badge rounded-pill px-2.5 py-1 fw-bold" style="background: #fef2f2; color: #7A1418; border: 1px solid #fecaca; font-size: 0.74rem;">
-                <i data-lucide="graduation-cap" style="width: 13px; height: 13px;" class="me-1"></i> NVQ Level 5 &bull; Semester 1 &amp; 2
-              </span>
-              <span class="badge bg-light text-secondary border fw-medium rounded-pill">ICT Curriculum</span>
-            </div>
-            <h3 class="fw-bold mb-1 text-dark">Learning Materials &amp; Classroom Hub</h3>
-            <p class="text-muted small mb-0">Browse subject classes, stream lecturer postings, explore TVEC syllabus sub-topics, or view materials online.</p>
+        <div class="text-center text-md-start">
+          <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-start gap-2 mb-2">
+            <span class="badge rounded-pill px-2.5 py-1 fw-bold" style="background: #fef2f2; color: #7A1418; border: 1px solid #fecaca; font-size: 0.74rem;">
+              <i data-lucide="graduation-cap" style="width: 13px; height: 13px;" class="me-1"></i> NVQ Level 5 &bull; Semester 1 &amp; 2
+            </span>
+            <span class="badge bg-light text-secondary border fw-medium rounded-pill">ICT Curriculum</span>
           </div>
-          
-          <!-- Dedicated Action Hub Buttons -->
-          <div class="d-flex flex-wrap align-items-center gap-2">
-            <a href="index.php?page=student_curriculum" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-none">
-              <i data-lucide="book-open-check" style="width: 15px; height: 15px;"></i>
-              <span>Course Curriculum (Guide Book)</span>
-            </a>
-            <a href="index.php?page=student_papers" class="btn btn-sm rounded-pill px-3 py-2 fw-bold text-white d-inline-flex align-items-center gap-2 shadow-sm" style="background: linear-gradient(135deg, #7A1418, #90161b);">
-              <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
-              <span>Past Papers &amp; Model Papers</span>
-              <span class="badge bg-white text-danger ms-1" style="font-size: 0.68rem;">Sem 1 &amp; 2</span>
-            </a>
-          </div>
+          <h3 class="fw-bold mb-1 text-dark">Learning Materials &amp; Classroom Hub</h3>
+          <p class="text-muted small mb-0">Browse subject classes, stream lecturer postings, explore TVEC syllabus sub-topics, or view materials online.</p>
         </div>
 
-        <!-- Google Classroom Style Navigation Tabs -->
-        <ul class="nav nav-pills mt-3 pt-3 border-top gap-1 gap-md-2" id="classroomTabs">
+        <!-- Google Classroom Style Navigation Tabs (Mobile Scrollable / Wrappable) -->
+        <ul class="nav nav-pills mt-3 pt-3 border-top gap-1.5 gap-md-2 justify-content-center justify-content-md-start" id="classroomTabs">
           <li class="nav-item">
             <a class="nav-link rounded-pill px-3 py-1.5 small fw-semibold <?= ($activeTab === 'classroom') ? 'active' : '' ?>" href="index.php?page=student_materials&tab=classroom">
               <i data-lucide="layout-grid" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> Subject Classes
@@ -50,37 +35,37 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
           </li>
           <li class="nav-item">
             <a class="nav-link rounded-pill px-3 py-1.5 small fw-semibold <?= ($activeTab === 'stream') ? 'active' : '' ?>" href="index.php?page=student_materials&tab=stream">
-              <i data-lucide="message-square" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> Class Stream (Feed)
+              <i data-lucide="message-square" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> Class Stream
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link rounded-pill px-3 py-1.5 small fw-semibold <?= ($activeTab === 'all') ? 'active' : '' ?>" href="index.php?page=student_materials&tab=all">
-              <i data-lucide="folder" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> All Materials (Filter &amp; Search)
+              <i data-lucide="folder" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> All Materials
             </a>
           </li>
           <li class="nav-item">
             <a class="nav-link rounded-pill px-3 py-1.5 small fw-semibold text-secondary" href="index.php?page=student_curriculum">
-              <i data-lucide="book-open-check" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> Syllabus &amp; Sub-Topics &rarr;
+              <i data-lucide="book-open-check" style="width: 15px; height: 15px;" class="me-1.5 align-middle"></i> Syllabus &rarr;
             </a>
           </li>
         </ul>
       </div>
 
       <!-- ============================================================== -->
-      <!-- TAB 1: SUBJECT CLASSES (Google Classroom Style Cards)          -->
+      <!-- TAB 1: SUBJECT CLASSES (Centered Responsive Classroom Cards)   -->
       <!-- ============================================================== -->
       <?php if ($activeTab === 'classroom'): ?>
-        <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
           <div>
             <h5 class="fw-bold mb-0 text-dark">Enrolled Subject Classes</h5>
-            <small class="text-muted">Click any class to filter learning resources and assignments</small>
+            <small class="text-muted">Click any class to explore lecture notes and resources</small>
           </div>
           <span class="badge bg-light text-dark border rounded-pill px-3 py-1.5 fw-semibold">
             <?= count($subjects) ?> Subjects Active
           </span>
         </div>
 
-        <div class="row g-3 mb-4">
+        <div class="row g-3 g-md-4 mb-4">
           <?php 
             $cardColors = [
               ['bg' => 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', 'accent' => '#3b82f6'],
@@ -97,50 +82,50 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
               $teacherName = $sb['teacher_name'] ?: 'Nishantha Gamage';
               $initial = strtoupper(substr($teacherName, 0, 1));
           ?>
-            <div class="col-md-6 col-lg-4">
-              <div class="card border rounded-4 overflow-hidden shadow-sm h-100 classroom-card transition-all">
-                <!-- Classroom Card Header Banner (Google Classroom Style) -->
-                <div class="p-3.5 text-white position-relative" style="background: <?= $color['bg'] ?>; min-height: 125px;">
-                  <div class="d-flex justify-content-between align-items-start">
-                    <div class="min-w-0 pe-2">
-                      <span class="badge bg-white bg-opacity-25 text-white font-monospace mb-1.5" style="font-size: 0.7rem;">
-                        <?= e($sb['subject_code']) ?>
-                      </span>
-                      <h5 class="fw-bold mb-1 text-white text-truncate" title="<?= e($sb['subject_name']) ?>">
-                        <?= e($sb['subject_name']) ?>
-                      </h5>
-                      <div class="small opacity-75 text-truncate"><?= e($teacherName) ?></div>
-                    </div>
-                    <div class="dropdown">
-                      <button class="btn btn-sm btn-link text-white text-decoration-none p-0 opacity-75" type="button" data-bs-toggle="dropdown">
-                        <i data-lucide="more-vertical" style="width: 18px; height: 18px;"></i>
-                      </button>
-                      <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1 small">
-                        <li><a class="dropdown-item" href="index.php?page=student_materials&tab=curriculum#module-<?= e($sb['subject_code']) ?>">View Syllabus Topics</a></li>
-                        <li><a class="dropdown-item" href="index.php?page=student_papers&module_code=<?= e($sb['subject_code']) ?>">Past Papers</a></li>
-                      </ul>
-                    </div>
+            <div class="col-12 col-md-6 col-lg-4">
+              <div class="card border rounded-4 overflow-hidden shadow-sm h-100 classroom-card transition-all d-flex flex-column">
+                <!-- Classroom Card Header Banner (Centered, Generous Padding) -->
+                <div class="text-white position-relative text-center d-flex flex-column justify-content-center align-items-center" style="background: <?= $color['bg'] ?>; min-height: 152px; padding: 22px 24px 32px 24px;">
+                  <!-- Top Right Dropdown Menu -->
+                  <div class="dropdown position-absolute" style="top: 12px; right: 14px; z-index: 3;">
+                    <button class="btn btn-sm btn-link text-white text-decoration-none p-1 opacity-75" type="button" data-bs-toggle="dropdown" aria-label="Module options">
+                      <i data-lucide="more-vertical" style="width: 18px; height: 18px;"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1 small">
+                      <li><a class="dropdown-item" href="index.php?page=student_curriculum#mod-<?= e($sb['subject_code']) ?>">View Syllabus Topics</a></li>
+                      <li><a class="dropdown-item" href="index.php?page=student_papers&module_code=<?= e($sb['subject_code']) ?>">Past Papers</a></li>
+                    </ul>
                   </div>
 
-                  <!-- Lecturer Avatar Circle positioned bottom right -->
-                  <div class="position-absolute" style="right: 18px; bottom: -20px; z-index: 2;">
-                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow border border-2 border-white" style="width: 44px; height: 44px; background: #475569; font-size: 1.1rem;">
+                  <span class="badge bg-white bg-opacity-25 text-white font-monospace mb-2 px-2.5 py-1 rounded-pill" style="font-size: 0.72rem; letter-spacing: 0.4px;">
+                    <?= e($sb['subject_code']) ?>
+                  </span>
+                  <h5 class="fw-bold mb-1.5 text-white px-2 lh-sm" style="font-size: 1.06rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="<?= e($sb['subject_name']) ?>">
+                    <?= e($sb['subject_name']) ?>
+                  </h5>
+                  <div class="small text-white-50 fw-medium text-truncate" style="max-width: 90%;">
+                    <i data-lucide="user-check" style="width: 13px; height: 13px;" class="me-1 align-middle"></i><?= e($teacherName) ?>
+                  </div>
+
+                  <!-- Centered Lecturer Avatar Circle -->
+                  <div class="position-absolute" style="left: 50%; transform: translateX(-50%); bottom: -22px; z-index: 4;">
+                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow border border-3 border-white" style="width: 46px; height: 46px; background: #334155; font-size: 1.1rem;">
                       <?= $initial ?>
                     </div>
                   </div>
                 </div>
 
-                <!-- Classroom Card Body -->
-                <div class="card-body p-3 pt-3.5 bg-white d-flex flex-column justify-content-between">
-                  <p class="small text-muted mb-3 line-clamp-2" style="min-height: 38px; line-height: 1.4;">
+                <!-- Classroom Card Body (Centered Content) -->
+                <div class="card-body bg-white d-flex flex-column justify-content-between text-center" style="padding: 34px 20px 20px 20px;">
+                  <p class="small text-muted mb-3 mx-auto" style="min-height: 40px; line-height: 1.5; max-width: 95%;">
                     <?= e($sb['description'] ?: 'Official NVTI Baddegama Diploma curriculum coursework and resources.') ?>
                   </p>
 
-                  <div class="d-flex align-items-center justify-content-between pt-2.5 border-top">
-                    <a href="index.php?page=student_materials&tab=all&subject_id=<?= $sb['id'] ?>" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 small fw-medium d-inline-flex align-items-center gap-1.5">
+                  <div class="d-flex align-items-center justify-content-center gap-2 pt-3 border-top">
+                    <a href="index.php?page=student_materials&tab=all&subject_id=<?= $sb['id'] ?>" class="btn btn-sm btn-outline-primary rounded-pill px-4 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs">
                       <i data-lucide="folder-open" style="width: 14px; height: 14px;"></i> View Materials
                     </a>
-                    <a href="index.php?page=student_materials&tab=curriculum" class="btn btn-sm btn-light rounded-pill px-2.5 py-1 text-muted small" title="View Syllabus">
+                    <a href="index.php?page=student_curriculum#mod-<?= e($sb['subject_code']) ?>" class="btn btn-sm btn-light border rounded-pill px-3 py-1.5 text-secondary small d-inline-flex align-items-center gap-1" title="View Syllabus">
                       <i data-lucide="list-tree" style="width: 14px; height: 14px;"></i>
                     </a>
                   </div>
@@ -424,30 +409,32 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
 <!-- Interactive Document / Video Modal Viewer                      -->
 <!-- ============================================================== -->
 <div class="modal fade" id="materialViewerModal" tabindex="-1" aria-labelledby="modalDocTitle" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered">
+  <div class="modal-dialog modal-xl modal-fullscreen-md-down modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-      <!-- Modal Header -->
-      <div class="modal-header bg-white border-bottom py-2.5 px-3 px-md-4">
-        <div class="d-flex align-items-center gap-2 min-w-0">
-          <span class="badge rounded-pill px-2.5 py-1" id="modalTypeBadge" style="background: #fef2f2; color: #7A1418; border: 1px solid #fecaca; font-size: 0.72rem;">
-            <i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1"></i> Document Preview
+      <!-- Modal Header (Zero Overflow on Mobile) -->
+      <div class="modal-header bg-white border-bottom py-2.5 px-3 px-md-4 d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0 overflow-hidden">
+          <span class="badge rounded-pill px-2.5 py-1 flex-shrink-0 d-none d-sm-inline-flex align-items-center" id="modalTypeBadge" style="background: #fef2f2; color: #7A1418; border: 1px solid #fecaca; font-size: 0.72rem;">
+            <i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1"></i> Document
           </span>
-          <h6 class="modal-title fw-bold text-dark text-truncate mb-0" id="modalDocTitle" style="max-width: 480px;">Material Title</h6>
+          <h6 class="modal-title fw-bold text-dark text-truncate mb-0" id="modalDocTitle">Material Title</h6>
         </div>
         
-        <div class="d-flex align-items-center gap-2">
-          <a href="#" id="modalDirectDownloadBtn" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 fw-medium small">
-            <i data-lucide="download" style="width: 13px; height: 13px;"></i> Download
+        <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+          <a href="#" id="modalDirectDownloadBtn" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 px-md-3 py-1 d-inline-flex align-items-center gap-1 fw-medium small" title="Download">
+            <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+            <span class="d-none d-md-inline">Download</span>
           </a>
-          <a href="#" id="modalOpenTabBtn" target="_blank" class="btn btn-sm text-white rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 fw-medium small" style="background: #7A1418; border-color: #7A1418;">
-            <i data-lucide="external-link" style="width: 13px; height: 13px;"></i> Open in New Tab
+          <a href="#" id="modalOpenTabBtn" target="_blank" class="btn btn-sm text-white rounded-pill px-2.5 px-md-3 py-1 d-inline-flex align-items-center gap-1 fw-medium small" style="background: #7A1418; border-color: #7A1418;" title="Open in New Tab">
+            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+            <span class="d-none d-md-inline">Open in New Tab</span>
           </a>
-          <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close ms-1 flex-shrink-0" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
       </div>
 
       <!-- Modal Body / Content Viewer -->
-      <div class="modal-body p-0 bg-dark position-relative" style="height: 78vh;">
+      <div class="modal-body p-0 bg-dark position-relative" style="height: 75vh; min-height: 400px;">
         <!-- Loading spinner -->
         <div id="modalLoadingSpinner" class="d-flex align-items-center justify-content-center h-100 text-white">
           <div class="spinner-border text-danger me-2" role="status"></div>
@@ -461,6 +448,14 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
         <div id="modalVideoContainer" class="w-100 h-100 d-none">
           <iframe id="modalVideoIframe" src="" class="w-100 h-100 border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         </div>
+      </div>
+
+      <!-- Mobile Friendly Footer Bar (Guaranteed Easy Close on Mobile) -->
+      <div class="modal-footer bg-white border-top py-2 px-3 d-flex d-md-none justify-content-between">
+        <span class="small text-muted">Document Viewer</span>
+        <button type="button" class="btn btn-danger btn-sm rounded-pill px-4 fw-bold" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg me-1"></i> Close
+        </button>
       </div>
     </div>
   </div>
