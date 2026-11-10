@@ -292,6 +292,12 @@ class AuthController {
 
         $db = Database::getConnection();
 
+        if (!Csrf::claimSubmission('auth_register', [strtolower($email), $nic], 60)) {
+            Flash::info("Your registration was already submitted! Please wait for administration approval.");
+            header('Location: index.php?page=login');
+            exit;
+        }
+
         // Strictly resolve an ACTIVE batch (never enroll new students into an Old / Archived batch!)
         $classId = 0;
         if ($requestedClassId > 0) {
@@ -449,6 +455,12 @@ class AuthController {
 
         if (empty($email)) {
             Flash::error('Please enter your registered email address.');
+            header('Location: index.php?page=forgot_password');
+            exit;
+        }
+
+        if (!Csrf::claimSubmission('auth_forgot_password', [strtolower($email)], 60)) {
+            Flash::info("A password reset request for <strong>" . htmlspecialchars($email) . "</strong> was already processed. Please check your inbox.");
             header('Location: index.php?page=forgot_password');
             exit;
         }

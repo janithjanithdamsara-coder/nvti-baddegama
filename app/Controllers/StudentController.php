@@ -401,6 +401,12 @@ class StudentController {
             exit;
         }
 
+        if (!Csrf::claimSubmission('student_submit_assignment', [$studentId, $assignmentId], 15)) {
+            Flash::info("Your assignment submission is already being processed.");
+            header('Location: index.php?page=student_assignments');
+            exit;
+        }
+
         $db = Database::getConnection();
 
         // Check assignment deadline

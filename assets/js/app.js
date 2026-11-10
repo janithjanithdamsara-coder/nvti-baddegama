@@ -207,4 +207,53 @@ document.addEventListener('DOMContentLoaded', function () {
     const pad = (n) => String(n).padStart(2, '0');
     dtInput.value = `${base.getFullYear()}-${pad(base.getMonth() + 1)}-${pad(base.getDate())}T${pad(base.getHours())}:${pad(base.getMinutes())}`;
   };
+
+  // Global double-submit lock + loading spinner for all POST forms
+  document.addEventListener('submit', function (e) {
+    if (e.defaultPrevented) return;
+    const form = e.target;
+    if (!form || form.tagName !== 'FORM') return;
+    if ((form.getAttribute('method') || 'GET').toUpperCase() !== 'POST') return;
+    if (form.hasAttribute('data-allow-multi-submit')) return;
+
+    if (form.dataset.submitting === '1') {
+      e.preventDefault();
+      return;
+    }
+    form.dataset.submitting = '1';
+
+    const submitter = e.submitter || document.activeElement;
+    if (submitter && submitter.form === form && submitter.name) {
+      const hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = submitter.name;
+      hidden.value = submitter.value;
+      form.appendChild(hidden);
+    }
+
+    form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])').forEach((btn) => {
+      if (btn.disabled) return;
+      btn.dataset.originalHtml = btn.innerHTML || btn.value || '';
+      btn.disabled = true;
+      if (btn === submitter && btn.tagName === 'BUTTON') {
+        const hasText = btn.textContent.trim().length > 0;
+        btn.innerHTML = hasText
+          ? '<span class="spinner-border spinner-border-sm me-1.5" role="status" aria-hidden="true"></span>Please wait...'
+          : '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+      }
+    });
+  });
+
+  window.addEventListener('pageshow', function (event) {
+    if (!event.persisted) return;
+    document.querySelectorAll('form[data-submitting="1"]').forEach((form) => {
+      delete form.dataset.submitting;
+      form.querySelectorAll('button[disabled], input[disabled]').forEach((btn) => {
+        btn.disabled = false;
+        if (btn.dataset.originalHtml && btn.tagName === 'BUTTON') {
+          btn.innerHTML = btn.dataset.originalHtml;
+        }
+      });
+    });
+  });
 });

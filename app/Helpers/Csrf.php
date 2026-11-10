@@ -41,4 +41,32 @@ class Csrf {
     public static function validate(): void {
         self::checkOrAbort();
     }
+
+    /**
+     * Prevent accidental duplicate POST submissions within a short TTL window.
+     * Returns true on first submission; false if an identical submission was already claimed.
+     */
+    public static function claimSubmission(string $scope, array $parts = [], int $ttlSeconds = 60): bool {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return true;
+        }
+
+        $now = time();
+        $store = $_SESSION['recent_submissions'] ?? [];
+        foreach ($store as $k => $expiresAt) {
+            if ((int)$expiresAt < $now) {
+                unset($store[$k]);
+            }
+        }
+
+        $fingerprint = hash('sha256', $scope . '|' . json_encode($parts));
+        if (isset($store[$fingerprint]) && (int)$store[$fingerprint] >= $now) {
+            $_SESSION['recent_submissions'] = $store;
+            return false;
+        }
+
+        $store[$fingerprint] = $now + max(1, $ttlSeconds);
+        $_SESSION['recent_submissions'] = $store;
+        return true;
+    }
 }

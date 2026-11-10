@@ -140,7 +140,25 @@ class TeacherController {
         $subjectId = (int)$subjectId;
         $classId   = (int)$classId;
 
+        if (!Csrf::claimSubmission('teacher_upload_material', [$teacherId, $classId, $subjectId, strtolower($title), $materialType], 120)) {
+            Flash::info("This study material was already submitted and published.");
+            header('Location: index.php?page=teacher_materials');
+            exit;
+        }
+
         $db = Database::getConnection();
+        $recentDup = $db->prepare("
+            SELECT id FROM materials
+            WHERE class_id = ? AND subject_id = ? AND LOWER(TRIM(title)) = LOWER(?)
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+            LIMIT 1
+        ");
+        $recentDup->execute([$classId, $subjectId, $title]);
+        if ($recentDup->fetchColumn()) {
+            Flash::info("Study material <strong>" . htmlspecialchars($title) . "</strong> was already posted moments ago.");
+            header('Location: index.php?page=teacher_materials');
+            exit;
+        }
         $filePath = null;
         $origName = null;
         $url = null;
@@ -332,6 +350,26 @@ class TeacherController {
         $subjectId = (int)$subjectId;
         $classId   = (int)$classId;
 
+        if (!Csrf::claimSubmission('teacher_create_assignment', [$teacherId, $classId, $subjectId, strtolower($title), $deadline], 120)) {
+            Flash::info("Assignment <strong>" . htmlspecialchars($title) . "</strong> was already published.");
+            header('Location: index.php?page=teacher_assignments');
+            exit;
+        }
+
+        $db = Database::getConnection();
+        $recentDup = $db->prepare("
+            SELECT id FROM assignments
+            WHERE class_id = ? AND subject_id = ? AND LOWER(TRIM(title)) = LOWER(?)
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+            LIMIT 1
+        ");
+        $recentDup->execute([$classId, $subjectId, $title]);
+        if ($recentDup->fetchColumn()) {
+            Flash::info("Assignment <strong>" . htmlspecialchars($title) . "</strong> was already created moments ago.");
+            header('Location: index.php?page=teacher_assignments');
+            exit;
+        }
+
         $refFile = null;
         if (!empty($_FILES['reference_file']) && $_FILES['reference_file']['error'] === UPLOAD_ERR_OK) {
             $up = Uploader::upload($_FILES['reference_file'], ASSIGNMENT_UPLOAD_PATH);
@@ -340,7 +378,6 @@ class TeacherController {
             }
         }
 
-        $db = Database::getConnection();
         $stmt = $db->prepare("
             INSERT INTO assignments (teacher_id, class_id, subject_id, title, instructions, reference_file, total_marks, deadline)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)

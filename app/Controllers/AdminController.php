@@ -155,6 +155,20 @@ class AdminController {
 
         $db = Database::getConnection();
 
+        if (!Csrf::claimSubmission('admin_create_batch', [strtolower($className), $academicYear], 60)) {
+            Flash::info("Batch \"$className\" was already submitted.");
+            header('Location: index.php?page=admin_students');
+            exit;
+        }
+
+        $dupBatch = $db->prepare("SELECT id FROM classes WHERE LOWER(TRIM(class_name)) = LOWER(?) LIMIT 1");
+        $dupBatch->execute([$className]);
+        if ($dupBatch->fetchColumn()) {
+            Flash::warning("An academic batch named \"$className\" already exists.");
+            header('Location: index.php?page=admin_students');
+            exit;
+        }
+
         // If requested to archive previous active batches
         if ($archivePrevious) {
             $oldIds = $db->query("SELECT id FROM classes WHERE status = 'active'")->fetchAll(PDO::FETCH_COLUMN);
@@ -333,6 +347,12 @@ class AdminController {
         $redirectTab = trim($_POST['redirect_tab'] ?? 'active');
 
         if (in_array($status, ['active', 'pending', 'suspended'], true) && $id > 0) {
+            if (!Csrf::claimSubmission('admin_student_status', [$id, $status], 30)) {
+                Flash::info("Status update already processed.");
+                $validTab = in_array($redirectTab, ['active', 'pending', 'archived'], true) ? $redirectTab : 'active';
+                header('Location: index.php?page=admin_students&batch_status=' . $validTab);
+                exit;
+            }
             $db = Database::getConnection();
 
             // Fetch student info before updating so we know if they are being approved
@@ -1139,6 +1159,12 @@ class AdminController {
             exit;
         }
 
+        if (!Csrf::claimSubmission('admin_create_session', [$teacherId, $classId, $subjectId, $day, $startTime, strtolower($title)], 60)) {
+            Flash::info("This class session was already scheduled.");
+            header('Location: index.php?page=admin_timetable');
+            exit;
+        }
+
         $db = Database::getConnection();
         $stmt = $db->prepare("INSERT INTO class_sessions (teacher_id, class_id, subject_id, session_title, day_of_week, start_time, end_time, hall_or_link) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([$teacherId, $classId, $subjectId, $title, $day, $startTime, $endTime, $hall]);
@@ -1214,7 +1240,19 @@ class AdminController {
         $page        = trim($_POST['curriculum_page'] ?? '');
 
         if (!empty($code) && !empty($title)) {
+            if (!Csrf::claimSubmission('admin_create_cbt_module', [strtolower($code), $semester], 60)) {
+                Flash::info("CBT Module '$code' was already submitted.");
+                header('Location: index.php?page=admin_courses');
+                exit;
+            }
             $db = Database::getConnection();
+            $chk = $db->prepare("SELECT id FROM curriculum_modules WHERE LOWER(TRIM(module_code)) = LOWER(?) LIMIT 1");
+            $chk->execute([$code]);
+            if ($chk->fetchColumn()) {
+                Flash::warning("A CBT Module with code '$code' already exists.");
+                header('Location: index.php?page=admin_courses');
+                exit;
+            }
             $stmt = $db->prepare("
                 INSERT INTO curriculum_modules (module_no, module_code, module_title, semester, module_type, related_units, curriculum_page, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, 'active')
@@ -1251,6 +1289,10 @@ class AdminController {
         $desc  = trim($_POST['description'] ?? '');
 
         if ($code && $name) {
+            if (!Csrf::claimSubmission('admin_create_course', [strtolower($code)], 60)) {
+                header('Location: index.php?page=admin_courses');
+                exit;
+            }
             $db = Database::getConnection();
             $stmt = $db->prepare("INSERT INTO courses (course_code, course_name, nvq_level, description) VALUES (?, ?, ?, ?)");
             $stmt->execute([$code, $name, $level, $desc]);
@@ -1267,6 +1309,10 @@ class AdminController {
         $desc = trim($_POST['description'] ?? '');
 
         if ($code && $name) {
+            if (!Csrf::claimSubmission('admin_create_subject', [strtolower($code)], 60)) {
+                header('Location: index.php?page=admin_courses');
+                exit;
+            }
             $db = Database::getConnection();
             $stmt = $db->prepare("INSERT INTO subjects (subject_code, subject_name, description) VALUES (?, ?, ?)");
             $stmt->execute([$code, $name, $desc]);
@@ -1525,6 +1571,25 @@ class AdminController {
             exit;
         }
 
+        if (!Csrf::claimSubmission('admin_upload_material', [$classId, $subjectId, strtolower($title), $materialType], 120)) {
+            Flash::info("This study material was already submitted and processed.");
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
+            exit;
+        }
+
+        $recentDup = $db->prepare("
+            SELECT id FROM materials
+            WHERE class_id = ? AND subject_id = ? AND LOWER(TRIM(title)) = LOWER(?)
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+            LIMIT 1
+        ");
+        $recentDup->execute([$classId, $subjectId, $title]);
+        if ($recentDup->fetchColumn()) {
+            Flash::info("Study material <strong>" . htmlspecialchars($title) . "</strong> was already posted moments ago.");
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
+            exit;
+        }
+
         $filePath = null;
         $origName = null;
         $url = null;
@@ -1606,6 +1671,25 @@ class AdminController {
 
         if (empty($title) || empty($instructions) || empty($deadline) || $subjectId <= 0) {
             Flash::error("Please fill in assignment title, instructions, and deadline.");
+            header("Location: " . $redirectUrl);
+            exit;
+        }
+
+        if (!Csrf::claimSubmission('admin_create_assignment', [$classId, $subjectId, strtolower($title), $deadline], 120)) {
+            Flash::info("Assignment <strong>" . htmlspecialchars($title) . "</strong> was already published.");
+            header("Location: " . $redirectUrl);
+            exit;
+        }
+
+        $recentDup = $db->prepare("
+            SELECT id FROM assignments
+            WHERE class_id = ? AND subject_id = ? AND LOWER(TRIM(title)) = LOWER(?)
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+            LIMIT 1
+        ");
+        $recentDup->execute([$classId, $subjectId, $title]);
+        if ($recentDup->fetchColumn()) {
+            Flash::info("Assignment <strong>" . htmlspecialchars($title) . "</strong> was already created moments ago.");
             header("Location: " . $redirectUrl);
             exit;
         }
@@ -2410,6 +2494,25 @@ class AdminController {
         if (empty($title) || empty($moduleCode)) {
             Flash::error("Please provide both Paper Title and Module Code.");
             header("Location: index.php?page=admin_papers");
+            exit;
+        }
+
+        if (!Csrf::claimSubmission('admin_upload_paper', [$semester, strtolower($moduleCode), strtolower($title), $paperType, $examYear], 120)) {
+            Flash::info("Examination paper '$title' was already uploaded.");
+            header("Location: index.php?page=admin_papers&semester=" . $semester);
+            exit;
+        }
+
+        $recentPaper = $db->prepare("
+            SELECT id FROM exam_papers
+            WHERE semester = ? AND LOWER(TRIM(module_code)) = LOWER(?) AND LOWER(TRIM(title)) = LOWER(?)
+              AND created_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)
+            LIMIT 1
+        ");
+        $recentPaper->execute([$semester, $moduleCode, $title]);
+        if ($recentPaper->fetchColumn()) {
+            Flash::info("Examination paper '$title' was already uploaded moments ago.");
+            header("Location: index.php?page=admin_papers&semester=" . $semester);
             exit;
         }
 
