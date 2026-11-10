@@ -241,53 +241,11 @@ require_once __DIR__ . '/../layouts/navbar.php';
           </div>
 
           <!-- Secondary Activation Link (For Students pre-entered by Admin) -->
-          <div class="d-flex align-items-center justify-content-between mt-2.5 px-1">
-            <span class="text-muted small" style="font-size: 0.76rem;">Pre-enrolled by NVTI?</span>
-            <a href="index.php?page=activate" class="text-decoration-none small fw-semibold text-primary" style="font-size: 0.78rem;">
+          <div class="d-flex align-items-center justify-content-between mt-3 pt-2 border-top px-1">
+            <span class="text-muted small" style="font-size: 0.78rem;">Pre-enrolled by NVTI?</span>
+            <a href="index.php?page=activate" class="text-decoration-none small fw-semibold text-primary" style="font-size: 0.8rem;">
               <i class="bi bi-key me-1"></i> Activate with MIS / NIC &rarr;
             </a>
-          </div>
-
-          <!-- Quick Demo Accounts for NVQ 5 Assessment (Collapsible to keep UI neat) -->
-          <div class="mt-3">
-            <button class="demo-card-header-btn" type="button" data-bs-toggle="collapse" data-bs-target="#demoAccountsCollapse" aria-expanded="false" aria-controls="demoAccountsCollapse">
-              <span class="d-flex align-items-center gap-2">
-                <i class="bi bi-lightning-charge-fill text-warning"></i>
-                <span>One-Click Demo Logins</span>
-                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.7rem;">Examiner Testing</span>
-              </span>
-              <i class="bi bi-chevron-down text-muted" id="demoCollapseArrow"></i>
-            </button>
-
-            <div class="collapse mt-2" id="demoAccountsCollapse">
-              <div class="p-3 bg-light rounded-3 border">
-                <p class="text-muted small mb-2" style="font-size: 0.75rem;">
-                  Click any role below to automatically fill the credentials for rapid testing:
-                </p>
-                <div class="row g-2">
-                  <div class="col-6">
-                    <button type="button" class="btn btn-outline-danger btn-sm w-100 text-truncate text-start" onclick="fillLoginAndFlash('admin@nvti.edu.lk', 'AdminPassword123!', 'Admin')">
-                      <i class="bi bi-shield-shaded me-1"></i> <strong>Admin</strong>
-                    </button>
-                  </div>
-                  <div class="col-6">
-                    <button type="button" class="btn btn-outline-success btn-sm w-100 text-truncate text-start" onclick="fillLoginAndFlash('student@nvti.edu.lk', 'StudentPassword123!', 'Student')">
-                      <i class="bi bi-person-check me-1"></i> <strong>Student (ICT)</strong>
-                    </button>
-                  </div>
-                  <div class="col-6">
-                    <button type="button" class="btn btn-outline-warning btn-sm w-100 text-truncate text-start" onclick="fillLoginAndFlash('teacher1@nvti.edu.lk', 'TeacherPassword123!', 'T1 (Nishantha)')" title="Senior Instructor: U.G.P.K. Nishantha (09:00 - 12:00)">
-                      <i class="bi bi-sun me-1"></i> <strong>Teacher 1</strong>
-                    </button>
-                  </div>
-                  <div class="col-6">
-                    <button type="button" class="btn btn-outline-primary btn-sm w-100 text-truncate text-start" onclick="fillLoginAndFlash('teacher2@nvti.edu.lk', 'TeacherPassword123!', 'T2 (Afternoon)')" title="Afternoon Teacher (13:00 - 16:00)">
-                      <i class="bi bi-sunset me-1"></i> <strong>Teacher 2</strong>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
         </div>
@@ -321,34 +279,6 @@ function togglePasswordVisibility() {
     icon.classList.add('bi-eye');
   }
 }
-
-// Quick Fill with feedback
-function fillLoginAndFlash(email, password, roleName) {
-  if (typeof window.fillLogin === 'function') {
-    window.fillLogin(email, password);
-  } else {
-    const eF = document.getElementById('loginEmail');
-    const pF = document.getElementById('loginPassword');
-    if (eF) eF.value = email;
-    if (pF) pF.value = password;
-  }
-}
-
-// Rotate collapse icon on toggle
-document.addEventListener('DOMContentLoaded', function() {
-  const collapseEl = document.getElementById('demoAccountsCollapse');
-  const arrowEl = document.getElementById('demoCollapseArrow');
-  if (collapseEl && arrowEl) {
-    collapseEl.addEventListener('show.bs.collapse', function () {
-      arrowEl.classList.remove('bi-chevron-down');
-      arrowEl.classList.add('bi-chevron-up');
-    });
-    collapseEl.addEventListener('hide.bs.collapse', function () {
-      arrowEl.classList.remove('bi-chevron-up');
-      arrowEl.classList.add('bi-chevron-down');
-    });
-  }
-});
 </script>
 
 <?php require_once __DIR__ . '/../layouts/footer.php'; ?>
