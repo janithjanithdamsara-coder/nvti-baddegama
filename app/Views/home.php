@@ -158,7 +158,7 @@ foreach ($cbtModulesDb as $row) {
                      onerror="this.onerror=null; this.src='assets/images/software_developer_logo.png';" 
                      alt="<?= e($inst['name']) ?>" 
                      class="rounded-4 shadow-sm border mb-3" 
-                     style="width: 150px; height: 180px; object-fit: cover;">
+                     style="width: 150px; height: 180px; object-fit: cover; object-position: center top;">
 
                 <h4 class="fw-bold text-dark mb-1 font-serif"><?= e($inst['name']) ?></h4>
                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill mb-3 fw-semibold">

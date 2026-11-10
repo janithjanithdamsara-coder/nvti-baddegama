@@ -122,7 +122,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                        onerror="this.onerror=null; this.src='assets/images/software_developer_logo.png';"
                        alt="<?= e($tch['name']) ?>"
                        class="rounded-circle border shadow-sm flex-shrink-0"
-                       style="width: 48px; height: 48px; object-fit: cover;">
+                       style="width: 48px; height: 48px; object-fit: cover; object-position: center top;">
                   <div>
                     <h5 class="fw-bold mb-0 text-dark"><?= e($tch['name']) ?></h5>
                     <span class="badge bg-light text-dark border small font-monospace"><?= e($tch['teacher_code'] ?? 'TCH') ?></span>
@@ -204,7 +204,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                            onerror="this.onerror=null; this.src='assets/images/software_developer_logo.png';"
                            alt="<?= e($tch['name']) ?>"
                            class="rounded-3 border shadow-xs flex-shrink-0"
-                           style="width: 68px; height: 78px; object-fit: cover;">
+                           style="width: 68px; height: 78px; object-fit: cover; object-position: center top;">
                       <div class="flex-grow-1 min-w-0">
                         <label class="form-label fw-semibold small text-dark mb-1">Profile Photo (Home &amp; Portal Card)</label>
                         <input type="file" name="profile_photo" class="form-control form-control-sm" accept=".jpg,.jpeg,.png,.webp,.gif"
