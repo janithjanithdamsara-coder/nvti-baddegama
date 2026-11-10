@@ -16,7 +16,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
       <?= Flash::render() ?>
 
       <!-- Header Banner -->
-      <div class="card border-0 shadow-sm rounded-4 mb-4 text-white overflow-hidden position-relative" style="background: linear-gradient(135deg, #7A1418 0%, #991b1b 100%); padding: 1.85rem 2.25rem;">
+      <div class="card border-0 shadow-sm rounded-4 mb-4 text-white overflow-hidden position-relative" style="background: linear-gradient(135deg, #7A1418 0%, #991b1b 100%); padding: 1.85rem 2rem;">
         <div class="position-absolute end-0 top-50 translate-middle-y me-3 pointer-events-none d-none d-xl-block" style="font-size: 7rem; line-height: 0; opacity: 0.06 !important;">
           <i class="bi bi-person-lines-fill text-white"></i>
         </div>
@@ -24,14 +24,14 @@ require_once __DIR__ . '/../layouts/navbar.php';
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 position-relative" style="z-index: 5;">
           <div>
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <span class="badge rounded-pill font-monospace px-3 py-1.5 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
+              <span class="badge rounded-pill font-monospace px-3 py-1 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
                 <i class="bi bi-cloud-arrow-down-fill me-1"></i> nvtibaddegama.site API
               </span>
-              <span class="badge rounded-pill px-3 py-1.5 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
+              <span class="badge rounded-pill px-3 py-1 fw-semibold shadow-xs" style="background: rgba(255, 255, 255, 0.22) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.38); font-size: 0.74rem;">
                 <i class="bi bi-mortarboard-fill me-1"></i> NVQ Level 5 Intake
               </span>
             </div>
-            <h3 class="fw-bold mb-1.5 text-white" style="letter-spacing: -0.3px;">Candidate Online Applications Hub</h3>
+            <h3 class="fw-bold mb-1 text-white" style="letter-spacing: -0.3px;">Candidate Applications Hub</h3>
             <p class="mb-0 text-white opacity-85 small" style="max-width: 680px;">
               Review admission applications submitted via <strong>nvtibaddegama.site</strong>, inspect O/L &amp; A/L qualifications, shortlist for interviews, and 1-click enroll students into Batch 2026.
             </p>
@@ -50,7 +50,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
             <!-- Export CSV -->
             <a href="index.php?page=admin_export_applications_csv" class="btn btn-light rounded-pill px-3 py-2 fw-semibold text-dark shadow-sm d-inline-flex align-items-center gap-1.5">
               <i class="bi bi-file-earmark-spreadsheet text-success"></i>
-              <span>Export CSV</span>
+              <span class="d-none d-sm-inline">Export CSV</span>
             </a>
 
             <!-- Manual Add Modal Button -->
@@ -62,63 +62,63 @@ require_once __DIR__ . '/../layouts/navbar.php';
         </div>
       </div>
 
-      <!-- KPI Summary Metrics -->
+      <!-- KPI Summary Metrics (Fully Responsive Grid) -->
       <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-2-4 col-md-4">
+        <div class="col-6 col-md-4 col-xl">
           <div class="card border rounded-4 bg-white shadow-sm p-3 h-100">
-            <div class="d-flex align-items-center gap-2.5 mb-1">
-              <div class="rounded-circle p-2 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                <i class="bi bi-inbox-fill fs-6"></i>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <div class="rounded-circle p-2 bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                <i class="bi bi-inbox-fill" style="font-size: 0.85rem;"></i>
               </div>
-              <small class="text-muted fw-bold text-uppercase" style="font-size: 0.68rem;">Total Received</small>
+              <small class="text-muted fw-bold text-uppercase text-truncate" style="font-size: 0.68rem;">Total Received</small>
             </div>
             <div class="fs-4 fw-bold text-dark mb-0"><?= $totalApps ?></div>
           </div>
         </div>
 
-        <div class="col-6 col-lg-2-4 col-md-4">
+        <div class="col-6 col-md-4 col-xl">
           <div class="card border rounded-4 bg-white shadow-sm p-3 h-100">
-            <div class="d-flex align-items-center gap-2.5 mb-1">
-              <div class="rounded-circle p-2 bg-info-subtle text-info d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                <i class="bi bi-laptop-fill fs-6"></i>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <div class="rounded-circle p-2 bg-info-subtle text-info d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                <i class="bi bi-laptop-fill" style="font-size: 0.85rem;"></i>
               </div>
-              <small class="text-muted fw-bold text-uppercase" style="font-size: 0.68rem;">ICT Diploma (L5)</small>
+              <small class="text-muted fw-bold text-uppercase text-truncate" style="font-size: 0.68rem;">ICT Diploma (L5)</small>
             </div>
             <div class="fs-4 fw-bold text-info mb-0"><?= $ictApps ?></div>
           </div>
         </div>
 
-        <div class="col-6 col-lg-2-4 col-md-4">
+        <div class="col-6 col-md-4 col-xl">
           <div class="card border rounded-4 bg-white shadow-sm p-3 h-100">
-            <div class="d-flex align-items-center gap-2.5 mb-1">
-              <div class="rounded-circle p-2 bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                <i class="bi bi-clock-history fs-6"></i>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <div class="rounded-circle p-2 bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                <i class="bi bi-clock-history" style="font-size: 0.85rem;"></i>
               </div>
-              <small class="text-muted fw-bold text-uppercase" style="font-size: 0.68rem;">Pending Review</small>
+              <small class="text-muted fw-bold text-uppercase text-truncate" style="font-size: 0.68rem;">Pending Review</small>
             </div>
             <div class="fs-4 fw-bold text-warning mb-0"><?= $pendingApps ?></div>
           </div>
         </div>
 
-        <div class="col-6 col-lg-2-4 col-md-4">
+        <div class="col-6 col-md-4 col-xl">
           <div class="card border rounded-4 bg-white shadow-sm p-3 h-100">
-            <div class="d-flex align-items-center gap-2.5 mb-1">
-              <div class="rounded-circle p-2 text-primary d-flex align-items-center justify-content-center" style="background: #eff6ff; width: 36px; height: 36px;">
-                <i class="bi bi-person-check-fill fs-6"></i>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <div class="rounded-circle p-2 text-primary d-flex align-items-center justify-content-center" style="background: #eff6ff; width: 34px; height: 34px;">
+                <i class="bi bi-person-check-fill" style="font-size: 0.85rem;"></i>
               </div>
-              <small class="text-muted fw-bold text-uppercase" style="font-size: 0.68rem;">Interview / Selected</small>
+              <small class="text-muted fw-bold text-uppercase text-truncate" style="font-size: 0.68rem;">Interview / Selected</small>
             </div>
             <div class="fs-4 fw-bold text-primary mb-0"><?= ($interviewApps + $selectedApps) ?></div>
           </div>
         </div>
 
-        <div class="col-12 col-lg-2-4 col-md-4">
+        <div class="col-12 col-md-4 col-xl">
           <div class="card border rounded-4 bg-white shadow-sm p-3 h-100" style="border-left: 4px solid #10b981 !important;">
-            <div class="d-flex align-items-center gap-2.5 mb-1">
-              <div class="rounded-circle p-2 bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                <i class="bi bi-patch-check-fill fs-6"></i>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <div class="rounded-circle p-2 bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                <i class="bi bi-patch-check-fill" style="font-size: 0.85rem;"></i>
               </div>
-              <small class="text-success fw-bold text-uppercase" style="font-size: 0.68rem;">Enrolled in Batch</small>
+              <small class="text-success fw-bold text-uppercase text-truncate" style="font-size: 0.68rem;">Enrolled in Batch</small>
             </div>
             <div class="fs-4 fw-bold text-success mb-0"><?= $enrolledApps ?></div>
           </div>
@@ -127,14 +127,14 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
       <!-- Search & Filters Bar -->
       <div class="card border rounded-4 shadow-sm bg-white p-3 mb-4">
-        <form action="index.php" method="GET" class="row g-2.5 align-items-center">
+        <form action="index.php" method="GET" class="row g-2 align-items-center">
           <input type="hidden" name="page" value="admin_applications">
 
           <!-- Search Input -->
           <div class="col-12 col-md-4 col-xl-3">
             <div class="input-group input-group-sm">
               <span class="input-group-text bg-light border-secondary-subtle"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" name="search" class="form-control border-secondary-subtle" placeholder="Search Candidate, NIC, ID..." value="<?= e($search) ?>">
+              <input type="text" name="search" class="form-control border-secondary-subtle" placeholder="Candidate, NIC, ID..." value="<?= e($search) ?>">
             </div>
           </div>
 
@@ -184,9 +184,9 @@ require_once __DIR__ . '/../layouts/navbar.php';
         </form>
       </div>
 
-      <!-- Candidate Applications Table -->
+      <!-- Main Applications Container -->
       <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
-        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom flex-wrap gap-2">
           <div class="d-flex align-items-center gap-2">
             <i class="bi bi-people-fill text-primary"></i>
             <strong class="text-dark">Applicant Candidates (<?= count($applications) ?> Records)</strong>
@@ -196,30 +196,29 @@ require_once __DIR__ . '/../layouts/navbar.php';
           </span>
         </div>
 
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
-            <thead class="table-light text-secondary text-uppercase" style="font-size: 0.74rem; letter-spacing: 0.5px;">
-              <tr>
-                <th style="width: 45px;" class="text-center py-2.5">#</th>
-                <th style="width: 280px;" class="py-2.5">Candidate Details</th>
-                <th style="width: 140px;" class="py-2.5">NIC &amp; Age</th>
-                <th style="width: 180px;" class="py-2.5">Contact &amp; WhatsApp</th>
-                <th style="width: 190px;" class="py-2.5">Qualifications (O/L &amp; A/L)</th>
-                <th style="width: 220px;" class="py-2.5">Course Preferences</th>
-                <th style="width: 130px;" class="text-center py-2.5">Status</th>
-                <th class="py-2.5 text-end pe-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($applications)): ?>
+        <?php if (empty($applications)): ?>
+          <div class="p-5 text-center text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+            No candidate applications match the selected filter criteria.<br>
+            <span class="small">Click <strong>"Sync from NVTI Website"</strong> to fetch online submissions or <strong>"+ Paper Form"</strong> to add an offline candidate.</span>
+          </div>
+        <?php else: ?>
+
+          <!-- ================= 1. DESKTOP VIEW: CLEAN STREAMLINED TABLE ================= -->
+          <div class="table-responsive d-none d-lg-block">
+            <table class="table table-hover align-middle mb-0" style="font-size: 0.86rem;">
+              <thead class="table-light text-secondary text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">
                 <tr>
-                  <td colspan="8" class="text-center py-5 text-muted">
-                    <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
-                    No candidate applications match the selected filter criteria.<br>
-                    <span class="small">Click <strong>"Sync from NVTI Website"</strong> to fetch online submissions or <strong>"+ Paper Form"</strong> to add an offline candidate.</span>
-                  </td>
+                  <th style="width: 40px;" class="text-center py-2.5">#</th>
+                  <th style="width: 25%;" class="py-2.5">Candidate Details</th>
+                  <th style="width: 17%;" class="py-2.5">NIC &amp; Contacts</th>
+                  <th style="width: 18%;" class="py-2.5">Qualifications</th>
+                  <th style="width: 20%;" class="py-2.5">Course Preferences</th>
+                  <th style="width: 10%;" class="text-center py-2.5">Status</th>
+                  <th style="width: 10%;" class="text-end pe-3 py-2.5">Actions</th>
                 </tr>
-              <?php else: ?>
+              </thead>
+              <tbody>
                 <?php $idx = 1; foreach ($applications as $app): 
                   $appId = (int)$app['id'];
                   $status = $app['status'];
@@ -233,57 +232,47 @@ require_once __DIR__ . '/../layouts/navbar.php';
                   <tr>
                     <td class="text-center text-muted fw-bold"><?= $idx++ ?></td>
 
-                    <!-- Candidate Name & Student ID -->
+                    <!-- Candidate Name & Reference -->
                     <td>
                       <div class="d-flex align-items-center gap-2.5">
                         <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0 shadow-xs" 
-                             style="width: 40px; height: 40px; font-size: 0.95rem; background: linear-gradient(135deg, #7A1418, #991b1b);">
+                             style="width: 38px; height: 38px; font-size: 0.92rem; background: linear-gradient(135deg, #7A1418, #991b1b);">
                           <?= strtoupper(substr($app['full_name'], 0, 1)) ?>
                         </div>
                         <div class="min-w-0">
-                          <div class="fw-bold text-dark mb-0 text-truncate" title="<?= e($app['full_name']) ?>" style="max-width: 220px;">
-                            <?= e($app['full_name']) ?>
-                          </div>
-                          <div class="text-muted small font-monospace d-flex align-items-center gap-1.5" style="font-size: 0.74rem;">
-                            <span class="badge bg-light text-dark border font-monospace"><?= e($app['student_id']) ?></span>
-                            <span>&bull; <?= date('M d, Y', strtotime($app['application_date'])) ?></span>
+                          <div class="fw-bold text-dark mb-0 lh-sm"><?= e($app['full_name']) ?></div>
+                          <div class="text-muted small font-monospace mt-1" style="font-size: 0.73rem;">
+                            <span class="badge bg-light text-dark border font-monospace py-0.5 px-1.5"><?= e($app['student_id']) ?></span>
+                            <span class="ms-1">&bull; <?= date('M d, Y', strtotime($app['application_date'])) ?></span>
                           </div>
                         </div>
                       </div>
                     </td>
 
-                    <!-- NIC & Age -->
+                    <!-- NIC & Contact Channels -->
                     <td>
-                      <span class="badge bg-light text-dark border font-monospace px-2 py-1"><?= e($app['nic']) ?></span>
-                      <?php if (!empty($app['dob'])): ?>
-                        <?php 
-                          $age = (new DateTime($app['dob']))->diff(new DateTime())->y;
-                        ?>
-                        <div class="text-muted small mt-0.5" style="font-size: 0.72rem;">
-                          <?= date('Y-m-d', strtotime($app['dob'])) ?> (<?= $age ?> yrs)
-                        </div>
-                      <?php endif; ?>
-                    </td>
-
-                    <!-- Contact & WhatsApp -->
-                    <td>
-                      <div class="d-flex align-items-center gap-1 text-dark small fw-medium">
-                        <i class="bi bi-telephone text-secondary me-0.5"></i>
-                        <a href="tel:<?= e($app['contact_no']) ?>" class="text-dark text-decoration-none font-monospace"><?= e($app['contact_no']) ?></a>
+                      <div class="d-flex align-items-center gap-1.5 mb-1">
+                        <span class="badge bg-light text-dark border font-monospace px-2 py-0.5" style="font-size: 0.74rem;"><?= e($app['nic']) ?></span>
+                        <?php if (!empty($app['dob'])): ?>
+                          <?php $age = (new DateTime($app['dob']))->diff(new DateTime())->y; ?>
+                          <span class="text-muted small" style="font-size: 0.72rem;">(<?= $age ?> yrs)</span>
+                        <?php endif; ?>
                       </div>
-                      <?php if (!empty($app['whatsapp_no'])): ?>
-                        <div class="mt-1">
-                          <a href="https://wa.me/<?= $waNumber ?>?text=<?= urlencode("Hello " . $app['full_name'] . ", regarding your NVTI Baddegama ICT NVQ Level 5 Diploma application:") ?>" target="_blank" rel="noopener noreferrer" class="badge rounded-pill text-white px-2 py-1 text-decoration-none d-inline-flex align-items-center gap-1" style="background: #25D366; font-size: 0.7rem;">
-                            <i class="bi bi-whatsapp"></i>
-                            <span><?= e($app['whatsapp_no']) ?></span>
+                      <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <a href="tel:<?= e($app['contact_no']) ?>" class="text-decoration-none text-secondary small font-monospace d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                          <i class="bi bi-telephone text-primary"></i> <?= e($app['contact_no']) ?>
+                        </a>
+                        <?php if (!empty($app['whatsapp_no'])): ?>
+                          <a href="https://wa.me/<?= $waNumber ?>?text=<?= urlencode("Hello " . $app['full_name'] . ", regarding your NVTI Baddegama ICT NVQ Level 5 Diploma application:") ?>" target="_blank" rel="noopener noreferrer" class="badge rounded-pill text-white px-2 py-0.5 text-decoration-none d-inline-flex align-items-center gap-1 shadow-xs" style="background: #25D366; font-size: 0.68rem;">
+                            <i class="bi bi-whatsapp"></i> Chat
                           </a>
-                        </div>
-                      <?php endif; ?>
+                        <?php endif; ?>
+                      </div>
                     </td>
 
                     <!-- Qualifications: O/L & A/L -->
                     <td>
-                      <div class="d-flex align-items-center gap-1.5 mb-1">
+                      <div class="d-flex align-items-center gap-1.5 mb-1 flex-wrap">
                         <?php if ($app['ol_pass_status'] === 'Yes'): ?>
                           <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 0.68rem;">O/L Passed</span>
                         <?php else: ?>
@@ -303,11 +292,11 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
                     <!-- Course Preferences -->
                     <td>
-                      <div class="small fw-semibold text-dark text-truncate" style="max-width: 210px;" title="<?= e($app['course_option_one']) ?>">
+                      <div class="small fw-semibold text-dark lh-sm">
                         1. <?= e($app['course_option_one']) ?>
                       </div>
                       <?php if (!empty($app['course_option_two'])): ?>
-                        <div class="text-muted small text-truncate" style="max-width: 210px; font-size: 0.74rem;" title="<?= e($app['course_option_two']) ?>">
+                        <div class="text-muted small mt-0.5 lh-sm" style="font-size: 0.74rem;">
                           2. <?= e($app['course_option_two']) ?>
                         </div>
                       <?php endif; ?>
@@ -340,7 +329,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
                     <!-- Actions -->
                     <td class="text-end pe-3">
-                      <div class="d-flex align-items-center justify-content-end gap-1.5">
+                      <div class="d-flex align-items-center justify-content-end gap-1">
                         <!-- Inspect Modal -->
                         <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" style="width: 32px; height: 32px;" title="View Candidate Dossier" onclick='openDossierModal(<?= json_encode($app) ?>)'>
                           <i class="bi bi-eye"></i>
@@ -403,10 +392,110 @@ require_once __DIR__ . '/../layouts/navbar.php';
                     </td>
                   </tr>
                 <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- ================= 2. MOBILE & TABLET VIEW: SLEEK CANDIDATE CARDS ================= -->
+          <div class="d-lg-none p-3 bg-light">
+            <div class="row g-3">
+              <?php foreach ($applications as $app): 
+                $appId = (int)$app['id'];
+                $status = $app['status'];
+                $cleanPhone = preg_replace('/[^0-9]/', '', $app['whatsapp_no'] ?: $app['contact_no']);
+                if (str_starts_with($cleanPhone, '0')) {
+                  $waNumber = '94' . substr($cleanPhone, 1);
+                } else {
+                  $waNumber = $cleanPhone;
+                }
+              ?>
+                <div class="col-12 col-md-6">
+                  <div class="card border rounded-4 bg-white shadow-sm p-3.5 h-100 position-relative">
+                    <!-- Top Row: Avatar + Name + Status -->
+                    <div class="d-flex align-items-start justify-content-between gap-2 mb-2.5">
+                      <div class="d-flex align-items-center gap-2.5 min-w-0">
+                        <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0 shadow-xs" 
+                             style="width: 42px; height: 42px; font-size: 1rem; background: linear-gradient(135deg, #7A1418, #991b1b);">
+                          <?= strtoupper(substr($app['full_name'], 0, 1)) ?>
+                        </div>
+                        <div class="min-w-0">
+                          <h6 class="fw-bold text-dark mb-0 lh-sm"><?= e($app['full_name']) ?></h6>
+                          <div class="text-muted small font-monospace" style="font-size: 0.72rem;">
+                            <?= e($app['student_id']) ?> &bull; <?= date('M d, Y', strtotime($app['application_date'])) ?>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Mobile Status Badge -->
+                      <div>
+                        <?php if ($status === 'enrolled'): ?>
+                          <span class="badge bg-success text-white rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.68rem;">Enrolled</span>
+                        <?php elseif ($status === 'selected'): ?>
+                          <span class="badge bg-primary text-white rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.68rem;">Selected</span>
+                        <?php elseif ($status === 'called_for_interview'): ?>
+                          <span class="badge bg-info text-white rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">Interview</span>
+                        <?php elseif ($status === 'rejected'): ?>
+                          <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1" style="font-size: 0.68rem;">Rejected</span>
+                        <?php else: ?>
+                          <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.68rem;">Pending</span>
+                        <?php endif; ?>
+                      </div>
+                    </div>
+
+                    <!-- Middle Info Details -->
+                    <div class="bg-light rounded-3 p-2.5 mb-2.5 border small">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted">NIC:</span>
+                        <span class="font-monospace fw-bold text-dark"><?= e($app['nic']) ?></span>
+                      </div>
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted">Qualifications:</span>
+                        <span>
+                          <span class="badge bg-<?= ($app['ol_pass_status'] === 'Yes') ? 'success' : 'danger' ?>-subtle text-<?= ($app['ol_pass_status'] === 'Yes') ? 'success' : 'danger' ?> rounded-pill" style="font-size: 0.65rem;">O/L <?= e($app['ol_pass_status']) ?></span>
+                          <span class="badge bg-primary-subtle text-primary rounded-pill text-capitalize" style="font-size: 0.65rem;">A/L <?= e($app['al_category']) ?></span>
+                        </span>
+                      </div>
+                      <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">1st Choice:</span>
+                        <span class="fw-semibold text-dark text-truncate ms-2" style="max-width: 65%;"><?= e($app['course_option_one']) ?></span>
+                      </div>
+                    </div>
+
+                    <!-- Mobile Contact Actions -->
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                      <a href="tel:<?= e($app['contact_no']) ?>" class="btn btn-outline-secondary btn-sm rounded-pill flex-grow-1 py-1 d-inline-flex align-items-center justify-content-center gap-1.5" style="font-size: 0.78rem;">
+                        <i class="bi bi-telephone text-primary"></i> Call <?= e($app['contact_no']) ?>
+                      </a>
+                      <?php if (!empty($app['whatsapp_no'])): ?>
+                        <a href="https://wa.me/<?= $waNumber ?>?text=<?= urlencode("Hello " . $app['full_name'] . ", regarding your NVTI Baddegama ICT NVQ Level 5 Diploma application:") ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm rounded-pill text-white flex-grow-1 py-1 d-inline-flex align-items-center justify-content-center gap-1.5 shadow-xs" style="background: #25D366; font-size: 0.78rem;">
+                          <i class="bi bi-whatsapp"></i> WhatsApp
+                        </a>
+                      <?php endif; ?>
+                    </div>
+
+                    <!-- Mobile Bottom Buttons -->
+                    <div class="pt-2.5 border-top d-flex align-items-center justify-content-between gap-2 mt-auto">
+                      <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1 fw-semibold" style="font-size: 0.75rem;" onclick='openDossierModal(<?= json_encode($app) ?>)'>
+                        <i class="bi bi-eye me-1"></i> View Dossier
+                      </button>
+
+                      <?php if ($status !== 'enrolled'): ?>
+                        <button type="button" class="btn btn-success btn-sm rounded-pill px-3 py-1 fw-bold shadow-xs" style="font-size: 0.75rem;" onclick='openEnrollModal(<?= json_encode($app) ?>)'>
+                          <i class="bi bi-person-plus-fill me-1"></i> Enroll to Batch
+                        </button>
+                      <?php else: ?>
+                        <span class="badge bg-light text-success border border-success-subtle rounded-pill px-2.5 py-1 fw-semibold" style="font-size: 0.72rem;">
+                          <i class="bi bi-check-all me-1"></i> Enrolled (#<?= e($app['enrolled_user_id'] ?? '') ?>)
+                        </span>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          </div>
+
+        <?php endif; ?>
       </div>
     </div>
   </main>
@@ -444,7 +533,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
               <div class="small mb-2"><strong class="text-muted">Calling Phone:</strong> <span id="dossierPhone" class="font-monospace text-dark"></span></div>
               <div class="small mb-3"><strong class="text-muted">WhatsApp Number:</strong> <span id="dossierWa" class="font-monospace text-dark"></span></div>
               <div class="pt-2 border-top">
-                <a href="#" id="dossierWaBtn" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1.5 w-100 justify-content-center">
+                <a href="#" id="dossierWaBtn" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 w-100 justify-content-center shadow-xs">
                   <i class="bi bi-whatsapp"></i> Chat with Candidate on WhatsApp
                 </a>
               </div>
@@ -697,7 +786,7 @@ function openDossierModal(app) {
   document.getElementById('dossierEng').textContent = app.ol_english_grade || '-';
   document.getElementById('dossierMath').textContent = app.ol_maths_grade || '-';
   document.getElementById('dossierSci').textContent = app.ol_science_grade || '-';
-  document.getElementById('dossierAlStream').textContent = app.al_category || 'General';
+  document.getElementById('dossierAlStream').textContent = (app.al_category || 'General').toUpperCase();
 
   document.getElementById('dossierOpt1').textContent = app.course_option_one;
   document.getElementById('dossierOpt2').textContent = app.course_option_two || 'None';
@@ -720,14 +809,5 @@ function openEnrollModal(app) {
   modal.show();
 }
 </script>
-
-<style>
-@media (min-width: 992px) {
-  .col-lg-2-4 {
-    flex: 0 0 auto;
-    width: 20%;
-  }
-}
-</style>
 
 <?php require_once __DIR__ . '/../layouts/footer.php'; ?>
