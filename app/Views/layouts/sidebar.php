@@ -25,9 +25,13 @@ $roleBadgeText = match ($role) {
           <small class="text-muted d-block sidebar-brand-sub" style="font-size: 0.72rem; font-weight: 500;">ICT NVQ Level 5</small>
         </div>
       </a>
-      <!-- Quick Inline Collapse Toggle Button -->
+      <!-- Quick Inline Collapse Toggle Button (Desktop) -->
       <button class="btn btn-sm btn-light border p-1 rounded-2 d-none d-lg-inline-flex align-items-center justify-content-center text-secondary shadow-none sidebar-inline-toggle-btn" id="appSidebarInlineToggleBtn" type="button" title="Collapse Sidebar" style="width: 28px; height: 28px;">
         <i data-lucide="chevron-left" class="sidebar-inline-toggle-icon" style="width: 16px; height: 16px;"></i>
+      </button>
+      <!-- Mobile Drawer Close Button -->
+      <button class="btn btn-sm btn-light border p-1 rounded-2 d-inline-flex d-lg-none align-items-center justify-content-center text-danger shadow-none" id="appSidebarMobileCloseBtn" type="button" title="Close Menu" style="width: 30px; height: 30px;">
+        <i data-lucide="x" style="width: 18px; height: 18px;"></i>
       </button>
     </div>
 
@@ -178,40 +182,6 @@ $roleBadgeText = match ($role) {
         <i data-lucide="calendar" class="sidebar-icon"></i>
         <span class="sidebar-link-text">Class Timetable</span>
       </a>
-    <?php endif; ?>
-
-    <?php if ($role === 'student'): 
-      $stBatchInfo = null;
-      try {
-          $sdb = Database::getConnection();
-          $stBatchStmt = $sdb->prepare("
-              SELECT c.class_name, c.status, c.academic_year 
-              FROM student_profiles sp 
-              JOIN classes c ON sp.class_id = c.id 
-              WHERE sp.user_id = ?
-          ");
-          $stBatchStmt->execute([Auth::id()]);
-          $stBatchInfo = $stBatchStmt->fetch();
-      } catch (\Exception $e) {}
-      $isAlumni = ($stBatchInfo && $stBatchInfo['status'] === 'archived');
-      $batchDisplayName = $stBatchInfo ? preg_replace('/.*Batch\s*/i', 'Batch ', $stBatchInfo['class_name']) : 'Batch 2026';
-    ?>
-      <!-- Official NVTI Academic Status Widget (Student Portal Only) -->
-      <div class="sidebar-academic-widget p-2.5 rounded-3 my-2.5" style="background: <?= $isAlumni ? '#f8fafc' : 'linear-gradient(180deg, #fdf8f8 0%, #f8fafc 100%)' ?>; border: 1px solid <?= $isAlumni ? '#cbd5e1' : '#fecaca' ?>;">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <span class="badge rounded-circle p-1 d-inline-flex align-items-center justify-content-center" style="background: <?= $isAlumni ? '#475569' : '#7A1418' ?>; color: #ffffff; width: 22px; height: 22px;">
-            <i data-lucide="graduation-cap" style="width: 13px; height: 13px;"></i>
-          </span>
-          <span class="fw-bold text-dark text-truncate" style="font-size: 0.75rem;">NVQ L5 &bull; <?= htmlspecialchars($batchDisplayName) ?></span>
-        </div>
-        <div class="text-secondary small" style="font-size: 0.7rem; line-height: 1.35;">
-          <?php if ($isAlumni): ?>
-            <span class="badge bg-secondary text-white" style="font-size: 0.65rem;">🎓 Alumni / Completed Cohort</span>
-          <?php else: ?>
-            Semester 1 &bull; 80% Min. Attendance
-          <?php endif; ?>
-        </div>
-      </div>
     <?php endif; ?>
 
     <!-- Clean Subtle Divider Before Account Links -->

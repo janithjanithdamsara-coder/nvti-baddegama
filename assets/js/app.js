@@ -81,13 +81,13 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.setItem('nvti_sidebar_collapsed', '0');
       }
 
-      // Update navbar toggle icon with clean fresh element for Lucide
+      // Update navbar toggle icon with clean fresh element for Lucide (Hamburger on Mobile, Panel on Desktop)
       const toggleBtns = document.querySelectorAll('#appSidebarToggleBtn, .sidebar-topbar-toggle-btn');
       toggleBtns.forEach((btn) => {
         btn.setAttribute('title', isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar');
         btn.innerHTML = isCollapsed
-          ? '<i data-lucide="panel-left-open" class="sidebar-toggle-icon" style="width: 18px; height: 18px;"></i>'
-          : '<i data-lucide="panel-left-close" class="sidebar-toggle-icon" style="width: 18px; height: 18px;"></i>';
+          ? '<i data-lucide="menu" class="d-lg-none" style="width: 20px; height: 20px;"></i><i data-lucide="panel-left-open" class="sidebar-toggle-icon d-none d-lg-inline-block" style="width: 18px; height: 18px;"></i>'
+          : '<i data-lucide="menu" class="d-lg-none" style="width: 20px; height: 20px;"></i><i data-lucide="panel-left-close" class="sidebar-toggle-icon d-none d-lg-inline-block" style="width: 18px; height: 18px;"></i>';
       });
 
       // Update sidebar inline collapse icon
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
       });
 
       if (floatingBtn) {
-        floatingBtn.style.display = isCollapsed ? 'inline-flex' : 'none';
+        floatingBtn.style.display = (isCollapsed && window.innerWidth >= 992) ? 'inline-flex' : 'none';
       }
 
       if (typeof lucide !== 'undefined' && lucide.createIcons) {
@@ -108,8 +108,19 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
-    // Click handler for toggle buttons
+    function closeMobileSidebar() {
+      appSidebar.classList.remove('show-mobile');
+      backdrop.classList.remove('active');
+    }
+
+    // Click handler for toggle buttons & mobile close button
     document.addEventListener('click', function (e) {
+      if (e.target.closest('#appSidebarMobileCloseBtn')) {
+        e.preventDefault();
+        closeMobileSidebar();
+        return;
+      }
+
       const targetBtn = e.target.closest('#appSidebarToggleBtn, #appSidebarToggle, #appSidebarFloatingExpandBtn, #appSidebarInlineToggleBtn, .sidebar-topbar-toggle-btn');
       if (targetBtn) {
         e.preventDefault();
@@ -127,10 +138,14 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
 
-    // Close on mobile backdrop click
-    backdrop.addEventListener('click', function () {
-      appSidebar.classList.remove('show-mobile');
-      backdrop.classList.remove('active');
+    // Close mobile sidebar when clicking any menu link or backdrop
+    backdrop.addEventListener('click', closeMobileSidebar);
+    appSidebar.querySelectorAll('.sidebar-link').forEach((link) => {
+      link.addEventListener('click', function () {
+        if (window.innerWidth < 992) {
+          closeMobileSidebar();
+        }
+      });
     });
 
     // Restore desktop collapsed state on page load

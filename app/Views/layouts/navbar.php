@@ -104,9 +104,10 @@ $userInitial = !empty($userFullName) ? strtoupper(substr($userFullName, 0, 1)) :
   <header class="app-portal-topbar fixed-top bg-white border-bottom px-3 px-md-4 py-2 d-flex align-items-center justify-content-between">
     <!-- Left Section: Toggle, Role Pill & Breadcrumb -->
     <div class="d-flex align-items-center gap-2 min-w-0">
-      <!-- Sidebar Toggle Button (Handles Desktop Collapse & Mobile Drawer) -->
-      <button class="btn btn-sm btn-light border px-2 py-1.5 rounded-2 d-inline-flex align-items-center justify-content-center text-dark shadow-none sidebar-topbar-toggle-btn" id="appSidebarToggleBtn" type="button" title="Toggle Navigation Sidebar">
-        <i data-lucide="panel-left-close" class="sidebar-toggle-icon" style="width: 18px; height: 18px;"></i>
+      <!-- Sidebar / Hamburger Menu Toggle Button (Hamburger on Mobile, Collapse on Desktop) -->
+      <button class="btn btn-sm btn-light border px-2 py-1.5 rounded-2 d-inline-flex align-items-center justify-content-center text-dark shadow-none sidebar-topbar-toggle-btn" id="appSidebarToggleBtn" type="button" title="Toggle Navigation Menu">
+        <i data-lucide="menu" class="d-lg-none" style="width: 20px; height: 20px;"></i>
+        <i data-lucide="panel-left-close" class="sidebar-toggle-icon d-none d-lg-inline-block" style="width: 18px; height: 18px;"></i>
       </button>
 
       <!-- Role Badge -->

@@ -46,28 +46,28 @@ $photo = !empty($student['profile_image']) ? $student['profile_image'] : '';
           </div>
         </div>
 
-        <!-- Navigation Tabs -->
-        <div class="px-3 px-md-4 pt-3 border-bottom bg-light overflow-auto">
-          <ul class="nav nav-tabs border-0 flex-nowrap text-nowrap" id="profileTabs" role="tablist">
-            <li class="nav-item">
-              <button class="nav-link active fw-semibold" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
-                <i class="bi bi-person-lines-fill me-1.5"></i>Profile Overview
+        <!-- Navigation Tabs (Clean Responsive Pills - Zero Overflow) -->
+        <div class="px-3 px-md-4 py-3 border-bottom bg-light">
+          <ul class="nav nav-pills flex-wrap justify-content-center justify-content-md-start gap-2" id="profileTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active rounded-pill px-3 py-1.5 small fw-semibold" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                <i class="bi bi-person-lines-fill me-1"></i> Overview
               </button>
             </li>
-            <li class="nav-item">
-              <button class="nav-link fw-semibold" id="edit-tab" data-bs-toggle="tab" data-bs-target="#edit" type="button" role="tab">
-                <i class="bi bi-pencil-square me-1.5"></i>Edit Profile &amp; Photo
+            <li class="nav-item" role="presentation">
+              <button class="nav-link rounded-pill px-3 py-1.5 small fw-semibold" id="edit-tab" data-bs-toggle="tab" data-bs-target="#edit" type="button" role="tab">
+                <i class="bi bi-pencil-square me-1"></i> Edit Profile
               </button>
             </li>
-            <li class="nav-item">
-              <button class="nav-link fw-semibold" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab">
-                <i class="bi bi-shield-lock me-1.5"></i>Security &amp; Password
+            <li class="nav-item" role="presentation">
+              <button class="nav-link rounded-pill px-3 py-1.5 small fw-semibold" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab">
+                <i class="bi bi-shield-lock me-1"></i> Security
               </button>
             </li>
           </ul>
         </div>
 
-        <div class="card-body p-4">
+        <div class="card-body p-3 p-md-4">
           <div class="tab-content" id="profileTabsContent">
 
             <!-- TAB 1: OVERVIEW -->

@@ -30,27 +30,27 @@ require_once __DIR__ . '/../layouts/navbar.php';
       <!-- Verification Documents Status Callout -->
       <?php if (isset($docSummary) && !$docSummary['is_all_verified']): ?>
         <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: linear-gradient(90deg, #fff7ed 0%, #ffedd5 100%); border-left: 5px solid #ea580c !important;">
-          <div class="card-body p-3.5 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div class="d-flex align-items-center gap-3">
-              <div class="rounded-circle bg-white p-2.5 d-flex align-items-center justify-content-center shadow-sm text-warning flex-shrink-0" style="width: 46px; height: 46px;">
+          <div class="card-body p-3 p-md-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-2.5 min-w-0 w-100">
+              <div class="rounded-circle bg-white p-2 d-flex align-items-center justify-content-center shadow-sm text-warning flex-shrink-0" style="width: 44px; height: 44px;">
                 <i class="bi bi-file-earmark-check-fill fs-4 text-warning"></i>
               </div>
-              <div>
-                <div class="d-flex align-items-center gap-2 mb-0.5">
-                  <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">ENROLLMENT VERIFICATION</span>
-                  <span class="text-muted small">&bull; <?= $docSummary['uploaded'] ?> of <?= $docSummary['total'] ?> Certificates Uploaded</span>
+              <div class="min-w-0 flex-grow-1">
+                <div class="d-flex flex-wrap align-items-center gap-1.5 mb-1">
+                  <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.7rem;">ENROLLMENT VERIFICATION</span>
+                  <span class="text-muted small" style="font-size: 0.78rem;">&bull; <?= $docSummary['uploaded'] ?> of <?= $docSummary['total'] ?> Certificates Uploaded</span>
                 </div>
-                <h6 class="fw-bold mb-0 text-dark">
+                <h6 class="fw-bold mb-1 text-dark lh-sm">
                   <?php if (!$docSummary['is_complete']): ?>
                     <?= $docSummary['missing'] ?> Mandatory Verification Document<?= $docSummary['missing'] > 1 ? 's' : '' ?> Pending Upload
                   <?php else: ?>
                     All 7 Certificates Uploaded &bull; Pending Instructor's Final Verification
                   <?php endif; ?>
                 </h6>
-                <small class="text-secondary">Please ensure all 7 official certificates (O/L, A/L, GN, Character, Leaving, Birth, NIC) are uploaded for diploma verification.</small>
+                <small class="text-secondary d-block" style="line-height: 1.4;">Please ensure all 7 official certificates (O/L, A/L, GN, Character, Leaving, Birth, NIC) are uploaded for diploma verification.</small>
               </div>
             </div>
-            <a href="index.php?page=student_documents" class="btn btn-warning btn-sm fw-bold px-3 py-2 rounded-pill shadow-sm text-nowrap d-inline-flex align-items-center gap-1.5" style="background: #ea580c; border-color: #ea580c; color: #fff;">
+            <a href="index.php?page=student_documents" class="btn btn-warning btn-sm fw-bold px-3.5 py-2 rounded-pill shadow-sm text-nowrap d-inline-flex align-items-center justify-content-center gap-1.5 flex-shrink-0 w-100 w-md-auto" style="background: #ea580c; border-color: #ea580c; color: #fff;">
               <i class="bi bi-cloud-arrow-up-fill"></i>
               <span><?= !$docSummary['is_complete'] ? 'Upload Documents' : 'View Document Status' ?> &rarr;</span>
             </a>
@@ -65,9 +65,9 @@ require_once __DIR__ . '/../layouts/navbar.php';
       ?>
         <!-- Class Monitor Special Duty Card (NVTI Maroon Brand Theme) -->
         <div class="card border-0 shadow-sm rounded-4 mb-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #7A1418 0%, #90161b 100%);">
-          <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <div class="card-body p-3 p-md-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
             <div class="d-flex align-items-center gap-3">
-              <div class="rounded-circle bg-white p-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 52px; height: 52px; color: #7A1418;">
+              <div class="rounded-circle bg-white p-2.5 d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width: 48px; height: 48px; color: #7A1418;">
                 <i class="bi bi-calendar2-check-fill fs-4"></i>
               </div>
               <div>
@@ -78,7 +78,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                 <p class="small mb-0 opacity-75">You are authorized by instructor to mark daily batch attendance on the Excel Sheet.</p>
               </div>
             </div>
-            <a href="index.php?page=student_batch_attendance" class="btn btn-light fw-bold px-4 py-2 shadow-sm text-nowrap" style="color: #7A1418 !important;">
+            <a href="index.php?page=student_batch_attendance" class="btn btn-light fw-bold px-4 py-2 shadow-sm text-nowrap rounded-pill" style="color: #7A1418 !important;">
               <i class="bi bi-table me-1"></i> Open Batch Attendance Sheet &rarr;
             </a>
           </div>
@@ -88,13 +88,13 @@ require_once __DIR__ . '/../layouts/navbar.php';
       <!-- Quick Action Cards (4 Responsive Metrics) -->
       <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
-          <div class="card stat-card p-3">
-            <div class="d-flex align-items-center justify-content-between">
-              <div>
-                <span class="text-muted small fw-semibold">Subjects</span>
+          <div class="card stat-card p-3 h-100 d-flex flex-column justify-content-between">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+              <div class="min-w-0">
+                <span class="text-muted small fw-semibold d-block text-truncate">Subjects</span>
                 <h4 class="fw-bold mb-0 text-dark"><?= count($subjects) ?></h4>
               </div>
-              <div class="stat-icon bg-primary-subtle text-primary">
+              <div class="stat-icon bg-primary-subtle text-primary flex-shrink-0" style="width: 40px; height: 40px;">
                 <i class="bi bi-journals"></i>
               </div>
             </div>
@@ -102,13 +102,13 @@ require_once __DIR__ . '/../layouts/navbar.php';
         </div>
 
         <div class="col-6 col-lg-3">
-          <div class="card stat-card p-3">
-            <div class="d-flex align-items-center justify-content-between">
-              <div>
-                <span class="text-muted small fw-semibold">Study Notes</span>
+          <div class="card stat-card p-3 h-100 d-flex flex-column justify-content-between">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+              <div class="min-w-0">
+                <span class="text-muted small fw-semibold d-block text-truncate">Study Notes</span>
                 <h4 class="fw-bold mb-0 text-dark"><?= count($recentMaterials) ?></h4>
               </div>
-              <div class="stat-icon bg-info-subtle text-info">
+              <div class="stat-icon bg-info-subtle text-info flex-shrink-0" style="width: 40px; height: 40px;">
                 <i class="bi bi-file-earmark-pdf-fill"></i>
               </div>
             </div>
@@ -116,13 +116,13 @@ require_once __DIR__ . '/../layouts/navbar.php';
         </div>
 
         <div class="col-6 col-lg-3">
-          <div class="card stat-card p-3">
-            <div class="d-flex align-items-center justify-content-between">
-              <div>
-                <span class="text-muted small fw-semibold">Coursework</span>
+          <div class="card stat-card p-3 h-100 d-flex flex-column justify-content-between">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+              <div class="min-w-0">
+                <span class="text-muted small fw-semibold d-block text-truncate">Coursework</span>
                 <h4 class="fw-bold mb-0 text-dark"><?= count($assignments) ?></h4>
               </div>
-              <div class="stat-icon bg-warning-subtle text-warning">
+              <div class="stat-icon bg-warning-subtle text-warning flex-shrink-0" style="width: 40px; height: 40px;">
                 <i class="bi bi-clipboard2-check-fill"></i>
               </div>
             </div>
@@ -130,20 +130,20 @@ require_once __DIR__ . '/../layouts/navbar.php';
         </div>
 
         <div class="col-6 col-lg-3">
-          <div class="card stat-card p-3">
-            <div class="d-flex align-items-center justify-content-between">
-              <div>
-                <span class="text-muted small fw-semibold">Attendance</span>
+          <div class="card stat-card p-3 h-100 d-flex flex-column justify-content-between">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+              <div class="min-w-0">
+                <span class="text-muted small fw-semibold d-block text-truncate">Attendance</span>
                 <h4 class="fw-bold mb-0 <?= ($attendanceRate >= 80) ? 'text-success' : 'text-danger' ?>">
                   <?= $attendanceRate ?>%
                 </h4>
               </div>
-              <div class="stat-icon bg-success-subtle text-success">
+              <div class="stat-icon bg-success-subtle text-success flex-shrink-0" style="width: 40px; height: 40px;">
                 <i class="bi bi-graph-up-arrow"></i>
               </div>
             </div>
-            <div class="mt-2 text-end">
-              <a href="index.php?page=student_attendance" class="small text-decoration-none fw-semibold">View Eligibility &rarr;</a>
+            <div class="mt-2 pt-1 border-top text-end">
+              <a href="index.php?page=student_attendance" class="text-decoration-none fw-semibold text-primary" style="font-size: 0.74rem;">View Eligibility &rarr;</a>
             </div>
           </div>
         </div>

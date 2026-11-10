@@ -982,8 +982,24 @@ html, body {
   body.portal-body .sidebar.show-mobile,
   .sidebar.show-mobile {
     left: 0 !important;
-    width: 275px !important;
-    padding: 1.25rem 0.85rem !important;
+    width: 280px !important;
+    padding: 1.1rem 0.9rem !important;
+  }
+  body.portal-body .sidebar.show-mobile .sidebar-brand-text,
+  body.portal-body .sidebar.show-mobile .sidebar-role-pill,
+  body.portal-body .sidebar.show-mobile .sidebar-heading,
+  body.portal-body .sidebar.show-mobile .sidebar-link-text,
+  body.portal-body .sidebar.show-mobile .sidebar-badge-monitor,
+  body.portal-body .sidebar.show-mobile .sidebar-ext-icon,
+  body.portal-body .sidebar.show-mobile .sidebar-user-info {
+    display: block !important;
+  }
+  body.portal-body .sidebar.show-mobile .sidebar-link {
+    justify-content: flex-start !important;
+    padding: 0.62rem 0.85rem !important;
+  }
+  .sidebar-floating-expand-btn {
+    display: none !important;
   }
   .app-sidebar-backdrop {
     position: fixed;
