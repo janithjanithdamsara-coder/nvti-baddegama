@@ -470,6 +470,10 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
         </div>
         
         <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+          <div id="officeViewerSwitcher" class="btn-group btn-group-sm d-none me-1" role="group">
+            <button type="button" id="btnSwitchOffice" class="btn btn-primary rounded-start-pill px-2.5 py-1 fw-medium" onclick="switchOfficeEngine('office')">Office</button>
+            <button type="button" id="btnSwitchGoogle" class="btn btn-outline-secondary rounded-end-pill px-2.5 py-1 fw-medium" onclick="switchOfficeEngine('google')">Google</button>
+          </div>
           <a href="#" id="modalDirectDownloadBtn" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 px-md-3 py-1 d-inline-flex align-items-center gap-1 fw-medium small" title="Download">
             <i data-lucide="download" style="width: 14px; height: 14px;"></i>
             <span class="d-none d-md-inline">Download</span>
@@ -490,23 +494,34 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
           <span>Loading document preview...</span>
         </div>
 
-        <!-- PDF & Document Viewer IFrame (always rendered; never display:none while loading) -->
+        <!-- PDF & Office Viewer IFrame (always rendered; never display:none while loading) -->
         <iframe id="modalDocIframe" src="about:blank" class="w-100 h-100 border-0 d-block bg-white" onload="hideViewerSpinner();"></iframe>
+
+        <!-- Text / SQL Code Viewer Container -->
+        <div id="modalTextContainer" class="position-absolute top-0 start-0 w-100 h-100 d-none flex-column" style="z-index: 4; background: #0f172a;">
+          <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom border-secondary-subtle" style="background: #1e293b;">
+            <span class="text-light small font-monospace" id="modalTextFilename">file.sql</span>
+            <button type="button" class="btn btn-xs btn-outline-light rounded-pill px-2.5 py-0.5 small" onclick="copyTextPreview()">
+              <i class="bi bi-clipboard me-1"></i>Copy
+            </button>
+          </div>
+          <pre id="modalTextContent" class="flex-grow-1 m-0 p-3 text-light overflow-auto" style="font-size: 13px; line-height: 1.55;"></pre>
+        </div>
 
         <!-- Image Viewer Container -->
         <div id="modalImageContainer" class="position-absolute top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center bg-dark p-3" style="z-index: 4;">
           <img id="modalPreviewImage" src="" alt="Preview" class="img-fluid rounded shadow" style="max-height: 100%; max-width: 100%; object-fit: contain;">
         </div>
 
-        <!-- Unsupported Inline Format Fallback (DOCX / PPTX / XLSX / ZIP) -->
+        <!-- Unsupported Inline Format Fallback (ZIP / RAR / Offline) -->
         <div id="modalUnsupportedContainer" class="position-absolute top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center bg-light p-4 text-center" style="z-index: 6;">
           <div style="max-width: 420px;">
             <div class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px;">
               <i class="bi bi-file-earmark-arrow-down-fill fs-2"></i>
             </div>
             <h5 class="fw-bold text-dark mb-1" id="modalUnsupportedTitle">File Preview Not Available Inline</h5>
-            <p class="small text-muted mb-3">
-              Office documents (Word, PowerPoint, Excel) and archive files cannot be rendered inside this popup. Download the file directly to view it cleanly on your device.
+            <p class="small text-muted mb-3" id="modalUnsupportedDesc">
+              Archive and compressed files cannot be previewed inside this popup. Download the file directly to open it on your device.
             </p>
             <a href="#" id="modalUnsupportedDownloadBtn" class="btn btn-primary rounded-pill px-4 py-2 fw-bold">
               <i class="bi bi-download me-1"></i> Download File
@@ -534,6 +549,7 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
 <!-- Modal Viewer JavaScript -->
 <script>
 let viewerFallbackTimer = null;
+let currentOfficeUrls = { office: '', google: '' };
 
 function hideViewerSpinner() {
   const spinner = document.getElementById('modalLoadingSpinner');
@@ -551,17 +567,46 @@ function showViewerSpinner() {
   }
 }
 
+function switchOfficeEngine(engine) {
+  const docIframe = document.getElementById('modalDocIframe');
+  const btnOff = document.getElementById('btnSwitchOffice');
+  const btnGoo = document.getElementById('btnSwitchGoogle');
+  if (!currentOfficeUrls[engine]) return;
+
+  showViewerSpinner();
+  docIframe.src = currentOfficeUrls[engine];
+  clearTimeout(viewerFallbackTimer);
+  viewerFallbackTimer = setTimeout(hideViewerSpinner, 4500);
+
+  if (btnOff && btnGoo) {
+    btnOff.className = 'btn rounded-start-pill px-2.5 py-1 fw-medium ' + (engine === 'office' ? 'btn-primary' : 'btn-outline-secondary');
+    btnGoo.className = 'btn rounded-end-pill px-2.5 py-1 fw-medium ' + (engine === 'google' ? 'btn-primary' : 'btn-outline-secondary');
+  }
+}
+
+function copyTextPreview() {
+  const txt = document.getElementById('modalTextContent').textContent || '';
+  navigator.clipboard.writeText(txt);
+}
+
 function previewMaterial(id, title, type, url, filename) {
   clearTimeout(viewerFallbackTimer);
+  currentOfficeUrls = { office: '', google: '' };
+
   const modalEl = document.getElementById('materialViewerModal');
   const titleEl = document.getElementById('modalDocTitle');
   const typeBadge = document.getElementById('modalTypeBadge');
   const docIframe = document.getElementById('modalDocIframe');
+  const textContainer = document.getElementById('modalTextContainer');
+  const textContent = document.getElementById('modalTextContent');
+  const textFilename = document.getElementById('modalTextFilename');
+  const officeSwitcher = document.getElementById('officeViewerSwitcher');
   const imageContainer = document.getElementById('modalImageContainer');
   const previewImg = document.getElementById('modalPreviewImage');
   const unsupportedContainer = document.getElementById('modalUnsupportedContainer');
   const unsupportedDownloadBtn = document.getElementById('modalUnsupportedDownloadBtn');
   const unsupportedTitle = document.getElementById('modalUnsupportedTitle');
+  const unsupportedDesc = document.getElementById('modalUnsupportedDesc');
   const videoContainer = document.getElementById('modalVideoContainer');
   const videoIframe = document.getElementById('modalVideoIframe');
   const openTabBtn = document.getElementById('modalOpenTabBtn');
@@ -571,6 +616,10 @@ function previewMaterial(id, title, type, url, filename) {
   showViewerSpinner();
   docIframe.classList.remove('d-none');
   docIframe.src = 'about:blank';
+  textContainer.classList.add('d-none');
+  textContainer.classList.remove('d-flex');
+  textContent.textContent = '';
+  officeSwitcher.classList.add('d-none');
   imageContainer.classList.add('d-none');
   imageContainer.classList.remove('d-flex');
   previewImg.src = '';
@@ -610,10 +659,50 @@ function previewMaterial(id, title, type, url, filename) {
       previewImg.src = viewUrl;
       imageContainer.classList.remove('d-none');
       imageContainer.classList.add('d-flex');
-    } else if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'rar'].includes(ext)) {
-      typeBadge.innerHTML = '<i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1"></i> ' + ext.toUpperCase() + ' File';
+    } else if (['ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx', 'sql', 'txt'].includes(ext)) {
+      const isText = ['sql', 'txt'].includes(ext);
+      typeBadge.innerHTML = '<i data-lucide="file-text" style="width: 13px; height: 13px;" class="me-1"></i> ' + ext.toUpperCase() + (isText ? ' Script' : ' Slides/Doc');
+
+      fetch('index.php?page=preview_meta&kind=material&id=' + id)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.ok && data.mode === 'office' && data.office_url) {
+            currentOfficeUrls.office = data.office_url;
+            currentOfficeUrls.google = data.google_url || '';
+            officeSwitcher.classList.remove('d-none');
+            switchOfficeEngine('office');
+          } else if (data && data.ok && data.mode === 'text') {
+            docIframe.classList.add('d-none');
+            textFilename.textContent = data.filename || filename || 'preview';
+            textContent.textContent = data.text_content || '';
+            textContainer.classList.remove('d-none');
+            textContainer.classList.add('d-flex');
+            hideViewerSpinner();
+          } else {
+            docIframe.classList.add('d-none');
+            unsupportedTitle.textContent = (filename || title) + ' (' + ext.toUpperCase() + ')';
+            unsupportedDesc.textContent = data && !data.is_public_domain
+              ? 'Online Office preview works on the live HTTPS portal. On localhost, click Download to view this file.'
+              : 'Preview unavailable for this file. Download it directly to view on your device.';
+            unsupportedDownloadBtn.href = downloadUrl;
+            unsupportedContainer.classList.remove('d-none');
+            unsupportedContainer.classList.add('d-flex');
+            hideViewerSpinner();
+          }
+        })
+        .catch(() => {
+          docIframe.classList.add('d-none');
+          unsupportedTitle.textContent = (filename || title) + ' (' + ext.toUpperCase() + ')';
+          unsupportedDownloadBtn.href = downloadUrl;
+          unsupportedContainer.classList.remove('d-none');
+          unsupportedContainer.classList.add('d-flex');
+          hideViewerSpinner();
+        });
+    } else if (['zip', 'rar'].includes(ext)) {
+      typeBadge.innerHTML = '<i data-lucide="file-archive" style="width: 13px; height: 13px;" class="me-1"></i> ' + ext.toUpperCase() + ' Archive';
       docIframe.classList.add('d-none');
       unsupportedTitle.textContent = (filename || title) + ' (' + ext.toUpperCase() + ')';
+      unsupportedDesc.textContent = 'Compressed archive files cannot be previewed inside the browser. Click Download to extract and open the contents.';
       unsupportedDownloadBtn.href = downloadUrl;
       unsupportedContainer.classList.remove('d-none');
       unsupportedContainer.classList.add('d-flex');

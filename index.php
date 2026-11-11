@@ -12,6 +12,7 @@ require_once __DIR__ . '/app/Helpers/Csrf.php';
 require_once __DIR__ . '/app/Helpers/Flash.php';
 require_once __DIR__ . '/app/Helpers/Uploader.php';
 require_once __DIR__ . '/app/Helpers/Mailer.php';
+require_once __DIR__ . '/app/Helpers/PreviewToken.php';
 
 require_once __DIR__ . '/app/Controllers/AuthController.php';
 require_once __DIR__ . '/app/Controllers/AdminController.php';
@@ -443,6 +444,127 @@ switch ($page) {
 
         $filePath = MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $row['file_path'];
         $fileName = $row['original_filename'] ?: basename($filePath);
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        if (empty($_GET['raw']) && (PreviewToken::isOfficeExt($ext) || PreviewToken::isTextExt($ext))) {
+            PreviewToken::renderStandaloneViewer(
+                $row['title'] ?? $fileName,
+                'material',
+                $matId,
+                $filePath,
+                $fileName,
+                'index.php?page=download_material&id=' . $matId
+            );
+        }
+        Uploader::streamInlineView($filePath, $fileName);
+        break;
+
+    case 'preview_meta':
+        Auth::requireLogin();
+        header('Content-Type: application/json; charset=UTF-8');
+        $kind = trim($_GET['kind'] ?? 'material');
+        $id   = (int)($_GET['id'] ?? 0);
+        $db   = Database::getConnection();
+
+        if (!in_array($kind, ['material', 'paper'], true) || $id <= 0) {
+            http_response_code(400);
+            echo json_encode(['ok' => false, 'error' => 'Invalid preview request.']);
+            exit;
+        }
+
+        if ($kind === 'material') {
+            $stmt = $db->prepare("SELECT id, title, material_type, file_path, original_filename, is_hidden FROM materials WHERE id = ?");
+            $stmt->execute([$id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row || (Auth::role() === 'student' && !empty($row['is_hidden'])) || empty($row['file_path'])) {
+                http_response_code(404);
+                echo json_encode(['ok' => false, 'error' => 'Material not found.']);
+                exit;
+            }
+            $downloadUrl = 'index.php?page=download_material&id=' . $id;
+            $viewUrl     = 'index.php?page=view_material&id=' . $id;
+        } else {
+            $stmt = $db->prepare("SELECT id, title, file_path, original_filename FROM exam_papers WHERE id = ?");
+            $stmt->execute([$id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row || empty($row['file_path'])) {
+                http_response_code(404);
+                echo json_encode(['ok' => false, 'error' => 'Paper not found.']);
+                exit;
+            }
+            $downloadUrl = 'index.php?page=download_paper&id=' . $id;
+            $viewUrl     = 'index.php?page=view_paper&id=' . $id;
+        }
+
+        $filePath = MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $row['file_path'];
+        $fileName = $row['original_filename'] ?: basename($filePath);
+        $ext      = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        $isPublic = PreviewToken::isPublicDomain();
+
+        $payload = [
+            'ok'               => true,
+            'kind'             => $kind,
+            'id'               => $id,
+            'title'            => $row['title'] ?? $fileName,
+            'filename'         => $fileName,
+            'ext'              => $ext,
+            'is_public_domain' => $isPublic,
+            'view_url'         => $viewUrl,
+            'download_url'     => $downloadUrl,
+        ];
+
+        if (PreviewToken::isOfficeExt($ext)) {
+            $payload['mode'] = $isPublic ? 'office' : 'download';
+            if ($isPublic) {
+                $pubUrl = PreviewToken::makePublicFileUrl($kind, $id, 900);
+                $payload['office_url'] = PreviewToken::getOfficeEmbedUrl($pubUrl);
+                $payload['google_url'] = PreviewToken::getGoogleDocsEmbedUrl($pubUrl);
+            }
+        } elseif (PreviewToken::isTextExt($ext)) {
+            $payload['mode'] = 'text';
+            $payload['text_content'] = PreviewToken::readTextPreview($filePath);
+        } elseif (in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
+            $payload['mode'] = 'image';
+        } elseif ($ext === 'pdf') {
+            $payload['mode'] = 'pdf';
+        } else {
+            $payload['mode'] = 'download';
+        }
+
+        echo json_encode($payload);
+        exit;
+
+    case 'public_preview_file':
+        $kind = trim($_GET['kind'] ?? '');
+        $id   = (int)($_GET['id'] ?? 0);
+        $exp  = (int)($_GET['exp'] ?? 0);
+        $sig  = trim($_GET['sig'] ?? '');
+
+        if (!PreviewToken::verify($kind, $id, $exp, $sig)) {
+            http_response_code(403);
+            die("Invalid or expired preview token.");
+        }
+
+        $db = Database::getConnection();
+        if ($kind === 'material') {
+            $stmt = $db->prepare("SELECT file_path, original_filename, is_hidden FROM materials WHERE id = ?");
+            $stmt->execute([$id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row || !empty($row['is_hidden']) || empty($row['file_path'])) {
+                http_response_code(404);
+                die("File not found.");
+            }
+        } else {
+            $stmt = $db->prepare("SELECT file_path, original_filename FROM exam_papers WHERE id = ?");
+            $stmt->execute([$id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row || empty($row['file_path'])) {
+                http_response_code(404);
+                die("File not found.");
+            }
+        }
+
+        $filePath = MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $row['file_path'];
+        $fileName = $row['original_filename'] ?: basename($filePath);
         Uploader::streamInlineView($filePath, $fileName);
         break;
 
@@ -471,7 +593,7 @@ switch ($page) {
         Auth::requireLogin();
         $paperId = (int)($_GET['id'] ?? 0);
         $db = Database::getConnection();
-        $stmt = $db->prepare("SELECT file_path, original_filename FROM exam_papers WHERE id = ?");
+        $stmt = $db->prepare("SELECT title, file_path, original_filename FROM exam_papers WHERE id = ?");
         $stmt->execute([$paperId]);
         $row = $stmt->fetch();
 
@@ -482,6 +604,17 @@ switch ($page) {
 
         $filePath = MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $row['file_path'];
         $fileName = $row['original_filename'] ?: basename($filePath);
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        if (empty($_GET['raw']) && (PreviewToken::isOfficeExt($ext) || PreviewToken::isTextExt($ext))) {
+            PreviewToken::renderStandaloneViewer(
+                $row['title'] ?? $fileName,
+                'paper',
+                $paperId,
+                $filePath,
+                $fileName,
+                'index.php?page=download_paper&id=' . $paperId
+            );
+        }
         Uploader::streamInlineView($filePath, $fileName);
         break;
 

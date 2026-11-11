@@ -996,25 +996,64 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
 
 <!-- ================= MODAL 5: INLINE DOCUMENT VIEWER ================= -->
 <div class="modal fade" id="previewViewerModal" tabindex="-1" aria-labelledby="previewViewerModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 920px;">
-    <div class="modal-content border-0 rounded-4 shadow">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" style="max-width: 960px;">
+    <div class="modal-content border-0 rounded-4 shadow overflow-hidden">
       <div class="modal-header border-bottom py-3 px-4 bg-light">
-        <div class="d-flex align-items-center gap-2">
-          <i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>
-          <div>
-            <h6 class="modal-title fw-bold text-dark mb-0" id="previewDocTitle">Document Preview</h6>
-            <small class="text-muted" id="previewDocSub"></small>
+        <div class="d-flex align-items-center gap-2 min-w-0">
+          <i class="bi bi-file-earmark-richtext-fill text-danger fs-5"></i>
+          <div class="min-w-0">
+            <h6 class="modal-title fw-bold text-dark mb-0 text-truncate" id="previewDocTitle">Document Preview</h6>
+            <small class="text-muted d-block text-truncate" id="previewDocSub"></small>
           </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+          <div id="adminOfficeSwitcher" class="btn-group btn-group-sm d-none" role="group">
+            <button type="button" id="adminBtnOffice" class="btn btn-primary rounded-start-pill px-2.5" onclick="switchAdminOfficeEngine('office')">Office</button>
+            <button type="button" id="adminBtnGoogle" class="btn btn-outline-secondary rounded-end-pill px-2.5" onclick="switchAdminOfficeEngine('google')">Google</button>
+          </div>
+          <a href="#" id="previewDocDownloadBtn" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+            <i class="bi bi-download me-1"></i> Download
+          </a>
           <a href="#" id="previewDocNewTabBtn" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
             <i class="bi bi-box-arrow-up-right me-1"></i> Open Full View
           </a>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
       </div>
-      <div class="modal-body p-0" style="min-height: 540px; background: #525659;">
-        <iframe id="previewDocFrame" src="" style="width: 100%; height: 580px; border: none;"></iframe>
+      <div class="modal-body p-0 position-relative" style="height: 580px; background: #1e293b;">
+        <div id="adminPreviewSpinner" class="position-absolute top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center text-white" style="z-index: 5; background: rgba(15,23,42,0.9);">
+          <div class="spinner-border text-light me-2" role="status"></div>
+          <span>Loading preview...</span>
+        </div>
+
+        <iframe id="previewDocFrame" src="about:blank" class="w-100 h-100 border-0 bg-white d-block" onload="hideAdminPreviewSpinner()"></iframe>
+
+        <div id="adminTextContainer" class="position-absolute top-0 start-0 w-100 h-100 d-none flex-column" style="z-index: 4; background: #0f172a;">
+          <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom border-secondary-subtle" style="background: #1e293b;">
+            <span class="text-light small font-monospace" id="adminTextFilename">preview.sql</span>
+            <button type="button" class="btn btn-xs btn-outline-light rounded-pill px-2.5 py-0.5 small" onclick="navigator.clipboard.writeText(document.getElementById('adminTextContent').textContent || '')">
+              <i class="bi bi-clipboard me-1"></i>Copy
+            </button>
+          </div>
+          <pre id="adminTextContent" class="flex-grow-1 m-0 p-3 text-light overflow-auto" style="font-size: 13px; line-height: 1.55;"></pre>
+        </div>
+
+        <div id="adminImageContainer" class="position-absolute top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center bg-dark p-3" style="z-index: 4;">
+          <img id="adminPreviewImage" src="" alt="Preview" class="img-fluid rounded shadow" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+        </div>
+
+        <div id="adminUnsupportedContainer" class="position-absolute top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center bg-light p-4 text-center" style="z-index: 6;">
+          <div style="max-width: 420px;">
+            <div class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+              <i class="bi bi-file-earmark-arrow-down-fill fs-2"></i>
+            </div>
+            <h6 class="fw-bold text-dark mb-1" id="adminUnsupportedTitle">Preview Not Available Inline</h6>
+            <p class="small text-muted mb-3" id="adminUnsupportedDesc">Archive files cannot be previewed inside this popup.</p>
+            <a href="#" id="adminUnsupportedDownloadBtn" class="btn btn-primary btn-sm rounded-pill px-4 py-2 fw-bold">
+              <i class="bi bi-download me-1"></i> Download File
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1496,16 +1535,125 @@ function openDeadlineModal(asgId, title, currentDeadline) {
   modal.show();
 }
 
+let adminPreviewTimer = null;
+let adminOfficeUrls = { office: '', google: '' };
+
+function showAdminPreviewSpinner() {
+  const sp = document.getElementById('adminPreviewSpinner');
+  if (sp) { sp.classList.remove('d-none'); sp.classList.add('d-flex'); }
+}
+
+function hideAdminPreviewSpinner() {
+  const sp = document.getElementById('adminPreviewSpinner');
+  if (sp) { sp.classList.add('d-none'); sp.classList.remove('d-flex'); }
+}
+
+function switchAdminOfficeEngine(engine) {
+  const frame = document.getElementById('previewDocFrame');
+  const bOff = document.getElementById('adminBtnOffice');
+  const bGoo = document.getElementById('adminBtnGoogle');
+  if (!adminOfficeUrls[engine]) return;
+
+  showAdminPreviewSpinner();
+  frame.src = adminOfficeUrls[engine];
+  clearTimeout(adminPreviewTimer);
+  adminPreviewTimer = setTimeout(hideAdminPreviewSpinner, 4500);
+
+  if (bOff && bGoo) {
+    bOff.className = 'btn rounded-start-pill px-2.5 ' + (engine === 'office' ? 'btn-primary' : 'btn-outline-secondary');
+    bGoo.className = 'btn rounded-end-pill px-2.5 ' + (engine === 'google' ? 'btn-primary' : 'btn-outline-secondary');
+  }
+}
+
 function previewMaterial(matId, title, filename) {
-  const url = 'index.php?page=view_material&id=' + matId;
+  clearTimeout(adminPreviewTimer);
+  adminOfficeUrls = { office: '', google: '' };
+
+  const viewUrl = 'index.php?page=view_material&id=' + matId;
+  const downloadUrl = 'index.php?page=download_material&id=' + matId;
+  const ext = (filename || '').split('.').pop().toLowerCase();
+
+  const frame = document.getElementById('previewDocFrame');
+  const textBox = document.getElementById('adminTextContainer');
+  const imgBox = document.getElementById('adminImageContainer');
+  const imgEl = document.getElementById('adminPreviewImage');
+  const unsupBox = document.getElementById('adminUnsupportedContainer');
+  const switcher = document.getElementById('adminOfficeSwitcher');
+
   document.getElementById('previewDocTitle').textContent = title;
-  document.getElementById('previewDocSub').textContent = filename;
-  document.getElementById('previewDocNewTabBtn').href = url;
-  document.getElementById('previewDocFrame').src = url;
+  document.getElementById('previewDocSub').textContent = filename || '';
+  document.getElementById('previewDocNewTabBtn').href = viewUrl;
+  document.getElementById('previewDocDownloadBtn').href = downloadUrl;
+
+  showAdminPreviewSpinner();
+  frame.classList.remove('d-none');
+  frame.src = 'about:blank';
+  textBox.classList.add('d-none'); textBox.classList.remove('d-flex');
+  imgBox.classList.add('d-none'); imgBox.classList.remove('d-flex');
+  imgEl.src = '';
+  unsupBox.classList.add('d-none'); unsupBox.classList.remove('d-flex');
+  switcher.classList.add('d-none');
+
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+    frame.classList.add('d-none');
+    imgEl.onload = hideAdminPreviewSpinner;
+    imgEl.onerror = hideAdminPreviewSpinner;
+    imgEl.src = viewUrl;
+    imgBox.classList.remove('d-none'); imgBox.classList.add('d-flex');
+  } else if (['ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx', 'sql', 'txt'].includes(ext)) {
+    fetch('index.php?page=preview_meta&kind=material&id=' + matId)
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.ok && data.mode === 'office' && data.office_url) {
+          adminOfficeUrls.office = data.office_url;
+          adminOfficeUrls.google = data.google_url || '';
+          switcher.classList.remove('d-none');
+          switchAdminOfficeEngine('office');
+        } else if (data && data.ok && data.mode === 'text') {
+          frame.classList.add('d-none');
+          document.getElementById('adminTextFilename').textContent = data.filename || filename || 'preview';
+          document.getElementById('adminTextContent').textContent = data.text_content || '';
+          textBox.classList.remove('d-none'); textBox.classList.add('d-flex');
+          hideAdminPreviewSpinner();
+        } else {
+          frame.classList.add('d-none');
+          document.getElementById('adminUnsupportedTitle').textContent = (filename || title) + ' (' + ext.toUpperCase() + ')';
+          document.getElementById('adminUnsupportedDesc').textContent = data && !data.is_public_domain
+            ? 'Online Office preview works on the live HTTPS portal. On localhost, click Download to view this file.'
+            : 'Preview unavailable for this file. Click Download to open it on your device.';
+          document.getElementById('adminUnsupportedDownloadBtn').href = downloadUrl;
+          unsupBox.classList.remove('d-none'); unsupBox.classList.add('d-flex');
+          hideAdminPreviewSpinner();
+        }
+      })
+      .catch(() => {
+        frame.classList.add('d-none');
+        document.getElementById('adminUnsupportedTitle').textContent = (filename || title) + ' (' + ext.toUpperCase() + ')';
+        document.getElementById('adminUnsupportedDownloadBtn').href = downloadUrl;
+        unsupBox.classList.remove('d-none'); unsupBox.classList.add('d-flex');
+        hideAdminPreviewSpinner();
+      });
+  } else if (['zip', 'rar'].includes(ext)) {
+    frame.classList.add('d-none');
+    document.getElementById('adminUnsupportedTitle').textContent = (filename || title) + ' (' + ext.toUpperCase() + ')';
+    document.getElementById('adminUnsupportedDesc').textContent = 'Compressed archive files cannot be previewed inline. Click Download to extract and open.';
+    document.getElementById('adminUnsupportedDownloadBtn').href = downloadUrl;
+    unsupBox.classList.remove('d-none'); unsupBox.classList.add('d-flex');
+    hideAdminPreviewSpinner();
+  } else {
+    frame.src = viewUrl;
+    adminPreviewTimer = setTimeout(hideAdminPreviewSpinner, 1800);
+  }
 
   const modal = new bootstrap.Modal(document.getElementById('previewViewerModal'));
   modal.show();
 }
+
+document.getElementById('previewViewerModal')?.addEventListener('hidden.bs.modal', function () {
+  clearTimeout(adminPreviewTimer);
+  document.getElementById('previewDocFrame').src = 'about:blank';
+  document.getElementById('adminPreviewImage').src = '';
+});
 
 function toggleSelectAll(master) {
   const checkboxes = document.querySelectorAll('.material-checkbox');
