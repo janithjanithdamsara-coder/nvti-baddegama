@@ -138,8 +138,8 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
                       <div class="mb-3">
                         <label class="form-label fw-semibold small text-secondary">Upload Assignment File *</label>
-                        <input type="file" name="submission_file" class="form-control" accept=".pdf,.doc,.docx,.zip,.rar,.txt" required>
-                        <small class="text-muted">Formats: PDF, Word (DOCX), ZIP archive. Max 25MB.</small>
+                        <input type="file" name="submission_file" class="form-control" accept=".pdf,.doc,.docx,.zip,.rar,.txt,.sql" required>
+                        <small class="text-muted">Formats: PDF, Word (DOCX), SQL, ZIP archive. Max 25MB.</small>
                       </div>
 
                       <div class="mb-3">

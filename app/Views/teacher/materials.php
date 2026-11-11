@@ -175,8 +175,8 @@ require_once __DIR__ . '/../layouts/navbar.php';
             <!-- File Upload Input (Conditional) -->
             <div class="col-12" id="fileUploadContainer">
               <label class="form-label fw-semibold small text-secondary">Select Document / File *</label>
-              <input type="file" name="file_upload" id="fileUploadInput" class="form-control" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.png,.jpg,.jpeg">
-              <small class="text-muted">Allowed types: PDF, Word, PowerPoint, ZIP, Images. Max 25MB.</small>
+              <input type="file" name="file_upload" id="fileUploadInput" class="form-control" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.png,.jpg,.jpeg,.txt,.sql">
+              <small class="text-muted">Allowed types: PDF, Word, PowerPoint, ZIP, SQL, Images. Max 25MB.</small>
             </div>
 
             <!-- External Link Input (Conditional) -->

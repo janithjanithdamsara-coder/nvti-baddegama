@@ -151,8 +151,8 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
             <div class="col-12">
               <label class="form-label fw-semibold small text-secondary">Reference File / Assignment Brief (Optional)</label>
-              <input type="file" name="reference_file" class="form-control" accept=".pdf,.doc,.docx,.zip">
-              <small class="text-muted">Upload question paper PDF, project template ZIP or guidelines document.</small>
+              <input type="file" name="reference_file" class="form-control" accept=".pdf,.doc,.docx,.zip,.sql,.txt">
+              <small class="text-muted">Upload question paper PDF, SQL file, project template ZIP or guidelines document.</small>
             </div>
 
             <div class="col-12">

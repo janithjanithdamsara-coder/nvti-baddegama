@@ -21,7 +21,8 @@ class Uploader {
         'jpeg' => ['image/jpeg'],
         'png'  => ['image/png'],
         'webp' => ['image/webp'],
-        'txt'  => ['text/plain']
+        'txt'  => ['text/plain'],
+        'sql'  => ['text/plain', 'application/sql', 'text/x-sql', 'application/x-sql', 'text/sql']
     ];
 
     /**

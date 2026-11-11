@@ -196,8 +196,8 @@ $defaultDeadline = date('Y-m-d\T23:59', strtotime('+7 days'));
 
             <div class="col-12">
               <label class="form-label fw-semibold small text-secondary">Reference File / Assignment Brief (Optional)</label>
-              <input type="file" name="reference_file" class="form-control" accept=".pdf,.doc,.docx,.zip">
-              <small class="text-muted">PDF, Word document, or starter ZIP archive (max 25MB).</small>
+              <input type="file" name="reference_file" class="form-control" accept=".pdf,.doc,.docx,.zip,.sql,.txt">
+              <small class="text-muted">PDF, Word document, SQL file, or starter ZIP archive (max 25MB).</small>
             </div>
 
             <div class="col-12">

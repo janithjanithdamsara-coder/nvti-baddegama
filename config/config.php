@@ -60,7 +60,7 @@ define('DB_CHARSET', 'utf8mb4');
 
 // Security Settings
 define('MAX_UPLOAD_SIZE', 25 * 1024 * 1024); // 25 MB
-define('ALLOWED_FILE_EXTENSIONS', ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'rar', 'jpg', 'jpeg', 'png', 'txt']);
+define('ALLOWED_FILE_EXTENSIONS', ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'zip', 'rar', 'jpg', 'jpeg', 'png', 'txt', 'sql']);
 
 // Gmail / SMTP Mail Configuration
 define('MAIL_ENABLED', true);

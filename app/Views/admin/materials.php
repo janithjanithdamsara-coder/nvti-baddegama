@@ -778,8 +778,8 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
           </div>
 
           <div class="mb-3">
-            <label class="form-label fw-bold text-dark small">Upload File (PDF, DOCX, PPTX) <span class="text-danger">*</span></label>
-            <input type="file" class="form-control" name="file_upload" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip" required>
+            <label class="form-label fw-bold text-dark small">Upload File (PDF, DOCX, PPTX, SQL, ZIP) <span class="text-danger">*</span></label>
+            <input type="file" class="form-control" name="file_upload" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar,.txt,.sql" required>
             <small class="text-muted">Maximum file size: 25 MB.</small>
           </div>
 
@@ -921,8 +921,8 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
 
           <div class="mb-3">
             <label class="form-label fw-bold text-dark small">Attach Question Paper / Reference Guide (Optional)</label>
-            <input type="file" class="form-control" name="reference_file" accept=".pdf,.doc,.docx,.zip">
-            <small class="text-muted">PDF or Word document with assignment questions.</small>
+            <input type="file" class="form-control" name="reference_file" accept=".pdf,.doc,.docx,.zip,.sql,.txt">
+            <small class="text-muted">PDF, Word document, SQL script, or ZIP archive.</small>
           </div>
 
           <input type="hidden" name="email_prompt_present" value="1">
