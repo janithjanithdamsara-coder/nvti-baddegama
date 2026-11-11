@@ -275,6 +275,14 @@ $activeTab     = ($activeTab ?? 'compose') === 'settings' ? 'settings' : 'compos
                     <textarea name="message" id="customEmailMessage" class="form-control" rows="5" placeholder="Dear {name},&#10;&#10;Write your announcement or notice here..." required></textarea>
                   </div>
 
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold small text-secondary">Email Format</label>
+                    <select name="email_style" id="customEmailStyle" class="form-select form-select-sm">
+                      <option value="simple" selected>Simple Inbox-Friendly (Recommended for Gmail — no .duckdns.org link button)</option>
+                      <option value="branded">Branded Portal Card (Includes Portal Login Button)</option>
+                    </select>
+                  </div>
+
                   <?php if (!$masterEnabled): ?>
                     <div class="alert alert-warning py-2 px-3 small d-flex align-items-center justify-content-between mb-3">
                       <span><i class="bi bi-exclamation-triangle-fill me-1"></i> Master Email Switch is <strong>PAUSED</strong>.</span>

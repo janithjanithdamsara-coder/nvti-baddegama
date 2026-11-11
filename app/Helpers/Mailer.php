@@ -111,6 +111,23 @@ class Mailer {
     }
 
     /**
+     * Wrap a custom message in a clean, minimal inbox-friendly layout (no external link buttons)
+     */
+    public static function wrapSimpleTemplate(string $messageBody): string {
+        $appName = defined('APP_NAME') ? APP_NAME : 'NVTI Baddegama National Diploma';
+        $formattedBody = nl2br(htmlspecialchars($messageBody, ENT_QUOTES, 'UTF-8'));
+
+        return "
+        <div style='font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; font-size: 14px; line-height: 1.7; max-width: 600px;'>
+            <div>{$formattedBody}</div>
+            <hr style='border: none; border-top: 1px solid #e2e8f0; margin: 20px 0 12px;'>
+            <div style='font-size: 12px; color: #64748b;'>
+                {$appName} &bull; NVTI Baddegama
+            </div>
+        </div>";
+    }
+
+    /**
      * Send via native PHP Socket SMTP (Port 465 SSL or Port 587 TLS)
      */
     public static function sendViaSmtp(string $toEmail, string $subject, string $htmlBody, string $toName = '', string $plainText = ''): array {
@@ -179,7 +196,8 @@ class Mailer {
         // 2. EHLO
         $senderDomain = substr(strrchr($fromEmail, '@') ?: '', 1) ?: 'nvtibaddegama.site';
         $httpHost = preg_replace('/:\d+$/', '', (string)($_SERVER['HTTP_HOST'] ?? ''));
-        $ehloHost = (!empty($httpHost) && strpos($httpHost, '.') !== false && $httpHost !== '127.0.0.1')
+        $isDuckDns = stripos($httpHost, '.duckdns.org') !== false;
+        $ehloHost = (!empty($httpHost) && !$isDuckDns && strpos($httpHost, '.') !== false && $httpHost !== '127.0.0.1')
             ? $httpHost
             : $senderDomain;
         if (!$sendCommand("EHLO {$ehloHost}", '250')) {

@@ -2836,6 +2836,7 @@ class AdminController {
         $classId        = (int)($_POST['class_id'] ?? 0);
         $subject        = trim($_POST['subject'] ?? '');
         $message        = trim($_POST['message'] ?? '');
+        $emailStyle     = trim($_POST['email_style'] ?? 'simple');
         $overrideMaster = !empty($_POST['override_master']);
 
         if ($subject === '' || $message === '') {
@@ -2926,8 +2927,10 @@ class AdminController {
 
         foreach ($unique as $rcpt) {
             $personalMsg = str_replace('{name}', $rcpt['name'] !== '' ? $rcpt['name'] : 'Student', $message);
-            $htmlBody    = Mailer::wrapBrandedTemplate($subject, $personalMsg);
-            $res = Mailer::send($rcpt['email'], $subject, $htmlBody, $rcpt['name'], $personalMsg, 'custom', Auth::id(), true);
+            $htmlBody    = ($emailStyle === 'branded')
+                ? Mailer::wrapBrandedTemplate($subject, $personalMsg)
+                : Mailer::wrapSimpleTemplate($personalMsg);
+            $res = Mailer::send($rcpt['email'], $subject, $htmlBody, $rcpt['name'], '', 'custom', Auth::id(), true);
             if (!empty($res['success'])) {
                 $sentCount++;
             } else {
