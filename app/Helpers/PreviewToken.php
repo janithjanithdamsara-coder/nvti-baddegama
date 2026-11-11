@@ -137,9 +137,11 @@ class PreviewToken {
 
         if (self::isOfficeExt($ext) && self::isPublicDomain()) {
             $pubUrl = self::makePublicFileUrl($kind, $id, 900);
-            $officeUrl = htmlspecialchars(self::getOfficeEmbedUrl($pubUrl), ENT_QUOTES, 'UTF-8');
-            $googleUrl = htmlspecialchars(self::getGoogleDocsEmbedUrl($pubUrl), ENT_QUOTES, 'UTF-8');
-            $extLabel = strtoupper($ext);
+            $rawOfficeUrl = self::getOfficeEmbedUrl($pubUrl);
+            $rawGoogleUrl = self::getGoogleDocsEmbedUrl($pubUrl);
+            $officeAttr   = htmlspecialchars($rawOfficeUrl, ENT_QUOTES, 'UTF-8');
+            $urlsJson     = json_encode(['office' => $rawOfficeUrl, 'google' => $rawGoogleUrl], JSON_UNESCAPED_SLASHES);
+            $extLabel     = strtoupper($ext);
             echo "<!DOCTYPE html>
 <html lang='en'>
 <head>
@@ -163,9 +165,9 @@ class PreviewToken {
       </a>
     </div>
   </div>
-  <iframe id='viewerFrame' src='{$officeUrl}' class='w-100 flex-grow-1 border-0 bg-white'></iframe>
+  <iframe id='viewerFrame' src='{$officeAttr}' class='w-100 flex-grow-1 border-0 bg-white'></iframe>
   <script>
-    const urls = { office: '{$officeUrl}', google: '{$googleUrl}' };
+    const urls = {$urlsJson};
     function setViewer(mode) {
       document.getElementById('viewerFrame').src = urls[mode];
       document.getElementById('btnOffice').className = 'btn btn-sm rounded-pill px-3 ' + (mode === 'office' ? 'btn-primary' : 'btn-outline-secondary');
