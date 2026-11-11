@@ -2789,6 +2789,13 @@ class AdminController {
         if (!in_array($logFilter, ['sent', 'skipped', 'failed'], true)) {
             $logFilter = '';
         }
+        $activeTab = trim($_GET['tab'] ?? '');
+        if ($logFilter !== '') {
+            $activeTab = 'compose';
+        } elseif (!in_array($activeTab, ['compose', 'settings'], true)) {
+            $activeTab = 'compose';
+        }
+
         $emailLogs = EmailSettings::getRecentLogs(40, $logFilter);
         $logStats  = EmailSettings::getLogStats();
 
@@ -2813,7 +2820,7 @@ class AdminController {
 
         $masterState = ($payload['mail_master_enabled'] === '1') ? 'ENABLED' : 'PAUSED';
         Flash::success("Email notification settings saved! Master Email Delivery is currently <strong>{$masterState}</strong>.");
-        header("Location: index.php?page=admin_email_settings");
+        header("Location: index.php?page=admin_email_settings&tab=settings");
         exit;
     }
 
@@ -2980,7 +2987,7 @@ class AdminController {
             Flash::error("Email delivery failed: " . htmlspecialchars($res['message']));
         }
 
-        header("Location: index.php?page=admin_email_settings");
+        header("Location: index.php?page=admin_email_settings&tab=settings");
         exit;
     }
 
@@ -2994,7 +3001,7 @@ class AdminController {
 
         if (!$logRow || empty($logRow['html_body']) || !filter_var($logRow['recipient_email'], FILTER_VALIDATE_EMAIL)) {
             Flash::error("This log entry cannot be resent (missing valid email address or stored message body).");
-            header("Location: index.php?page=admin_email_settings#emailHistorySection");
+            header("Location: index.php?page=admin_email_settings&tab=compose#emailHistorySection");
             exit;
         }
 
@@ -3017,7 +3024,7 @@ class AdminController {
             Flash::error("Resend failed: " . htmlspecialchars($res['message'] ?? 'Unknown error'));
         }
 
-        header("Location: index.php?page=admin_email_settings#emailHistorySection");
+        header("Location: index.php?page=admin_email_settings&tab=compose#emailHistorySection");
         exit;
     }
 
@@ -3029,7 +3036,7 @@ class AdminController {
         EmailSettings::clearLogs();
         Auth::logAudit(Auth::id(), 'CLEAR_EMAIL_LOGS', 'Cleared email delivery history logs.');
         Flash::info("Email delivery history has been cleared.");
-        header("Location: index.php?page=admin_email_settings#emailHistorySection");
+        header("Location: index.php?page=admin_email_settings&tab=compose#emailHistorySection");
         exit;
     }
 }
