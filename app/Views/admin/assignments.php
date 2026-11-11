@@ -106,17 +106,23 @@ $defaultDeadline = date('Y-m-d\T23:59', strtotime('+7 days'));
                         <i class="bi bi-calendar2-plus me-1"></i> <?= $isPast ? 'Re-open / Extend' : 'Extend Deadline' ?>
                       </button>
 
-                      <form action="index.php?page=admin_delete_assignment" method="POST" class="d-inline" onsubmit="return confirm('Delete this assignment and all its submission records?');">
-                        <?= Csrf::field() ?>
-                        <input type="hidden" name="assignment_id" value="<?= (int)$a['id'] ?>">
-                        <input type="hidden" name="subject_id" value="<?= (int)$a['subject_id'] ?>">
-                        <input type="hidden" name="class_id" value="<?= (int)$a['class_id'] ?>">
-                        <input type="hidden" name="return_to" value="assignments">
-                        <input type="hidden" name="filter_class" value="<?= e($currentFilterVal) ?>">
-                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2.5" title="Delete Assignment">
-                          <i class="bi bi-trash3"></i>
-                        </button>
-                      </form>
+                      <?php if (AdminAccess::canDelete(isset($a['created_by']) ? (int)$a['created_by'] : null, (int)($a['teacher_id'] ?? 0))): ?>
+                        <form action="index.php?page=admin_delete_assignment" method="POST" class="d-inline" onsubmit="return confirm('Delete this assignment and all its submission records?');">
+                          <?= Csrf::field() ?>
+                          <input type="hidden" name="assignment_id" value="<?= (int)$a['id'] ?>">
+                          <input type="hidden" name="subject_id" value="<?= (int)$a['subject_id'] ?>">
+                          <input type="hidden" name="class_id" value="<?= (int)$a['class_id'] ?>">
+                          <input type="hidden" name="return_to" value="assignments">
+                          <input type="hidden" name="filter_class" value="<?= e($currentFilterVal) ?>">
+                          <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2.5" title="Delete Assignment">
+                            <i class="bi bi-trash3"></i>
+                          </button>
+                        </form>
+                      <?php else: ?>
+                        <span class="badge bg-light text-muted border rounded-pill px-2 py-1" title="Only <?= e($a['teacher_name']) ?> can delete this assignment">
+                          <i class="bi bi-lock-fill"></i>
+                        </span>
+                      <?php endif; ?>
                     </td>
                   </tr>
                 <?php endforeach; ?>
@@ -171,12 +177,9 @@ $defaultDeadline = date('Y-m-d\T23:59', strtotime('+7 days'));
             </div>
 
             <div class="col-md-4">
-              <label class="form-label fw-semibold small text-secondary">Assigned Lecturer *</label>
-              <select name="teacher_id" class="form-select" required>
-                <?php foreach (($teachers ?? []) as $t): ?>
-                  <option value="<?= (int)$t['id'] ?>"><?= e($t['name']) ?></option>
-                <?php endforeach; ?>
-              </select>
+              <label class="form-label fw-semibold small text-secondary">Posted By</label>
+              <input type="text" class="form-control bg-light fw-semibold" value="<?= e(Auth::name()) ?>" readonly>
+              <input type="hidden" name="teacher_id" value="<?= (int)Auth::id() ?>">
             </div>
 
             <div class="col-md-5">

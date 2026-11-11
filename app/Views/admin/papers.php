@@ -331,13 +331,16 @@ function getPaperTheme($paper, $palettes) {
                     </h6>
 
                     <!-- Description -->
-                    <p class="text-muted small mb-0" style="font-size: 0.77rem; min-height: 34px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    <p class="text-muted small mb-2" style="font-size: 0.77rem; min-height: 34px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                       <?= e($paper['description'] ?: 'Official NVTI Baddegama examination paper.') ?>
                     </p>
+                    <div class="text-muted" style="font-size: 0.72rem;">
+                      <i class="bi bi-person-badge me-1 text-secondary"></i>Added by: <strong class="text-dark"><?= e($paper['creator_name'] ?: 'Administration') ?></strong>
+                    </div>
                   </div>
 
                   <!-- Card Footer: Stats & Separated Action Buttons (Clean & Always Visible) -->
-                  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2" style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #edf2f7;">
+                  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2" style="margin-top: 14px; padding-top: 14px; border-top: 1px solid #edf2f7;">
                     <div class="d-flex align-items-center">
                       <span class="badge rounded-pill px-2.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 font-monospace" style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; font-size: 0.73rem;">
                         <i class="bi bi-file-earmark-pdf-fill text-danger fs-6"></i>
@@ -346,6 +349,7 @@ function getPaperTheme($paper, $palettes) {
                     </div>
 
                     <!-- Action Buttons -->
+                    <?php $canManagePaper = AdminAccess::canDelete(isset($paper['created_by']) ? (int)$paper['created_by'] : null); ?>
                     <div class="d-flex align-items-center gap-1.5 flex-wrap" style="position: relative; z-index: 6;">
                       <!-- View Button -->
                       <button type="button" onclick="previewPaper(<?= $paperId ?>, <?= htmlspecialchars(json_encode($paper['title']), ENT_QUOTES, 'UTF-8') ?>, 'index.php?page=view_paper&id=<?= $paperId ?>')" class="btn btn-sm rounded-pill px-2.5 py-1 fw-bold text-white shadow-xs d-inline-flex align-items-center gap-1" style="font-size: 0.76rem; background: #7A1418; border: 1px solid #7A1418;">
@@ -357,24 +361,30 @@ function getPaperTheme($paper, $palettes) {
                         <i class="bi bi-download" style="font-size: 0.82rem;"></i>
                       </a>
 
-                      <!-- Edit Button -->
-                      <button type="button"
-                              data-paper="<?= htmlspecialchars(json_encode($paper), ENT_QUOTES, 'UTF-8') ?>"
-                              onclick="openEditPaperModal(this)"
-                              class="btn btn-sm bg-primary-subtle border border-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs"
-                              title="Edit &amp; Change Paper"
-                              style="width: 32px; height: 32px;">
-                        <i class="bi bi-pencil-fill" style="font-size: 0.82rem;"></i>
-                      </button>
+                      <?php if ($canManagePaper): ?>
+                        <!-- Edit Button -->
+                        <button type="button"
+                                data-paper="<?= htmlspecialchars(json_encode($paper), ENT_QUOTES, 'UTF-8') ?>"
+                                onclick="openEditPaperModal(this)"
+                                class="btn btn-sm bg-primary-subtle border border-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs"
+                                title="Edit &amp; Change Paper"
+                                style="width: 32px; height: 32px;">
+                          <i class="bi bi-pencil-fill" style="font-size: 0.82rem;"></i>
+                        </button>
 
-                      <!-- Delete Button -->
-                      <button type="button"
-                              onclick="confirmDeletePaper(<?= $paperId ?>, <?= htmlspecialchars(json_encode($paper['title']), ENT_QUOTES, 'UTF-8') ?>, <?= (int)$paper['semester'] ?>)"
-                              class="btn btn-sm bg-danger-subtle border border-danger-subtle text-danger rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs hover-del-btn"
-                              title="Delete Paper"
-                              style="width: 32px; height: 32px;">
-                        <i class="bi bi-trash3-fill" style="font-size: 0.82rem;"></i>
-                      </button>
+                        <!-- Delete Button -->
+                        <button type="button"
+                                onclick="confirmDeletePaper(<?= $paperId ?>, <?= htmlspecialchars(json_encode($paper['title']), ENT_QUOTES, 'UTF-8') ?>, <?= (int)$paper['semester'] ?>)"
+                                class="btn btn-sm bg-danger-subtle border border-danger-subtle text-danger rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs hover-del-btn"
+                                title="Delete Paper"
+                                style="width: 32px; height: 32px;">
+                          <i class="bi bi-trash3-fill" style="font-size: 0.82rem;"></i>
+                        </button>
+                      <?php else: ?>
+                        <span class="badge bg-light text-muted border rounded-pill px-2 py-1" title="Only <?= e($paper['creator_name'] ?: 'the uploader') ?> can edit or delete this paper">
+                          <i class="bi bi-lock-fill"></i>
+                        </span>
+                      <?php endif; ?>
                     </div>
                   </div>
 

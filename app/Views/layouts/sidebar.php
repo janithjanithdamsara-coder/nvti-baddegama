@@ -55,11 +55,13 @@ $roleBadgeText = match ($role) {
         <i data-lucide="users" class="sidebar-icon"></i>
         <span class="sidebar-link-text">Student Management</span>
       </a>
-      <a href="index.php?page=admin_applications" class="sidebar-link <?= $currentRoute === 'admin_applications' ? 'active' : '' ?>" title="Candidate Applications">
-        <i data-lucide="user-plus" class="sidebar-icon"></i>
-        <span class="sidebar-link-text">Online Applications</span>
-        <span class="badge bg-warning text-dark rounded-pill ms-auto px-2 py-0.5 fw-bold" style="font-size: 0.65rem;">New</span>
-      </a>
+      <?php if (AdminAccess::isMainAdmin()): ?>
+        <a href="index.php?page=admin_applications" class="sidebar-link <?= $currentRoute === 'admin_applications' ? 'active' : '' ?>" title="Candidate Applications">
+          <i data-lucide="user-plus" class="sidebar-icon"></i>
+          <span class="sidebar-link-text">Online Applications</span>
+          <span class="badge bg-warning text-dark rounded-pill ms-auto px-2 py-0.5 fw-bold" style="font-size: 0.65rem;">New</span>
+        </a>
+      <?php endif; ?>
       <a href="index.php?page=admin_teachers" class="sidebar-link <?= $currentRoute === 'admin_teachers' ? 'active' : '' ?>" title="Teacher Accounts">
         <i data-lucide="user-check" class="sidebar-icon"></i>
         <span class="sidebar-link-text">Teacher Accounts</span>
@@ -68,10 +70,12 @@ $roleBadgeText = match ($role) {
         <i data-lucide="file-check" class="sidebar-icon"></i>
         <span class="sidebar-link-text">Student Verification Docs</span>
       </a>
-      <a href="index.php?page=teacher_attendance" class="sidebar-link <?= $currentRoute === 'teacher_attendance' ? 'active' : '' ?>" title="Attendance & Monitors">
-        <i data-lucide="calendar-check-2" class="sidebar-icon"></i>
-        <span class="sidebar-link-text">Attendance &amp; Monitors</span>
-      </a>
+      <?php if (AdminAccess::isMainAdmin()): ?>
+        <a href="index.php?page=teacher_attendance" class="sidebar-link <?= $currentRoute === 'teacher_attendance' ? 'active' : '' ?>" title="Attendance & Monitors">
+          <i data-lucide="calendar-check-2" class="sidebar-icon"></i>
+          <span class="sidebar-link-text">Attendance &amp; Monitors</span>
+        </a>
+      <?php endif; ?>
       <a href="index.php?page=admin_timetable" class="sidebar-link <?= $currentRoute === 'admin_timetable' ? 'active' : '' ?>" title="Class Timetable">
         <i data-lucide="calendar" class="sidebar-icon"></i>
         <span class="sidebar-link-text">Class Timetable</span>
@@ -212,8 +216,15 @@ $roleBadgeText = match ($role) {
         <?= strtoupper(substr(Auth::name(), 0, 1)) ?>
       </div>
       <div class="lh-sm min-w-0 flex-grow-1 sidebar-user-info">
-        <div class="fw-bold text-dark small text-truncate"><?= e(Auth::name()) ?></div>
-        <small class="text-muted d-block text-truncate font-monospace" style="font-size: 0.68rem;"><?= e(Auth::user()['email']) ?></small>
+        <div class="fw-bold text-dark small text-truncate">
+          <?= e(Auth::name()) ?>
+        </div>
+        <small class="text-muted d-block text-truncate font-monospace" style="font-size: 0.68rem;">
+          <?php if ($role === 'admin'): ?>
+            <span class="fw-bold <?= AdminAccess::isMainAdmin() ? 'text-danger' : 'text-primary' ?>"><?= AdminAccess::isMainAdmin() ? 'Main Admin' : 'Co-Admin' ?></span> &bull;
+          <?php endif; ?>
+          <?= e(Auth::user()['email']) ?>
+        </small>
       </div>
     </a>
   </div>

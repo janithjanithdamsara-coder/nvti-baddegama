@@ -24,9 +24,11 @@ require_once __DIR__ . '/../layouts/navbar.php';
           </div>
 
           <div class="d-flex flex-wrap align-items-center gap-2 flex-shrink-0 align-self-start align-self-md-center">
-            <button class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold text-dark d-inline-flex align-items-center gap-2 shadow-xs" data-bs-toggle="modal" data-bs-target="#addAdminModal">
-              <i class="bi bi-shield-plus fs-6"></i> Add Administrator
-            </button>
+            <?php if (AdminAccess::isMainAdmin()): ?>
+              <button class="btn btn-warning rounded-pill px-3.5 py-2 fw-bold text-dark d-inline-flex align-items-center gap-2 shadow-xs" data-bs-toggle="modal" data-bs-target="#addAdminModal">
+                <i class="bi bi-shield-plus fs-6"></i> Add Administrator
+              </button>
+            <?php endif; ?>
             <button class="btn btn-light rounded-pill px-3.5 py-2 fw-bold text-danger d-inline-flex align-items-center gap-2 shadow" style="color: #7A1418 !important;" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
               <i class="bi bi-person-plus-fill fs-6"></i> Register Lecturer
             </button>
@@ -49,15 +51,15 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
       <div class="row g-3 mb-5">
         <?php foreach (($adminUsers ?? []) as $adm): 
-          $isPrimary = ($adm['id'] == 1);
+          $isMainAdm = (($adm['admin_level'] ?? '') === 'main_admin');
         ?>
           <div class="col-12 col-md-6 col-lg-4">
-            <div class="card border rounded-4 bg-white shadow-sm h-100 p-4 transition-hover position-relative" style="<?= $isPrimary ? 'border-top: 4px solid #7A1418 !important;' : 'border-top: 4px solid #1967d2 !important;' ?>">
+            <div class="card border rounded-4 bg-white shadow-sm h-100 p-4 transition-hover position-relative" style="<?= $isMainAdm ? 'border-top: 4px solid #7A1418 !important;' : 'border-top: 4px solid #1967d2 !important;' ?>">
               <!-- Top Row: Avatar + Name + Active Status -->
               <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
                 <div class="d-flex align-items-center gap-3 min-w-0">
                   <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0 shadow-sm" 
-                       style="width: 48px; height: 48px; font-size: 1.15rem; background: <?= $isPrimary ? 'linear-gradient(135deg, #7A1418, #991b1b)' : 'linear-gradient(135deg, #1967d2, #0d47a1)' ?>;">
+                       style="width: 48px; height: 48px; font-size: 1.15rem; background: <?= $isMainAdm ? 'linear-gradient(135deg, #7A1418, #991b1b)' : 'linear-gradient(135deg, #1967d2, #0d47a1)' ?>;">
                     <?= strtoupper(substr($adm['name'], 0, 1)) ?>
                   </div>
                   <div class="min-w-0">
@@ -75,17 +77,33 @@ require_once __DIR__ . '/../layouts/navbar.php';
               </div>
 
               <!-- Role & Permissions Badges -->
-              <div class="mb-3">
-                <span class="badge rounded-pill <?= $isPrimary ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle' ?> fw-semibold px-2.5 py-1" style="font-size: 0.73rem;">
-                  <i class="bi <?= $isPrimary ? 'bi-shield-shaded' : 'bi-person-check-fill' ?> me-1"></i>
-                  <?= $isPrimary ? 'Primary Administrator' : 'Academic Administrator' ?>
+              <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
+                <span class="badge rounded-pill <?= $isMainAdm ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle' ?> fw-semibold px-2.5 py-1" style="font-size: 0.73rem;">
+                  <i class="bi <?= $isMainAdm ? 'bi-shield-shaded' : 'bi-person-check-fill' ?> me-1"></i>
+                  <?= $isMainAdm ? 'Main Administrator' : 'Co-Administrator' ?>
+                </span>
+                <span class="text-muted" style="font-size: 0.72rem;">
+                  <?= $isMainAdm ? 'Full Access + Attendance &amp; Selections' : 'All Options except Attendance &amp; Selections' ?>
                 </span>
               </div>
 
-              <!-- Footer: User ID + Access Level -->
-              <div class="text-muted small pt-2.5 border-top d-flex justify-content-between align-items-center mt-auto" style="font-size: 0.75rem;">
+              <!-- Footer: User ID + Access Level Switch -->
+              <div class="text-muted small pt-2.5 border-top d-flex justify-content-between align-items-center mt-auto gap-2" style="font-size: 0.75rem;">
                 <span class="font-monospace text-secondary">User ID: <strong class="text-dark">#<?= $adm['id'] ?></strong></span>
-                <span class="text-success fw-semibold"><i class="bi bi-key-fill me-1 text-success"></i>Full Admin Access</span>
+                <?php if (AdminAccess::isMainAdmin() && (int)$adm['id'] !== 1 && (int)$adm['id'] !== (int)Auth::id()): ?>
+                  <form action="index.php?page=admin_update_admin_level" method="POST" class="d-inline m-0">
+                    <?= Csrf::field() ?>
+                    <input type="hidden" name="admin_id" value="<?= (int)$adm['id'] ?>">
+                    <input type="hidden" name="admin_level" value="<?= $isMainAdm ? 'co_admin' : 'main_admin' ?>">
+                    <button type="submit" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0.5 fw-semibold" style="font-size: 0.7rem;" onclick="return confirm('Change access level for <?= e(addslashes($adm['name'])) ?>?');">
+                      Switch to <?= $isMainAdm ? 'Co-Admin' : 'Main Admin' ?>
+                    </button>
+                  </form>
+                <?php else: ?>
+                  <span class="<?= $isMainAdm ? 'text-danger' : 'text-primary' ?> fw-semibold">
+                    <i class="bi bi-key-fill me-1"></i><?= $isMainAdm ? 'Main Admin' : 'Co-Admin' ?>
+                  </span>
+                <?php endif; ?>
               </div>
             </div>
           </div>
@@ -288,6 +306,14 @@ require_once __DIR__ . '/../layouts/navbar.php';
           <div class="mb-3">
             <label class="form-label fw-bold text-dark small mb-1">Official Email Address <span class="text-danger">*</span></label>
             <input type="email" name="email" class="form-control" placeholder="e.g. nishantha@nvti.edu.lk" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold text-dark small mb-1">Admin Access Level <span class="text-danger">*</span></label>
+            <select name="admin_level" class="form-select" required>
+              <option value="co_admin" selected>Co-Administrator (All options except Attendance &amp; Selections)</option>
+              <option value="main_admin">Main Administrator (Full Access including Attendance &amp; Selections)</option>
+            </select>
           </div>
 
           <div class="mb-3">

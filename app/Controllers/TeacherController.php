@@ -616,6 +616,7 @@ class TeacherController {
      * Teacher Attendance Management Portal
      */
     public function attendance(): void {
+        AdminAccess::requireMainAdmin(true);
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $teacherId = Auth::id();
 
@@ -665,6 +666,7 @@ class TeacherController {
      * Teacher Save Attendance (Teacher can always save / override for active batches)
      */
     public function saveAttendance(): void {
+        AdminAccess::requireMainAdmin(true);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: index.php?page=teacher_attendance");
             exit;
@@ -711,6 +713,7 @@ class TeacherController {
      * Unlock Day's Attendance so Monitor can re-mark
      */
     public function unlockAttendance(): void {
+        AdminAccess::requireMainAdmin(true);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: index.php?page=teacher_attendance");
             exit;
@@ -739,6 +742,7 @@ class TeacherController {
      * Declare Special Holiday or Institute Closure with Reason
      */
     public function declareHoliday(): void {
+        AdminAccess::requireMainAdmin(true);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: index.php?page=teacher_attendance");
             exit;
@@ -800,6 +804,7 @@ class TeacherController {
      * Assign or Update Class Monitor
      */
     public function assignMonitor(): void {
+        AdminAccess::requireMainAdmin(true);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: index.php?page=teacher_attendance&tab=monitors");
             exit;
@@ -832,6 +837,7 @@ class TeacherController {
      * Toggle Monitor Status (Active / Disabled)
      */
     public function toggleMonitor(): void {
+        AdminAccess::requireMainAdmin(true);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: index.php?page=teacher_attendance&tab=monitors");
             exit;
@@ -861,6 +867,7 @@ class TeacherController {
      * Export Monthly Attendance to CSV (Official NVTI Benchmark Report)
      */
     public function exportAttendanceCsv(): void {
+        AdminAccess::requireMainAdmin(true);
         require_once __DIR__ . '/../Helpers/AttendanceManager.php';
         $classId = (int)($_GET['class_id'] ?? 0);
         if ($classId <= 0) {

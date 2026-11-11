@@ -586,6 +586,7 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                             </div>
 
                             <!-- Actions Dropdown -->
+                            <?php $canOwnDelete = AdminAccess::canDelete($item['created_by'] ?? null, $item['teacher_id'] ?? null); ?>
                             <div class="dropdown" style="position: relative; z-index: 5;">
                               <button class="btn btn-link text-muted p-1 border-0 shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-three-dots-vertical fs-5"></i>
@@ -599,15 +600,21 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                                   </li>
                                   <li><hr class="dropdown-divider my-1"></li>
                                   <li>
-                                    <form action="index.php?page=admin_delete_assignment" method="POST" onsubmit="return confirm('Delete this assignment?');">
-                                      <?= Csrf::field() ?>
-                                      <input type="hidden" name="assignment_id" value="<?= (int)$item['id'] ?>">
-                                      <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
-                                      <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
-                                      <button type="submit" class="dropdown-item py-1.5 small text-danger fw-semibold">
-                                        <i class="bi bi-trash3 me-2"></i> Delete Assignment
-                                      </button>
-                                    </form>
+                                    <?php if ($canOwnDelete): ?>
+                                      <form action="index.php?page=admin_delete_assignment" method="POST" onsubmit="return confirm('Delete this assignment?');">
+                                        <?= Csrf::field() ?>
+                                        <input type="hidden" name="assignment_id" value="<?= (int)$item['id'] ?>">
+                                        <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
+                                        <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
+                                        <button type="submit" class="dropdown-item py-1.5 small text-danger fw-semibold">
+                                          <i class="bi bi-trash3 me-2"></i> Delete Assignment
+                                        </button>
+                                      </form>
+                                    <?php else: ?>
+                                      <span class="dropdown-item-text py-1.5 small text-muted">
+                                        <i class="bi bi-lock-fill me-2"></i> Delete locked (Owner: <?= e($item['author_name']) ?>)
+                                      </span>
+                                    <?php endif; ?>
                                   </li>
                                 <?php else: ?>
                                   <li>
@@ -628,15 +635,21 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                                   </li>
                                   <li><hr class="dropdown-divider my-1"></li>
                                   <li>
-                                    <form action="index.php?page=admin_delete_material" method="POST" onsubmit="return confirm('Delete this study material?');">
-                                      <?= Csrf::field() ?>
-                                      <input type="hidden" name="material_id" value="<?= (int)$item['id'] ?>">
-                                      <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
-                                      <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
-                                      <button type="submit" class="dropdown-item py-1.5 small text-danger fw-semibold">
-                                        <i class="bi bi-trash3 me-2"></i> Delete Material
-                                      </button>
-                                    </form>
+                                    <?php if ($canOwnDelete): ?>
+                                      <form action="index.php?page=admin_delete_material" method="POST" onsubmit="return confirm('Delete this study material?');">
+                                        <?= Csrf::field() ?>
+                                        <input type="hidden" name="material_id" value="<?= (int)$item['id'] ?>">
+                                        <input type="hidden" name="subject_id" value="<?= (int)$currentSubject['id'] ?>">
+                                        <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
+                                        <button type="submit" class="dropdown-item py-1.5 small text-danger fw-semibold">
+                                          <i class="bi bi-trash3 me-2"></i> Delete Material
+                                        </button>
+                                      </form>
+                                    <?php else: ?>
+                                      <span class="dropdown-item-text py-1.5 small text-muted">
+                                        <i class="bi bi-lock-fill me-2"></i> Delete locked (Owner: <?= e($item['author_name']) ?>)
+                                      </span>
+                                    <?php endif; ?>
                                   </li>
                                 <?php endif; ?>
                               </ul>
@@ -767,14 +780,9 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
           </div>
 
           <div class="mb-3">
-            <label class="form-label fw-bold text-dark small">Posting Lecturer <span class="text-danger">*</span></label>
-            <select name="teacher_id" class="form-select" required>
-              <?php foreach ($teachers as $t): ?>
-                <option value="<?= $t['id'] ?>" <?= (isset($currentSubject) && $currentSubject['teacher_id'] == $t['id']) ? 'selected' : '' ?>>
-                  <?= e($t['name']) ?> (<?= e($t['email']) ?>)
-                </option>
-              <?php endforeach; ?>
-            </select>
+            <label class="form-label fw-bold text-dark small">Posted By</label>
+            <input type="text" class="form-control bg-light fw-semibold" value="<?= e(Auth::name()) ?>" readonly>
+            <input type="hidden" name="teacher_id" value="<?= (int)Auth::id() ?>">
           </div>
 
           <div class="mb-3">

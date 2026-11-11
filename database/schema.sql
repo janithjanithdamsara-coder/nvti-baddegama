@@ -34,6 +34,7 @@ CREATE TABLE `users` (
   `email` VARCHAR(150) NOT NULL UNIQUE,
   `password` VARCHAR(255) NOT NULL,
   `role` ENUM('admin', 'teacher', 'student') NOT NULL DEFAULT 'student',
+  `admin_level` ENUM('main_admin', 'co_admin') NOT NULL DEFAULT 'co_admin',
   `status` ENUM('active', 'pending', 'suspended') NOT NULL DEFAULT 'active',
   `profile_image` VARCHAR(255) DEFAULT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -165,6 +166,7 @@ CREATE TABLE `categories` (
 CREATE TABLE `materials` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `teacher_id` INT NOT NULL,
+  `created_by` INT DEFAULT NULL,
   `class_id` INT NOT NULL,
   `subject_id` INT NOT NULL,
   `category_id` INT NOT NULL,
@@ -188,6 +190,7 @@ CREATE TABLE `materials` (
 CREATE TABLE `assignments` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `teacher_id` INT NOT NULL,
+  `created_by` INT DEFAULT NULL,
   `class_id` INT NOT NULL,
   `subject_id` INT NOT NULL,
   `title` VARCHAR(200) NOT NULL,

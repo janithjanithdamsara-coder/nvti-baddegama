@@ -7,6 +7,7 @@
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/app/Helpers/Auth.php';
+require_once __DIR__ . '/app/Helpers/AdminAccess.php';
 require_once __DIR__ . '/app/Helpers/Sanitizer.php';
 require_once __DIR__ . '/app/Helpers/Csrf.php';
 require_once __DIR__ . '/app/Helpers/Flash.php';
@@ -157,6 +158,9 @@ switch ($page) {
         break;
     case 'admin_create_admin':
         (new AdminController())->createAdmin();
+        break;
+    case 'admin_update_admin_level':
+        (new AdminController())->updateAdminLevel();
         break;
     case 'admin_create_teacher':
         (new AdminController())->createTeacher();

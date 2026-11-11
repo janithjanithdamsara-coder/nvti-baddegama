@@ -14,6 +14,7 @@ class AdminController {
 
     public function __construct() {
         Auth::requireRole('admin');
+        AdminAccess::ensureSchema();
     }
 
     public function dashboard(): void {
@@ -518,6 +519,7 @@ class AdminController {
      */
     public function applications(): void {
         Auth::requireRole(['admin']);
+        AdminAccess::requireMainAdmin();
         $db = Database::getConnection();
 
         $search       = trim($_GET['search'] ?? '');
@@ -594,6 +596,7 @@ class AdminController {
      */
     public function syncApplications(): void {
         Auth::requireRole(['admin']);
+        AdminAccess::requireMainAdmin();
         Csrf::checkOrAbort();
         $db = Database::getConnection();
 
@@ -695,6 +698,7 @@ class AdminController {
      */
     public function updateApplicationStatus(): void {
         Auth::requireRole(['admin']);
+        AdminAccess::requireMainAdmin();
         Csrf::checkOrAbort();
         $db = Database::getConnection();
 
@@ -719,6 +723,7 @@ class AdminController {
      */
     public function enrollApplicant(): void {
         Auth::requireRole(['admin']);
+        AdminAccess::requireMainAdmin();
         Csrf::checkOrAbort();
         $db = Database::getConnection();
 
@@ -825,6 +830,7 @@ class AdminController {
      */
     public function saveApplication(): void {
         Auth::requireRole(['admin']);
+        AdminAccess::requireMainAdmin();
         Csrf::checkOrAbort();
         $db = Database::getConnection();
 
@@ -880,6 +886,7 @@ class AdminController {
      */
     public function exportApplicationsCsv(): void {
         Auth::requireRole(['admin']);
+        AdminAccess::requireMainAdmin();
         $db = Database::getConnection();
 
         $apps = $db->query("
@@ -954,7 +961,7 @@ class AdminController {
         $allSubjects = $db->query("SELECT * FROM subjects WHERE status = 'active'")->fetchAll();
         $allClasses = $db->query("SELECT * FROM classes WHERE status = 'active'")->fetchAll();
         $adminUsers = $db->query("
-            SELECT id, name, email, role, status, profile_image, created_at
+            SELECT id, name, email, role, admin_level, status, profile_image, created_at
             FROM users
             WHERE role = 'admin'
             ORDER BY id ASC
@@ -965,10 +972,12 @@ class AdminController {
     }
 
     public function createAdmin(): void {
+        AdminAccess::requireMainAdmin();
         Csrf::checkOrAbort();
-        $name     = trim($_POST['name'] ?? '');
-        $email    = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? 'nvtiadmin123';
+        $name       = trim($_POST['name'] ?? '');
+        $email      = trim($_POST['email'] ?? '');
+        $password   = $_POST['password'] ?? 'nvtiadmin123';
+        $adminLevel = ($_POST['admin_level'] ?? 'co_admin') === 'main_admin' ? 'main_admin' : 'co_admin';
 
         if (empty($name) || empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Flash::error("Full name and a valid email address are required.");
@@ -986,11 +995,41 @@ class AdminController {
         }
 
         $hash = password_hash($password, PASSWORD_BCRYPT);
-        $stmt = $db->prepare("INSERT INTO users (name, email, password, role, status, created_at) VALUES (?, ?, ?, 'admin', 'active', NOW())");
-        $stmt->execute([$name, $email, $hash]);
+        $stmt = $db->prepare("INSERT INTO users (name, email, password, role, admin_level, status, created_at) VALUES (?, ?, ?, 'admin', ?, 'active', NOW())");
+        $stmt->execute([$name, $email, $hash, $adminLevel]);
 
-        Auth::logAudit(Auth::id(), 'CREATE_ADMIN', "Created administrator account: $name ($email)");
-        Flash::success("Administrator account for $name created successfully!");
+        Auth::logAudit(Auth::id(), 'CREATE_ADMIN', "Created $adminLevel account: $name ($email)");
+        Flash::success("Administrator account for $name ($adminLevel) created successfully!");
+        header('Location: index.php?page=admin_teachers');
+        exit;
+    }
+
+    public function updateAdminLevel(): void {
+        AdminAccess::requireMainAdmin();
+        Csrf::checkOrAbort();
+
+        $targetId = (int)($_POST['admin_id'] ?? 0);
+        $newLevel = ($_POST['admin_level'] ?? 'co_admin') === 'main_admin' ? 'main_admin' : 'co_admin';
+
+        if ($targetId === 1 && $newLevel !== 'main_admin') {
+            Flash::error("Primary System Administrator (#1) cannot be downgraded.");
+            header('Location: index.php?page=admin_teachers');
+            exit;
+        }
+        if ($targetId === (int)Auth::id() && $newLevel !== 'main_admin') {
+            Flash::error("You cannot downgrade your own Main Administrator role.");
+            header('Location: index.php?page=admin_teachers');
+            exit;
+        }
+
+        if ($targetId > 0) {
+            $db = Database::getConnection();
+            $stmt = $db->prepare("UPDATE users SET admin_level = ? WHERE id = ? AND role = 'admin'");
+            $stmt->execute([$newLevel, $targetId]);
+            Auth::logAudit(Auth::id(), 'UPDATE_ADMIN_LEVEL', "Updated admin user #$targetId level to $newLevel");
+            Flash::success("Administrator access level updated.");
+        }
+
         header('Location: index.php?page=admin_teachers');
         exit;
     }
@@ -1449,9 +1488,10 @@ class AdminController {
 
             // Fetch Materials for this Subject
             $matStmt = $db->prepare("
-                SELECT m.*, u.name as teacher_name, c.category_name, c.icon as category_icon
+                SELECT m.*, COALESCE(cu.name, u.name) as teacher_name, c.category_name, c.icon as category_icon
                 FROM materials m
                 JOIN users u ON m.teacher_id = u.id
+                LEFT JOIN users cu ON m.created_by = cu.id
                 JOIN categories c ON m.category_id = c.id
                 WHERE m.subject_id = ? AND m.class_id = ?
                 ORDER BY m.created_at DESC
@@ -1461,10 +1501,11 @@ class AdminController {
 
             // Fetch Assignments for this Subject
             $asgStmt = $db->prepare("
-                SELECT a.*, u.name as teacher_name,
+                SELECT a.*, COALESCE(cu.name, u.name) as teacher_name,
                        (SELECT COUNT(*) FROM submissions sub WHERE sub.assignment_id = a.id) as submissions_count
                 FROM assignments a
                 JOIN users u ON a.teacher_id = u.id
+                LEFT JOIN users cu ON a.created_by = cu.id
                 WHERE a.subject_id = ? AND a.class_id = ?
                 ORDER BY a.created_at DESC
             ");
@@ -1480,6 +1521,8 @@ class AdminController {
                     'title'       => $m['title'],
                     'description' => $m['description'],
                     'author_name' => $m['teacher_name'],
+                    'created_by'  => isset($m['created_by']) ? (int)$m['created_by'] : null,
+                    'teacher_id'  => (int)($m['teacher_id'] ?? 0),
                     'created_at'  => $m['created_at'],
                     'category'    => $m['category_name'],
                     'icon'        => $m['category_icon'] ?? 'file-earmark-text',
@@ -1499,6 +1542,8 @@ class AdminController {
                     'title'       => $a['title'],
                     'description' => $a['instructions'],
                     'author_name' => $a['teacher_name'],
+                    'created_by'  => isset($a['created_by']) ? (int)$a['created_by'] : null,
+                    'teacher_id'  => (int)($a['teacher_id'] ?? 0),
                     'created_at'  => $a['created_at'],
                     'deadline'    => $a['deadline'],
                     'total_marks' => $a['total_marks'],
@@ -1581,7 +1626,7 @@ class AdminController {
         $subjectId    = (int)($_POST['subject_id'] ?? 0);
         $classId      = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
         $categoryId   = (int)($_POST['category_id'] ?? 1);
-        $teacherId    = (int)($_POST['teacher_id'] ?? $adminId);
+        $teacherId    = $adminId; // Always lock uploader identity to logged-in admin
         $materialType = $_POST['material_type'] ?? 'file';
 
         if (empty($title) || $subjectId <= 0) {
@@ -1641,10 +1686,10 @@ class AdminController {
         }
 
         $stmt = $db->prepare("
-            INSERT INTO materials (teacher_id, class_id, subject_id, category_id, title, description, material_type, file_path, original_filename, external_url, file_size_bytes, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            INSERT INTO materials (teacher_id, created_by, class_id, subject_id, category_id, title, description, material_type, file_path, original_filename, external_url, file_size_bytes, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ");
-        $stmt->execute([$teacherId, $classId, $subjectId, $categoryId, $title, $description, $materialType, $filePath, $origName, $url, $fileSize]);
+        $stmt->execute([$teacherId, $adminId, $classId, $subjectId, $categoryId, $title, $description, $materialType, $filePath, $origName, $url, $fileSize]);
 
         Auth::logAudit($adminId, 'ADMIN_UPLOAD_MATERIAL', "Admin uploaded material: $title for subject $subjectId (class $classId)");
 
@@ -1697,7 +1742,7 @@ class AdminController {
         $instructions = trim($_POST['instructions'] ?? '');
         $subjectId    = (int)($_POST['subject_id'] ?? 0);
         $classId      = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
-        $teacherId    = (int)($_POST['teacher_id'] ?? $adminId);
+        $teacherId    = $adminId; // Always lock creator identity to logged-in admin
         $totalMarks   = (float)($_POST['total_marks'] ?? 100);
         $deadline     = trim($_POST['deadline'] ?? '');
         $returnTo     = trim($_POST['return_to'] ?? 'materials');
@@ -1740,10 +1785,10 @@ class AdminController {
         }
 
         $stmt = $db->prepare("
-            INSERT INTO assignments (teacher_id, class_id, subject_id, title, instructions, reference_file, total_marks, deadline, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
+            INSERT INTO assignments (teacher_id, created_by, class_id, subject_id, title, instructions, reference_file, total_marks, deadline, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW())
         ");
-        $stmt->execute([$teacherId, $classId, $subjectId, $title, $instructions, $refFile, $totalMarks, $deadline]);
+        $stmt->execute([$teacherId, $adminId, $classId, $subjectId, $title, $instructions, $refFile, $totalMarks, $deadline]);
 
         Auth::logAudit($adminId, 'ADMIN_CREATE_ASSIGNMENT', "Admin created assignment: $title with deadline $deadline (class $classId)");
 
@@ -1827,18 +1872,25 @@ class AdminController {
         $classId = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
 
         if ($matId > 0) {
-            $stmt = $db->prepare("SELECT file_path FROM materials WHERE id = ?");
+            $stmt = $db->prepare("SELECT title, file_path, teacher_id, created_by FROM materials WHERE id = ?");
             $stmt->execute([$matId]);
-            $row = $stmt->fetch();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $del = $db->prepare("DELETE FROM materials WHERE id = ?");
-            $del->execute([$matId]);
+            if (!$row) {
+                Flash::error("Study material not found.");
+            } elseif (!AdminAccess::canDelete(isset($row['created_by']) ? (int)$row['created_by'] : null, (int)($row['teacher_id'] ?? 0))) {
+                Flash::error("Access denied: Only the administrator/lecturer who uploaded '{$row['title']}' can delete it.");
+            } else {
+                $del = $db->prepare("DELETE FROM materials WHERE id = ?");
+                $del->execute([$matId]);
 
-            if ($row && !empty($row['file_path'])) {
-                $this->safeUnlinkMaterialFile($db, $row['file_path']);
+                if (!empty($row['file_path'])) {
+                    $this->safeUnlinkMaterialFile($db, $row['file_path']);
+                }
+
+                Auth::logAudit(Auth::id(), 'DELETE_MATERIAL', "Deleted material ID $matId ({$row['title']})");
+                Flash::success("Study material has been deleted from classroom stream.");
             }
-
-            Flash::success("Study material has been deleted from classroom stream.");
         }
 
         header("Location: " . $this->buildMaterialsRedirectUrl($classId, $subjectId));
@@ -1916,18 +1968,41 @@ class AdminController {
             Auth::logAudit(Auth::id(), 'BULK_UNHIDE_MATERIALS', "Unhidden " . count($cleanIds) . " materials");
             Flash::success(count($cleanIds) . " study materials are now visible to students.");
         } elseif ($action === 'delete') {
-            $fStmt = $db->prepare("SELECT file_path FROM materials WHERE id IN ($placeholders)");
+            $fStmt = $db->prepare("SELECT id, file_path, teacher_id, created_by FROM materials WHERE id IN ($placeholders)");
             $fStmt->execute($cleanIds);
-            $files = $fStmt->fetchAll();
+            $rows = $fStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $stmt = $db->prepare("DELETE FROM materials WHERE id IN ($placeholders)");
-            $stmt->execute($cleanIds);
-
-            foreach ($files as $f) {
-                $this->safeUnlinkMaterialFile($db, $f['file_path'] ?? null);
+            $ownedIds = [];
+            $ownedFiles = [];
+            $skippedOthers = 0;
+            foreach ($rows as $r) {
+                if (AdminAccess::canDelete(isset($r['created_by']) ? (int)$r['created_by'] : null, (int)($r['teacher_id'] ?? 0))) {
+                    $ownedIds[] = (int)$r['id'];
+                    if (!empty($r['file_path'])) {
+                        $ownedFiles[] = $r['file_path'];
+                    }
+                } else {
+                    $skippedOthers++;
+                }
             }
-            Auth::logAudit(Auth::id(), 'BULK_DELETE_MATERIALS', "Deleted " . count($cleanIds) . " materials");
-            Flash::success(count($cleanIds) . " study materials have been permanently deleted.");
+
+            if (!empty($ownedIds)) {
+                $delPlaceholders = implode(',', array_fill(0, count($ownedIds), '?'));
+                $stmt = $db->prepare("DELETE FROM materials WHERE id IN ($delPlaceholders)");
+                $stmt->execute($ownedIds);
+                foreach ($ownedFiles as $fp) {
+                    $this->safeUnlinkMaterialFile($db, $fp);
+                }
+                Auth::logAudit(Auth::id(), 'BULK_DELETE_MATERIALS', "Deleted " . count($ownedIds) . " owned materials (skipped $skippedOthers owned by others)");
+            }
+
+            if (!empty($ownedIds) && $skippedOthers === 0) {
+                Flash::success(count($ownedIds) . " study material(s) have been permanently deleted.");
+            } elseif (!empty($ownedIds) && $skippedOthers > 0) {
+                Flash::warning("Deleted " . count($ownedIds) . " of your material(s). Skipped {$skippedOthers} item(s) uploaded by another administrator.");
+            } else {
+                Flash::error("Access denied: None of the selected materials belong to your account.");
+            }
         } else {
             Flash::error("Invalid bulk action requested.");
         }
@@ -1969,18 +2044,36 @@ class AdminController {
             Auth::logAudit(Auth::id(), 'MODULE_UNHIDE_ALL_MATERIALS', "Unhidden all materials for module $subName ($subjectId, class $classId)");
             Flash::success("All materials in '{$subName}' are now visible to students.");
         } elseif ($action === 'delete_all') {
-            $fStmt = $db->prepare("SELECT file_path FROM materials WHERE subject_id = ? AND class_id = ?");
+            $fStmt = $db->prepare("SELECT id, file_path, teacher_id, created_by FROM materials WHERE subject_id = ? AND class_id = ?");
             $fStmt->execute([$subjectId, $classId]);
-            $files = $fStmt->fetchAll();
+            $rows = $fStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $stmt = $db->prepare("DELETE FROM materials WHERE subject_id = ? AND class_id = ?");
-            $stmt->execute([$subjectId, $classId]);
-
-            foreach ($files as $f) {
-                $this->safeUnlinkMaterialFile($db, $f['file_path'] ?? null);
+            $ownedIds = [];
+            $ownedFiles = [];
+            $skippedOthers = 0;
+            foreach ($rows as $r) {
+                if (AdminAccess::canDelete(isset($r['created_by']) ? (int)$r['created_by'] : null, (int)($r['teacher_id'] ?? 0))) {
+                    $ownedIds[] = (int)$r['id'];
+                    if (!empty($r['file_path'])) $ownedFiles[] = $r['file_path'];
+                } else {
+                    $skippedOthers++;
+                }
             }
-            Auth::logAudit(Auth::id(), 'MODULE_DELETE_ALL_MATERIALS', "Deleted all materials for module $subName ($subjectId, class $classId)");
-            Flash::success("All study materials in module '{$subName}' have been deleted.");
+
+            if (!empty($ownedIds)) {
+                $ph = implode(',', array_fill(0, count($ownedIds), '?'));
+                $db->prepare("DELETE FROM materials WHERE id IN ($ph)")->execute($ownedIds);
+                foreach ($ownedFiles as $fp) {
+                    $this->safeUnlinkMaterialFile($db, $fp);
+                }
+                Auth::logAudit(Auth::id(), 'MODULE_DELETE_ALL_MATERIALS', "Deleted " . count($ownedIds) . " owned materials for module $subName ($subjectId, class $classId); skipped $skippedOthers");
+            }
+
+            if ($skippedOthers > 0) {
+                Flash::warning("Deleted " . count($ownedIds) . " of your material(s) in '{$subName}'. {$skippedOthers} item(s) uploaded by another administrator were protected.");
+            } else {
+                Flash::success("All your study materials in module '{$subName}' have been deleted.");
+            }
         } else {
             Flash::error("Unknown module operation.");
         }
@@ -2034,34 +2127,39 @@ class AdminController {
                 Flash::success("All study materials ($count items) in this batch are now VISIBLE to students.");
             }
         } elseif ($action === 'delete_all') {
-            if ($targetSubjectId > 0) {
-                $fStmt = $db->prepare("SELECT file_path FROM materials WHERE subject_id = ? AND class_id = ?");
-                $fStmt->execute([$targetSubjectId, $classId]);
-                $files = $fStmt->fetchAll();
+            $sql = ($targetSubjectId > 0)
+                ? "SELECT id, file_path, teacher_id, created_by FROM materials WHERE subject_id = ? AND class_id = ?"
+                : "SELECT id, file_path, teacher_id, created_by FROM materials WHERE class_id = ?";
+            $fStmt = $db->prepare($sql);
+            $fStmt->execute(($targetSubjectId > 0) ? [$targetSubjectId, $classId] : [$classId]);
+            $rows = $fStmt->fetchAll(PDO::FETCH_ASSOC);
 
-                $del = $db->prepare("DELETE FROM materials WHERE subject_id = ? AND class_id = ?");
-                $del->execute([$targetSubjectId, $classId]);
-                $count = $del->rowCount();
-
-                foreach ($files as $f) {
-                    $this->safeUnlinkMaterialFile($db, $f['file_path'] ?? null);
+            $ownedIds = [];
+            $ownedFiles = [];
+            $skippedOthers = 0;
+            foreach ($rows as $r) {
+                if (AdminAccess::canDelete(isset($r['created_by']) ? (int)$r['created_by'] : null, (int)($r['teacher_id'] ?? 0))) {
+                    $ownedIds[] = (int)$r['id'];
+                    if (!empty($r['file_path'])) $ownedFiles[] = $r['file_path'];
+                } else {
+                    $skippedOthers++;
                 }
-                Auth::logAudit(Auth::id(), 'MODULE_DELETE_ALL_MATERIALS', "Permanently deleted $count materials for module $targetSubjectId (class $classId)");
-                Flash::success("Permanently deleted $count study materials from selected module.");
+            }
+
+            $count = count($ownedIds);
+            if ($count > 0) {
+                $ph = implode(',', array_fill(0, $count, '?'));
+                $db->prepare("DELETE FROM materials WHERE id IN ($ph)")->execute($ownedIds);
+                foreach ($ownedFiles as $fp) {
+                    $this->safeUnlinkMaterialFile($db, $fp);
+                }
+                Auth::logAudit(Auth::id(), 'GLOBAL_DELETE_ALL_MATERIALS', "Deleted $count owned materials in class $classId (skipped $skippedOthers)");
+            }
+
+            if ($skippedOthers > 0) {
+                Flash::warning("Deleted $count of your material(s). $skippedOthers material(s) uploaded by another administrator were protected.");
             } else {
-                $fStmt = $db->prepare("SELECT file_path FROM materials WHERE class_id = ?");
-                $fStmt->execute([$classId]);
-                $files = $fStmt->fetchAll();
-
-                $del = $db->prepare("DELETE FROM materials WHERE class_id = ?");
-                $del->execute([$classId]);
-                $count = $del->rowCount();
-
-                foreach ($files as $f) {
-                    $this->safeUnlinkMaterialFile($db, $f['file_path'] ?? null);
-                }
-                Auth::logAudit(Auth::id(), 'GLOBAL_DELETE_ALL_MATERIALS', "Permanently deleted all $count materials in class $classId");
-                Flash::success("Permanently deleted all $count study materials in this batch.");
+                Flash::success("Permanently deleted $count study material(s).");
             }
         } else {
             Flash::error("Invalid action requested.");
@@ -2156,19 +2254,25 @@ class AdminController {
         $filterParam = trim($_POST['filter_class'] ?? (string)$classId);
 
         if ($asgId > 0) {
-            $fStmt = $db->prepare("SELECT reference_file FROM assignments WHERE id = ?");
+            $fStmt = $db->prepare("SELECT title, reference_file, teacher_id, created_by FROM assignments WHERE id = ?");
             $fStmt->execute([$asgId]);
-            $refFile = $fStmt->fetchColumn();
+            $row = $fStmt->fetch(PDO::FETCH_ASSOC);
 
-            $del = $db->prepare("DELETE FROM assignments WHERE id = ?");
-            $del->execute([$asgId]);
+            if (!$row) {
+                Flash::error("Assignment not found.");
+            } elseif (!AdminAccess::canDelete(isset($row['created_by']) ? (int)$row['created_by'] : null, (int)($row['teacher_id'] ?? 0))) {
+                Flash::error("Access denied: Only the administrator/lecturer who created '{$row['title']}' can delete it.");
+            } else {
+                $del = $db->prepare("DELETE FROM assignments WHERE id = ?");
+                $del->execute([$asgId]);
 
-            if (!empty($refFile)) {
-                @unlink(ASSIGNMENT_UPLOAD_PATH . DIRECTORY_SEPARATOR . $refFile);
+                if (!empty($row['reference_file'])) {
+                    @unlink(ASSIGNMENT_UPLOAD_PATH . DIRECTORY_SEPARATOR . $row['reference_file']);
+                }
+
+                Auth::logAudit(Auth::id(), 'DELETE_ASSIGNMENT', "Deleted assignment ID $asgId ({$row['title']})");
+                Flash::success("Assignment has been deleted.");
             }
-
-            Auth::logAudit(Auth::id(), 'DELETE_ASSIGNMENT', "Deleted assignment ID $asgId");
-            Flash::success("Assignment has been deleted.");
         }
 
         $redirectUrl = ($returnTo === 'assignments')
@@ -2327,10 +2431,11 @@ class AdminController {
         }
 
         $sql = "
-            SELECT a.*, u.name as teacher_name, s.subject_name, s.subject_code, cl.class_name,
+            SELECT a.*, COALESCE(cu.name, u.name) as teacher_name, s.subject_name, s.subject_code, cl.class_name,
                    (SELECT COUNT(*) FROM submissions sub WHERE sub.assignment_id = a.id) as submission_count
             FROM assignments a
             JOIN users u ON a.teacher_id = u.id
+            LEFT JOIN users cu ON a.created_by = cu.id
             JOIN subjects s ON a.subject_id = s.id
             JOIN classes cl ON a.class_id = cl.id
         ";
@@ -2355,12 +2460,51 @@ class AdminController {
 
     public function logs(): void {
         $db = Database::getConnection();
-        $auditLogs = $db->query("
-            SELECT al.*, u.name as user_name, u.email as user_email
+
+        $adminFilter = (int)($_GET['admin_id'] ?? 0);
+        $catFilter   = trim($_GET['category'] ?? 'all');
+
+        // Per-admin summary cards
+        $adminUsers = $db->query("
+            SELECT u.id, u.name, u.email, u.admin_level,
+                   (SELECT COUNT(*) FROM audit_logs al WHERE al.user_id = u.id) AS total_actions,
+                   (SELECT COUNT(*) FROM audit_logs al WHERE al.user_id = u.id AND al.created_at >= CURDATE()) AS today_actions,
+                   (SELECT MAX(al.created_at) FROM audit_logs al WHERE al.user_id = u.id) AS last_active
+            FROM users u
+            WHERE u.role = 'admin'
+            ORDER BY u.id ASC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $where = ['1=1'];
+        $params = [];
+
+        if ($adminFilter > 0) {
+            $where[] = "al.user_id = ?";
+            $params[] = $adminFilter;
+        }
+
+        if ($catFilter === 'deletes') {
+            $where[] = "al.action LIKE '%DELETE%'";
+        } elseif ($catFilter === 'materials') {
+            $where[] = "(al.action LIKE '%MATERIAL%' OR al.action LIKE '%ASSIGNMENT%' OR al.action LIKE '%PAPER%')";
+        } elseif ($catFilter === 'students') {
+            $where[] = "(al.action LIKE '%STUDENT%' OR al.action LIKE '%APPLICATION%' OR al.action LIKE '%ENROLL%' OR al.action LIKE '%DOCUMENT%')";
+        } elseif ($catFilter === 'emails') {
+            $where[] = "al.action LIKE '%EMAIL%'";
+        } elseif ($catFilter === 'admins_only') {
+            $where[] = "u.role = 'admin'";
+        }
+
+        $whereSql = implode(' AND ', $where);
+        $stmt = $db->prepare("
+            SELECT al.*, u.name as user_name, u.email as user_email, u.role as user_role, u.admin_level
             FROM audit_logs al
             LEFT JOIN users u ON al.user_id = u.id
-            ORDER BY al.id DESC LIMIT 50
-        ")->fetchAll();
+            WHERE {$whereSql}
+            ORDER BY al.id DESC LIMIT 100
+        ");
+        $stmt->execute($params);
+        $auditLogs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $loginLogs = $db->query("SELECT * FROM login_logs ORDER BY id DESC LIMIT 50")->fetchAll();
 
@@ -2485,28 +2629,28 @@ class AdminController {
         $modFilter  = trim($_GET['module_code'] ?? '');
         $search     = trim($_GET['search'] ?? '');
 
-        $sql = "SELECT * FROM exam_papers WHERE 1=1";
+        $sql = "SELECT ep.*, cu.name AS creator_name FROM exam_papers ep LEFT JOIN users cu ON ep.created_by = cu.id WHERE 1=1";
         $params = [];
 
         if ($semFilter > 0) {
-            $sql .= " AND semester = ?";
+            $sql .= " AND ep.semester = ?";
             $params[] = $semFilter;
         }
         if (!empty($typeFilter)) {
-            $sql .= " AND paper_type = ?";
+            $sql .= " AND ep.paper_type = ?";
             $params[] = $typeFilter;
         }
         if (!empty($modFilter)) {
-            $sql .= " AND module_code = ?";
+            $sql .= " AND ep.module_code = ?";
             $params[] = $modFilter;
         }
         if (!empty($search)) {
-            $sql .= " AND (title LIKE ? OR description LIKE ? OR subject_title LIKE ?)";
+            $sql .= " AND (ep.title LIKE ? OR ep.description LIKE ? OR ep.subject_title LIKE ?)";
             $params[] = "%$search%";
             $params[] = "%$search%";
             $params[] = "%$search%";
         }
-        $sql .= " ORDER BY semester ASC, exam_year DESC, module_code ASC";
+        $sql .= " ORDER BY ep.semester ASC, ep.exam_year DESC, ep.module_code ASC";
 
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
@@ -2603,8 +2747,8 @@ class AdminController {
 
         $stmt = $db->prepare("
             INSERT INTO exam_papers 
-            (semester, module_code, subject_title, paper_type, exam_year, title, description, file_path, original_filename, file_size_bytes, download_count, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
+            (semester, module_code, subject_title, paper_type, exam_year, title, description, file_path, original_filename, file_size_bytes, created_by, download_count, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())
         ");
         $stmt->execute([
             $semester,
@@ -2616,7 +2760,8 @@ class AdminController {
             $description,
             $filePath,
             $originalFilename,
-            $fileSizeBytes
+            $fileSizeBytes,
+            Auth::id()
         ]);
 
         Auth::logAudit(Auth::id(), 'UPLOAD_EXAM_PAPER', "Uploaded paper '$title' ($paperType) for $moduleCode");
@@ -2659,6 +2804,12 @@ class AdminController {
         if (!$existing) {
             Flash::error("Paper not found.");
             header("Location: index.php?page=admin_papers");
+            exit;
+        }
+
+        if (!AdminAccess::canDelete(isset($existing['created_by']) ? (int)$existing['created_by'] : null)) {
+            Flash::error("Access denied: Only the administrator who uploaded '{$existing['title']}' can edit or replace it.");
+            header("Location: index.php?page=admin_papers&semester=" . (int)$existing['semester']);
             exit;
         }
 
@@ -2731,11 +2882,17 @@ class AdminController {
         $db = Database::getConnection();
 
         $id = (int)($_POST['id'] ?? 0);
-        $stmt = $db->prepare("SELECT file_path, title FROM exam_papers WHERE id = ?");
+        $stmt = $db->prepare("SELECT file_path, title, created_by FROM exam_papers WHERE id = ?");
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($row) {
+            if (!AdminAccess::canDelete(isset($row['created_by']) ? (int)$row['created_by'] : null)) {
+                Flash::error("Access denied: Only the administrator who uploaded '{$row['title']}' can delete it.");
+                $sem = (int)($_POST['semester'] ?? 0);
+                header("Location: index.php?page=admin_papers" . ($sem > 0 ? "&semester=$sem" : ""));
+                exit;
+            }
             if (!empty($row['file_path'])) {
                 $fullPath = MATERIAL_UPLOAD_PATH . DIRECTORY_SEPARATOR . $row['file_path'];
                 if (file_exists($fullPath) && is_file($fullPath)) {
