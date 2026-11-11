@@ -199,6 +199,21 @@ $defaultDeadline = date('Y-m-d\T23:59', strtotime('+7 days'));
               <input type="file" name="reference_file" class="form-control" accept=".pdf,.doc,.docx,.zip">
               <small class="text-muted">PDF, Word document, or starter ZIP archive (max 25MB).</small>
             </div>
+
+            <div class="col-12">
+              <input type="hidden" name="email_prompt_present" value="1">
+              <div class="form-check form-switch bg-light border rounded-3 px-3 py-2.5 d-flex align-items-center justify-content-between">
+                <div>
+                  <label class="form-check-label fw-semibold text-dark small mb-0" for="adminAsgNotifyEmail">
+                    <i class="bi bi-envelope-check text-primary me-1"></i> Notify enrolled students via Email
+                  </label>
+                  <div class="text-muted" style="font-size: 0.74rem;">
+                    <?= EmailSettings::isCategoryEnabled('assignment') ? 'Uncheck to publish assignment silently without emailing students.' : 'Currently disabled globally in Email Settings.' ?>
+                  </div>
+                </div>
+                <input class="form-check-input ms-2" type="checkbox" role="switch" id="adminAsgNotifyEmail" name="send_email_notification" value="1" <?= EmailSettings::shouldDefaultCheckAction('assignment') ? 'checked' : '' ?> <?= !EmailSettings::isCategoryEnabled('assignment') ? 'disabled' : '' ?>>
+              </div>
+            </div>
           </div>
         </div>
 

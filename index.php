@@ -259,8 +259,20 @@ switch ($page) {
     case 'admin_email_settings':
         (new AdminController())->showEmailSettings();
         break;
+    case 'admin_save_email_settings':
+        (new AdminController())->saveEmailSettings();
+        break;
+    case 'admin_send_custom_email':
+        (new AdminController())->sendCustomEmail();
+        break;
     case 'admin_test_email':
         (new AdminController())->testEmail();
+        break;
+    case 'admin_resend_email':
+        (new AdminController())->resendEmailLog();
+        break;
+    case 'admin_clear_email_logs':
+        (new AdminController())->clearEmailLogs();
         break;
 
     // ---------------- TEACHER ROUTES ----------------

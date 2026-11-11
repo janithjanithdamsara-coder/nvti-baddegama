@@ -787,6 +787,19 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
             <label class="form-label fw-bold text-dark small">Description / Notes (Optional)</label>
             <textarea class="form-control" name="description" rows="3" placeholder="Brief summary of what this note covers..."></textarea>
           </div>
+
+          <input type="hidden" name="email_prompt_present" value="1">
+          <div class="form-check form-switch bg-light border rounded-3 px-3 py-2.5 d-flex align-items-center justify-content-between">
+            <div>
+              <label class="form-check-label fw-semibold text-dark small mb-0" for="adminMaterialFileNotifyEmail">
+                <i class="bi bi-envelope-check text-primary me-1"></i> Notify enrolled students via Email
+              </label>
+              <div class="text-muted" style="font-size: 0.74rem;">
+                <?= EmailSettings::isCategoryEnabled('material') ? 'Uncheck if you want to post silently without emailing students.' : 'Currently disabled globally in Email Settings.' ?>
+              </div>
+            </div>
+            <input class="form-check-input ms-2" type="checkbox" role="switch" id="adminMaterialFileNotifyEmail" name="send_email_notification" value="1" <?= EmailSettings::shouldDefaultCheckAction('material') ? 'checked' : '' ?> <?= !EmailSettings::isCategoryEnabled('material') ? 'disabled' : '' ?>>
+          </div>
         </div>
 
         <div class="modal-footer bg-light border-top px-4 py-2.5">
@@ -840,6 +853,19 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
           <div class="mb-3">
             <label class="form-label fw-bold text-dark small">Description</label>
             <textarea class="form-control" name="description" rows="2" placeholder="Video summary or directions..."></textarea>
+          </div>
+
+          <input type="hidden" name="email_prompt_present" value="1">
+          <div class="form-check form-switch bg-light border rounded-3 px-3 py-2.5 d-flex align-items-center justify-content-between">
+            <div>
+              <label class="form-check-label fw-semibold text-dark small mb-0" for="adminMaterialLinkNotifyEmail">
+                <i class="bi bi-envelope-check text-primary me-1"></i> Notify enrolled students via Email
+              </label>
+              <div class="text-muted" style="font-size: 0.74rem;">
+                <?= EmailSettings::isCategoryEnabled('material') ? 'Uncheck to post silently without emailing students.' : 'Currently disabled globally in Email Settings.' ?>
+              </div>
+            </div>
+            <input class="form-check-input ms-2" type="checkbox" role="switch" id="adminMaterialLinkNotifyEmail" name="send_email_notification" value="1" <?= EmailSettings::shouldDefaultCheckAction('material') ? 'checked' : '' ?> <?= !EmailSettings::isCategoryEnabled('material') ? 'disabled' : '' ?>>
           </div>
         </div>
 
@@ -897,6 +923,19 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
             <label class="form-label fw-bold text-dark small">Attach Question Paper / Reference Guide (Optional)</label>
             <input type="file" class="form-control" name="reference_file" accept=".pdf,.doc,.docx,.zip">
             <small class="text-muted">PDF or Word document with assignment questions.</small>
+          </div>
+
+          <input type="hidden" name="email_prompt_present" value="1">
+          <div class="form-check form-switch bg-light border rounded-3 px-3 py-2.5 d-flex align-items-center justify-content-between">
+            <div>
+              <label class="form-check-label fw-semibold text-dark small mb-0" for="adminMatAsgNotifyEmail">
+                <i class="bi bi-envelope-check text-primary me-1"></i> Notify enrolled students via Email
+              </label>
+              <div class="text-muted" style="font-size: 0.74rem;">
+                <?= EmailSettings::isCategoryEnabled('assignment') ? 'Uncheck to publish assignment silently without emailing students.' : 'Currently disabled globally in Email Settings.' ?>
+              </div>
+            </div>
+            <input class="form-check-input ms-2" type="checkbox" role="switch" id="adminMatAsgNotifyEmail" name="send_email_notification" value="1" <?= EmailSettings::shouldDefaultCheckAction('assignment') ? 'checked' : '' ?> <?= !EmailSettings::isCategoryEnabled('assignment') ? 'disabled' : '' ?>>
           </div>
         </div>
 

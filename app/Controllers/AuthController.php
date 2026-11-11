@@ -436,7 +436,7 @@ class AuthController {
                     <p style='color: #e11d48; font-size: 13px;'>* If you did not perform this change, please inform the NVTI administration immediately to secure your account.</p>
                 </div>
             </div>";
-            Mailer::send($user['email'], "Security Alert: Password Changed - NVTI Baddegama", $alertHtml, $user['name']);
+            Mailer::send($user['email'], "Security Alert: Password Changed - NVTI Baddegama", $alertHtml, $user['name'], '', 'security_alert', (int)$user['id']);
         }
 
         Flash::success('Password has been successfully changed!');
@@ -485,6 +485,8 @@ class AuthController {
                 $mailResult = Mailer::sendPasswordReset($email, $user['name'], $token);
                 if ($mailResult['success']) {
                     Flash::success("A password reset link has been dispatched to your email address (<strong>" . htmlspecialchars($email) . "</strong>). Please check your inbox.");
+                } elseif (!empty($mailResult['skipped'])) {
+                    Flash::info("Email notifications are currently paused by the administrator. Your password reset token is: <code>$token</code>");
                 } else {
                     Flash::warning("Password reset token generated: <code>$token</code>. (Email delivery error: " . htmlspecialchars($mailResult['message']) . ")");
                 }
@@ -578,7 +580,7 @@ class AuthController {
                 <p>You can now sign in securely with your new password.</p>
             </div>
         </div>";
-        Mailer::send($reset['email'], "Password Reset Confirmation - NVTI Baddegama", $alertHtml);
+        Mailer::send($reset['email'], "Password Reset Confirmation - NVTI Baddegama", $alertHtml, '', '', 'security_alert');
 
         Flash::success('Your password has been successfully reset! You can now log in.');
         header('Location: index.php?page=login');

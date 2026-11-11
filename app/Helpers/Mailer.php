@@ -5,6 +5,8 @@
  * NVTI Baddegama National Diploma Portal
  */
 
+require_once __DIR__ . '/EmailSettings.php';
+
 class Mailer {
     private static ?string $lastError = null;
 
@@ -20,30 +22,92 @@ class Mailer {
      * @param string $htmlBody HTML content
      * @param string $toName Optional recipient name
      * @param string $plainText Optional plain text alternative
-     * @return array ['success' => bool, 'message' => string]
+     * @param string $emailType Category tag for toggle & log history
+     * @param int|null $sentBy Optional user ID of triggerer
+     * @param bool $bypassSettings Set true for explicit manual admin test/custom/resend actions
+     * @return array ['success' => bool, 'message' => string, 'skipped' => bool]
      */
-    public static function send(string $toEmail, string $subject, string $htmlBody, string $toName = '', string $plainText = ''): array {
+    public static function send(
+        string $toEmail,
+        string $subject,
+        string $htmlBody,
+        string $toName = '',
+        string $plainText = '',
+        string $emailType = 'general',
+        ?int $sentBy = null,
+        bool $bypassSettings = false
+    ): array {
         self::$lastError = null;
+        $resolvedSenderId = $sentBy ?? (isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null);
 
         if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
             self::$lastError = "Invalid recipient email address: $toEmail";
-            return ['success' => false, 'message' => self::$lastError];
+            EmailSettings::logEmail($toEmail, $toName, $subject, $htmlBody, $emailType, 'failed', self::$lastError, $resolvedSenderId);
+            return ['success' => false, 'skipped' => false, 'message' => self::$lastError];
+        }
+
+        if (!$bypassSettings) {
+            if (!EmailSettings::isMasterEnabled()) {
+                $msg = "Skipped: Master Email Switch is turned OFF in Email Settings.";
+                EmailSettings::logEmail($toEmail, $toName, $subject, $htmlBody, $emailType, 'skipped', $msg, $resolvedSenderId);
+                return ['success' => false, 'skipped' => true, 'message' => $msg];
+            }
+
+            if (!EmailSettings::isCategoryEnabled($emailType)) {
+                $msg = "Skipped: '{$emailType}' email notifications are turned OFF in Email Settings.";
+                EmailSettings::logEmail($toEmail, $toName, $subject, $htmlBody, $emailType, 'skipped', $msg, $resolvedSenderId);
+                return ['success' => false, 'skipped' => true, 'message' => $msg];
+            }
         }
 
         // Check if Brevo API driver is requested
         if (defined('MAIL_DRIVER') && MAIL_DRIVER === 'brevo_api') {
-            return self::sendViaBrevoApi($toEmail, $subject, $htmlBody, $toName);
+            $result = self::sendViaBrevoApi($toEmail, $subject, $htmlBody, $toName);
+        } else {
+            // Default: Brevo / standard SMTP
+            $result = self::sendViaSmtp($toEmail, $subject, $htmlBody, $toName, $plainText);
+
+            // If SMTP fails and an API key is set, try Brevo API as fallback
+            if (!$result['success'] && defined('BREVO_API_KEY') && !empty(BREVO_API_KEY)) {
+                $result = self::sendViaBrevoApi($toEmail, $subject, $htmlBody, $toName);
+            }
         }
 
-        // Default: Brevo / standard SMTP
-        $result = self::sendViaSmtp($toEmail, $subject, $htmlBody, $toName, $plainText);
-        
-        // If SMTP fails and an API key is set, try Brevo API as fallback
-        if (!$result['success'] && defined('BREVO_API_KEY') && !empty(BREVO_API_KEY)) {
-            return self::sendViaBrevoApi($toEmail, $subject, $htmlBody, $toName);
-        }
+        $status = !empty($result['success']) ? 'sent' : 'failed';
+        $errMsg = !empty($result['success']) ? null : ($result['message'] ?? self::$lastError ?? 'Delivery failed');
+        EmailSettings::logEmail($toEmail, $toName, $subject, $htmlBody, $emailType, $status, $errMsg, $resolvedSenderId);
 
+        $result['skipped'] = false;
         return $result;
+    }
+
+    /**
+     * Wrap a custom plain/rich message in the portal's branded responsive email template
+     */
+    public static function wrapBrandedTemplate(string $subjectTitle, string $messageBody, string $badgeLabel = 'NVTI BADDEGAMA &bull; OFFICIAL NOTICE'): string {
+        $appName  = defined('APP_NAME') ? APP_NAME : 'NVTI Baddegama National Diploma';
+        $loginUrl = rtrim(BASE_URL, '/') . '/index.php?page=login';
+        $safeTitle = htmlspecialchars($subjectTitle, ENT_QUOTES, 'UTF-8');
+        $formattedBody = nl2br(htmlspecialchars($messageBody, ENT_QUOTES, 'UTF-8'));
+
+        return "
+        <div style='background-color: #f1f5f9; padding: 30px 15px; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;'>
+            <div style='max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); border: 1px solid #e2e8f0;'>
+                <div style='background: linear-gradient(135deg, #7A1418 0%, #991b1b 100%); padding: 24px 28px; color: #ffffff;'>
+                    <div style='font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #fecaca; font-weight: 700; margin-bottom: 6px;'>{$badgeLabel}</div>
+                    <h2 style='margin: 0; font-size: 20px; font-weight: 700; color: #ffffff;'>{$safeTitle}</h2>
+                </div>
+                <div style='padding: 28px; color: #334155; font-size: 14px; line-height: 1.7;'>
+                    <div style='margin-bottom: 22px;'>{$formattedBody}</div>
+                    <div style='text-align: center; margin: 24px 0 8px;'>
+                        <a href='{$loginUrl}' style='display: inline-block; background: #7A1418; color: #ffffff; text-decoration: none; padding: 11px 26px; font-weight: 600; font-size: 14px; border-radius: 999px;'>Open Student Portal &rarr;</a>
+                    </div>
+                </div>
+                <div style='background: #f8fafc; padding: 14px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;'>
+                    Sent by {$appName} Administration &bull; NVTI Baddegama
+                </div>
+            </div>
+        </div>";
     }
 
     /**
@@ -304,7 +368,7 @@ class Mailer {
             </div>
         </div>";
 
-        return self::send($toEmail, "Password Reset Request - {$appName}", $html, $name);
+        return self::send($toEmail, "Password Reset Request - {$appName}", $html, $name, '', 'password_reset');
     }
 
     /**
@@ -339,13 +403,30 @@ class Mailer {
             </div>
         </div>";
 
-        return self::send($toEmail, "Welcome to {$appName} - Your Account Credentials", $html, $name);
+        return self::send($toEmail, "Welcome to {$appName} - Your Account Credentials", $html, $name, '', 'welcome');
     }
 
     /**
      * Google Classroom Style: Notify All Registered Class Students of New Study Material
      */
     public static function notifyNewMaterial(int $classId, string $materialTitle, string $subjectName, string $teacherName, string $description = '', string $type = 'file'): int {
+        if (!EmailSettings::isCategoryEnabled('material')) {
+            $reason = !EmailSettings::isMasterEnabled()
+                ? 'Skipped: Master Email Switch is turned OFF in Email Settings.'
+                : 'Skipped: New Study Material email notifications are turned OFF in Email Settings.';
+            EmailSettings::logEmail(
+                "Class #{$classId} (Enrolled Students)",
+                'Batch Students',
+                "New Material: {$materialTitle} ({$subjectName})",
+                '',
+                'material',
+                'skipped',
+                $reason,
+                isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null
+            );
+            return 0;
+        }
+
         require_once __DIR__ . '/../../config/database.php';
         $db = Database::getConnection();
 
@@ -434,7 +515,7 @@ class Mailer {
                 </div>
             </div>";
 
-            $res = self::send($student['email'], "New Material: " . $materialTitle . " (" . $subjectName . ")", $html, $student['name']);
+            $res = self::send($student['email'], "New Material: " . $materialTitle . " (" . $subjectName . ")", $html, $student['name'], '', 'material');
             if ($res['success']) {
                 $notifiedCount++;
             }
@@ -447,6 +528,23 @@ class Mailer {
      * Google Classroom Style: Notify All Registered Class Students of New Assignment
      */
     public static function notifyNewAssignment(int $classId, string $assignmentTitle, string $subjectName, string $teacherName, string $dueDate = '', int $maxMarks = 100, string $instructions = ''): int {
+        if (!EmailSettings::isCategoryEnabled('assignment')) {
+            $reason = !EmailSettings::isMasterEnabled()
+                ? 'Skipped: Master Email Switch is turned OFF in Email Settings.'
+                : 'Skipped: New Assignment email notifications are turned OFF in Email Settings.';
+            EmailSettings::logEmail(
+                "Class #{$classId} (Enrolled Students)",
+                'Batch Students',
+                "New Assignment: {$assignmentTitle} ({$subjectName})",
+                '',
+                'assignment',
+                'skipped',
+                $reason,
+                isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null
+            );
+            return 0;
+        }
+
         require_once __DIR__ . '/../../config/database.php';
         $db = Database::getConnection();
 
@@ -539,7 +637,7 @@ class Mailer {
                 </div>
             </div>";
 
-            $res = self::send($student['email'], "New Assignment: " . $assignmentTitle . " (Due: " . $formattedDue . ")", $html, $student['name']);
+            $res = self::send($student['email'], "New Assignment: " . $assignmentTitle . " (Due: " . $formattedDue . ")", $html, $student['name'], '', 'assignment');
             if ($res['success']) {
                 $notifiedCount++;
             }

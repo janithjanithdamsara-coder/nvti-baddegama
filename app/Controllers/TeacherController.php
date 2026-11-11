@@ -198,13 +198,31 @@ class TeacherController {
 
         Auth::logAudit($teacherId, 'UPLOAD_MATERIAL', "Uploaded material: $title ($materialType)");
 
-        // Google Classroom style: Notify all enrolled students via email
+        // Google Classroom style: Notify all enrolled students via email (if selected & enabled)
+        $emailPromptPresent = isset($_POST['email_prompt_present']);
+        $wantsEmail = $emailPromptPresent ? !empty($_POST['send_email_notification']) : true;
+
         $subStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
         $subStmt->execute([$subjectId]);
         $subRow = $subStmt->fetch();
         $subName = $subRow['subject_name'] ?? 'Diploma Module';
         $teacherName = Auth::user()['name'] ?? 'Lecturer';
-        $notified = Mailer::notifyNewMaterial($classId, $title, $subName, $teacherName, $description, $materialType);
+
+        if ($wantsEmail) {
+            $notified = Mailer::notifyNewMaterial($classId, $title, $subName, $teacherName, $description, $materialType);
+        } else {
+            EmailSettings::logEmail(
+                "Class #{$classId} (Enrolled Students)",
+                'Batch Students',
+                "New Material: {$title} ({$subName})",
+                '',
+                'material',
+                'skipped',
+                'Skipped: Lecturer unchecked "Notify students via email" on upload.',
+                $teacherId
+            );
+            $notified = 0;
+        }
 
         if ($notified > 0) {
             Flash::success("Study material '$title' published and $notified students were notified via Email!");
@@ -386,13 +404,31 @@ class TeacherController {
 
         Auth::logAudit($teacherId, 'CREATE_ASSIGNMENT', "Created assignment: $title with deadline $deadline");
 
-        // Google Classroom style: Notify all enrolled students via email
+        // Google Classroom style: Notify all enrolled students via email (if selected & enabled)
+        $emailPromptPresent = isset($_POST['email_prompt_present']);
+        $wantsEmail = $emailPromptPresent ? !empty($_POST['send_email_notification']) : true;
+
         $subStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
         $subStmt->execute([$subjectId]);
         $subRow = $subStmt->fetch();
         $subName = $subRow['subject_name'] ?? 'Diploma Module';
         $teacherName = Auth::user()['name'] ?? 'Lecturer';
-        $notified = Mailer::notifyNewAssignment($classId, $title, $subName, $teacherName, $deadline, (int)$totalMarks, $instructions);
+
+        if ($wantsEmail) {
+            $notified = Mailer::notifyNewAssignment($classId, $title, $subName, $teacherName, $deadline, (int)$totalMarks, $instructions);
+        } else {
+            EmailSettings::logEmail(
+                "Class #{$classId} (Enrolled Students)",
+                'Batch Students',
+                "New Assignment: {$title} ({$subName})",
+                '',
+                'assignment',
+                'skipped',
+                'Skipped: Lecturer unchecked "Notify students via email" when creating assignment.',
+                $teacherId
+            );
+            $notified = 0;
+        }
 
         if ($notified > 0) {
             Flash::success("Assignment '$title' created and $notified students were notified via Email!");

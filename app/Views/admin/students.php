@@ -238,7 +238,14 @@ $search = trim($_GET['search'] ?? '');
             </span>
           </div>
 
-          <?php if ($batchStatus === 'active' && !empty($currentActiveBatch)): ?>
+          <?php if ($batchStatus === 'pending'): ?>
+            <div class="form-check form-switch bg-light border rounded-pill px-3 py-1.5 d-inline-flex align-items-center gap-2 mb-0">
+              <input class="form-check-input m-0" type="checkbox" role="switch" id="approveSendEmailToggle" <?= EmailSettings::shouldDefaultCheckAction('approval') ? 'checked' : '' ?> <?= !EmailSettings::isCategoryEnabled('approval') ? 'disabled' : '' ?> onchange="syncApproveEmailToggle(this.checked)">
+              <label class="form-check-label small fw-semibold text-dark mb-0" for="approveSendEmailToggle" style="cursor:pointer;">
+                <i class="bi bi-envelope-check text-success me-1"></i>Send approval email on Approve
+              </label>
+            </div>
+          <?php elseif ($batchStatus === 'active' && !empty($currentActiveBatch)): ?>
             <div class="text-muted small d-none d-md-block">
               Current Cohort: <strong class="text-dark"><?= e($currentActiveBatch['class_name']) ?></strong> (<?= e($currentActiveBatch['academic_year']) ?>)
             </div>
@@ -342,11 +349,13 @@ $search = trim($_GET['search'] ?? '');
                     <td class="text-end pe-3 py-3">
                       <div class="d-inline-flex align-items-center justify-content-end gap-1.5">
                         <?php if ($st['status'] === 'pending'): ?>
-                          <form action="index.php?page=admin_update_student_status" method="POST" class="d-inline m-0" onsubmit="return confirm('Confirm this student belongs to the NVTI Diploma course and send approval email?');">
+                          <form action="index.php?page=admin_update_student_status" method="POST" class="d-inline m-0 approve-student-form" onsubmit="return confirmApproveStudent(this);">
                             <?= Csrf::field() ?>
                             <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
                             <input type="hidden" name="status" value="active">
                             <input type="hidden" name="redirect_tab" value="<?= e($batchStatus) ?>">
+                            <input type="hidden" name="email_prompt_present" value="1">
+                            <input type="hidden" name="send_email_notification" class="approve-email-input" value="<?= EmailSettings::shouldDefaultCheckAction('approval') ? '1' : '0' ?>">
                             <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold shadow-xs d-inline-flex align-items-center gap-1" style="font-size: 0.76rem;" title="Confirm & Approve Student">
                               <i class="bi bi-check-circle-fill"></i> Approve
                             </button>
@@ -381,7 +390,20 @@ $search = trim($_GET['search'] ?? '');
                                   <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
                                   <input type="hidden" name="status" value="active">
                                   <input type="hidden" name="redirect_tab" value="<?= e($batchStatus) ?>">
-                                  <button type="submit" class="dropdown-item text-success fw-semibold py-1.5"><i class="bi bi-check-circle me-2"></i><?= ($st['status'] === 'pending') ? 'Confirm &amp; Send Email' : 'Set as Active' ?></button>
+                                  <input type="hidden" name="email_prompt_present" value="1">
+                                  <input type="hidden" name="send_email_notification" value="1">
+                                  <button type="submit" class="dropdown-item text-success fw-semibold py-1.5"><i class="bi bi-envelope-check me-2"></i>Approve &amp; Send Email</button>
+                                </form>
+                              </li>
+                              <li>
+                                <form action="index.php?page=admin_update_student_status" method="POST">
+                                  <?= Csrf::field() ?>
+                                  <input type="hidden" name="student_id" value="<?= $st['id'] ?>">
+                                  <input type="hidden" name="status" value="active">
+                                  <input type="hidden" name="redirect_tab" value="<?= e($batchStatus) ?>">
+                                  <input type="hidden" name="email_prompt_present" value="1">
+                                  <input type="hidden" name="send_email_notification" value="0">
+                                  <button type="submit" class="dropdown-item text-secondary fw-semibold py-1.5"><i class="bi bi-check-circle me-2"></i>Approve Without Email</button>
                                 </form>
                               </li>
                             <?php endif; ?>
@@ -745,6 +767,21 @@ function loadStudentDocs(studentId, studentName, studentCode, className) {
       content.classList.remove('d-none');
       list.innerHTML = '<div class="p-4 text-center text-danger">Error connecting to server.</div>';
     });
+}
+
+function syncApproveEmailToggle(checked) {
+  document.querySelectorAll('.approve-email-input').forEach(function (inp) {
+    inp.value = checked ? '1' : '0';
+  });
+}
+
+function confirmApproveStudent(formEl) {
+  const emailInp = formEl.querySelector('.approve-email-input');
+  const willEmail = emailInp && emailInp.value === '1';
+  const msg = willEmail
+    ? 'Confirm this student belongs to the NVTI Diploma course and send approval email?'
+    : 'Confirm and approve this student WITHOUT sending an email notification?';
+  return confirm(msg);
 }
 </script>
 

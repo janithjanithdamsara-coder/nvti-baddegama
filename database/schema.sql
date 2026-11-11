@@ -400,3 +400,27 @@ CREATE TABLE IF NOT EXISTS `student_applications` (
   KEY `idx_app_status` (`status`),
   KEY `idx_app_date` (`application_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- Runtime System Settings & Email Delivery History
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `system_settings` (
+  `setting_key` varchar(100) NOT NULL PRIMARY KEY,
+  `setting_value` text DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `email_logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `recipient_email` varchar(255) NOT NULL,
+  `recipient_name` varchar(255) DEFAULT NULL,
+  `subject` varchar(255) NOT NULL,
+  `html_body` mediumtext DEFAULT NULL,
+  `email_type` varchar(50) NOT NULL DEFAULT 'general',
+  `status` enum('sent','skipped','failed') NOT NULL DEFAULT 'sent',
+  `error_message` text DEFAULT NULL,
+  `sent_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  KEY `idx_email_logs_created` (`created_at`),
+  KEY `idx_email_logs_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

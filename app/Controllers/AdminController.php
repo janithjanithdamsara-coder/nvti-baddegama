@@ -419,11 +419,30 @@ class AdminController {
                       </div>
                     </div>";
 
-                    $mailRes = Mailer::send($sEmail, $subject, $htmlBody, $student['name']);
-                    if (!empty($mailRes['success'])) {
-                        Flash::success("Student <strong>{$sName}</strong> has been confirmed &amp; approved! A confirmation email has been sent to <strong>{$sEmail}</strong>.");
+                    $emailPromptPresent = isset($_POST['email_prompt_present']);
+                    $wantsEmail = $emailPromptPresent ? !empty($_POST['send_email_notification']) : true;
+
+                    if ($wantsEmail) {
+                        $mailRes = Mailer::send($sEmail, $subject, $htmlBody, $student['name'], '', 'approval', Auth::id());
+                        if (!empty($mailRes['success'])) {
+                            Flash::success("Student <strong>{$sName}</strong> has been confirmed &amp; approved! A confirmation email has been sent to <strong>{$sEmail}</strong>.");
+                        } elseif (!empty($mailRes['skipped'])) {
+                            Flash::success("Student <strong>{$sName}</strong> has been confirmed &amp; approved! (Approval email skipped because notifications are paused in Email Settings).");
+                        } else {
+                            Flash::warning("Student <strong>{$sName}</strong> has been approved and can now sign in, but the email notification failed: " . htmlspecialchars($mailRes['message'] ?? 'SMTP error'));
+                        }
                     } else {
-                        Flash::warning("Student <strong>{$sName}</strong> has been approved and can now sign in, but the email notification failed: " . htmlspecialchars($mailRes['message'] ?? 'SMTP error'));
+                        EmailSettings::logEmail(
+                            $sEmail,
+                            $student['name'],
+                            $subject,
+                            $htmlBody,
+                            'approval',
+                            'skipped',
+                            'Skipped: Administrator chose to approve without sending email.',
+                            Auth::id()
+                        );
+                        Flash::success("Student <strong>{$sName}</strong> has been confirmed &amp; approved! (No email sent as selected).");
                     }
                 } else {
                     Flash::success("Student status updated to " . ucfirst($status) . ".");
@@ -1629,13 +1648,31 @@ class AdminController {
 
         Auth::logAudit($adminId, 'ADMIN_UPLOAD_MATERIAL', "Admin uploaded material: $title for subject $subjectId (class $classId)");
 
-        // Google Classroom style: Notify all enrolled students via email
+        // Google Classroom style: Notify all enrolled students via email (if selected & enabled)
+        $emailPromptPresent = isset($_POST['email_prompt_present']);
+        $wantsEmail = $emailPromptPresent ? !empty($_POST['send_email_notification']) : true;
+
         $subStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
         $subStmt->execute([$subjectId]);
         $subRow = $subStmt->fetch();
         $subName = $subRow['subject_name'] ?? 'Diploma Module';
         $posterName = Auth::user()['name'] ?? 'Course Administrator';
-        $notified = Mailer::notifyNewMaterial($classId, $title, $subName, $posterName, $description, $materialType);
+
+        if ($wantsEmail) {
+            $notified = Mailer::notifyNewMaterial($classId, $title, $subName, $posterName, $description, $materialType);
+        } else {
+            EmailSettings::logEmail(
+                "Class #{$classId} (Enrolled Students)",
+                'Batch Students',
+                "New Material: {$title} ({$subName})",
+                '',
+                'material',
+                'skipped',
+                'Skipped: Admin unchecked "Notify students via email" on upload.',
+                $adminId
+            );
+            $notified = 0;
+        }
 
         if ($notified > 0) {
             Flash::success("Study material '{$title}' posted successfully and $notified students were notified via Email!");
@@ -1710,13 +1747,31 @@ class AdminController {
 
         Auth::logAudit($adminId, 'ADMIN_CREATE_ASSIGNMENT', "Admin created assignment: $title with deadline $deadline (class $classId)");
 
-        // Google Classroom style: Notify all enrolled students via email
+        // Google Classroom style: Notify all enrolled students via email (if selected & enabled)
+        $emailPromptPresent = isset($_POST['email_prompt_present']);
+        $wantsEmail = $emailPromptPresent ? !empty($_POST['send_email_notification']) : true;
+
         $subStmt = $db->prepare("SELECT subject_name FROM subjects WHERE id = ?");
         $subStmt->execute([$subjectId]);
         $subRow = $subStmt->fetch();
         $subName = $subRow['subject_name'] ?? 'Diploma Module';
         $posterName = Auth::user()['name'] ?? 'Course Administrator';
-        $notified = Mailer::notifyNewAssignment($classId, $title, $subName, $posterName, $deadline, (int)$totalMarks, $instructions);
+
+        if ($wantsEmail) {
+            $notified = Mailer::notifyNewAssignment($classId, $title, $subName, $posterName, $deadline, (int)$totalMarks, $instructions);
+        } else {
+            EmailSettings::logEmail(
+                "Class #{$classId} (Enrolled Students)",
+                'Batch Students',
+                "New Assignment: {$title} ({$subName})",
+                '',
+                'assignment',
+                'skipped',
+                'Skipped: Admin unchecked "Notify students via email" when creating assignment.',
+                $adminId
+            );
+            $notified = 0;
+        }
 
         if ($notified > 0) {
             Flash::success("Assignment <strong>" . htmlspecialchars($title) . "</strong> posted successfully and $notified students were notified via Email!");
@@ -2697,11 +2752,195 @@ class AdminController {
     }
 
     /**
-     * Show Brevo / SMTP Email Settings & Diagnostics
+     * Show Brevo / SMTP Email Settings, Toggles, Selective Composer & History
      */
     public function showEmailSettings(): void {
-        $pageTitle = "Email & Brevo SMTP Configuration";
+        $db = Database::getConnection();
+
+        $emailSettings = EmailSettings::getAll(true);
+
+        $classes = $db->query("
+            SELECT c.id, c.class_name, c.academic_year, c.status,
+                   COUNT(u.id) AS active_student_count
+            FROM classes c
+            LEFT JOIN student_profiles sp ON sp.class_id = c.id
+            LEFT JOIN users u ON u.id = sp.user_id AND u.role = 'student' AND u.status = 'active' AND u.email <> ''
+            GROUP BY c.id
+            ORDER BY (c.status = 'active') DESC, c.id DESC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $students = $db->query("
+            SELECT u.id, u.name, u.email, sp.student_code, sp.class_id, c.class_name
+            FROM users u
+            LEFT JOIN student_profiles sp ON u.id = sp.user_id
+            LEFT JOIN classes c ON sp.class_id = c.id
+            WHERE u.role = 'student' AND u.status = 'active' AND u.email IS NOT NULL AND u.email <> ''
+            ORDER BY u.name ASC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $teachers = $db->query("
+            SELECT id, name, email
+            FROM users
+            WHERE role = 'teacher' AND status = 'active' AND email IS NOT NULL AND email <> ''
+            ORDER BY name ASC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+
+        $logFilter = trim($_GET['log_status'] ?? '');
+        if (!in_array($logFilter, ['sent', 'skipped', 'failed'], true)) {
+            $logFilter = '';
+        }
+        $emailLogs = EmailSettings::getRecentLogs(40, $logFilter);
+        $logStats  = EmailSettings::getLogStats();
+
+        $pageTitle = "Email & SMTP Settings";
         require_once __DIR__ . '/../Views/admin/email_settings.php';
+    }
+
+    /**
+     * Save Email Toggle Switches
+     */
+    public function saveEmailSettings(): void {
+        Csrf::checkOrAbort();
+
+        $keys = array_keys(EmailSettings::getDefaults());
+        $payload = [];
+        foreach ($keys as $k) {
+            $payload[$k] = !empty($_POST[$k]) ? '1' : '0';
+        }
+
+        EmailSettings::setMany($payload);
+        Auth::logAudit(Auth::id(), 'UPDATE_EMAIL_SETTINGS', 'Updated automated email toggles: ' . json_encode($payload));
+
+        $masterState = ($payload['mail_master_enabled'] === '1') ? 'ENABLED' : 'PAUSED';
+        Flash::success("Email notification settings saved! Master Email Delivery is currently <strong>{$masterState}</strong>.");
+        header("Location: index.php?page=admin_email_settings");
+        exit;
+    }
+
+    /**
+     * Send Custom Selective Email (to single address, selected students, batch, all students, or lecturers)
+     */
+    public function sendCustomEmail(): void {
+        Csrf::checkOrAbort();
+
+        $mode           = trim($_POST['recipient_mode'] ?? 'single');
+        $singleEmail    = trim($_POST['single_email'] ?? '');
+        $selectedIds    = $_POST['student_ids'] ?? [];
+        $classId        = (int)($_POST['class_id'] ?? 0);
+        $subject        = trim($_POST['subject'] ?? '');
+        $message        = trim($_POST['message'] ?? '');
+        $overrideMaster = !empty($_POST['override_master']);
+
+        if ($subject === '' || $message === '') {
+            Flash::error("Please provide both an Email Subject and Message body.");
+            header("Location: index.php?page=admin_email_settings");
+            exit;
+        }
+
+        if (!EmailSettings::isMasterEnabled() && !$overrideMaster) {
+            Flash::warning("Master Email Delivery is currently <strong>OFF</strong>. Turn it ON or tick <em>&quot;Send anyway (override Master OFF)&quot;</em> to dispatch this custom email.");
+            header("Location: index.php?page=admin_email_settings");
+            exit;
+        }
+
+        $db = Database::getConnection();
+        $recipients = [];
+
+        if ($mode === 'single') {
+            if (!filter_var($singleEmail, FILTER_VALIDATE_EMAIL)) {
+                Flash::error("Please enter a valid recipient email address.");
+                header("Location: index.php?page=admin_email_settings");
+                exit;
+            }
+            $recipients[] = ['email' => $singleEmail, 'name' => 'Recipient'];
+        } elseif ($mode === 'selected_students') {
+            $cleanIds = array_values(array_unique(array_filter(array_map('intval', is_array($selectedIds) ? $selectedIds : []), fn($id) => $id > 0)));
+            if (empty($cleanIds)) {
+                Flash::error("Please select at least one student from the checklist.");
+                header("Location: index.php?page=admin_email_settings");
+                exit;
+            }
+            $placeholders = implode(',', array_fill(0, count($cleanIds), '?'));
+            $stmt = $db->prepare("SELECT name, email FROM users WHERE role = 'student' AND status = 'active' AND id IN ($placeholders)");
+            $stmt->execute($cleanIds);
+            $recipients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } elseif ($mode === 'class') {
+            if ($classId <= 0) {
+                Flash::error("Please select a target batch / class.");
+                header("Location: index.php?page=admin_email_settings");
+                exit;
+            }
+            $stmt = $db->prepare("
+                SELECT u.name, u.email
+                FROM users u
+                JOIN student_profiles sp ON u.id = sp.user_id
+                WHERE u.role = 'student' AND u.status = 'active' AND sp.class_id = ?
+            ");
+            $stmt->execute([$classId]);
+            $recipients = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } elseif ($mode === 'all_students') {
+            $recipients = $db->query("
+                SELECT name, email FROM users
+                WHERE role = 'student' AND status = 'active' AND email IS NOT NULL AND email <> ''
+            ")->fetchAll(PDO::FETCH_ASSOC);
+        } elseif ($mode === 'all_teachers') {
+            $recipients = $db->query("
+                SELECT name, email FROM users
+                WHERE role = 'teacher' AND status = 'active' AND email IS NOT NULL AND email <> ''
+            ")->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            Flash::error("Invalid recipient mode selected.");
+            header("Location: index.php?page=admin_email_settings");
+            exit;
+        }
+
+        // Deduplicate valid emails
+        $unique = [];
+        foreach ($recipients as $r) {
+            $email = trim((string)($r['email'] ?? ''));
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                continue;
+            }
+            $key = strtolower($email);
+            if (!isset($unique[$key])) {
+                $unique[$key] = ['email' => $email, 'name' => trim((string)($r['name'] ?? ''))];
+            }
+        }
+
+        if (empty($unique)) {
+            Flash::warning("No valid recipient email addresses matched your selection.");
+            header("Location: index.php?page=admin_email_settings");
+            exit;
+        }
+
+        $sentCount = 0;
+        $failCount = 0;
+        $lastErr   = '';
+
+        foreach ($unique as $rcpt) {
+            $personalMsg = str_replace('{name}', $rcpt['name'] !== '' ? $rcpt['name'] : 'Student', $message);
+            $htmlBody    = Mailer::wrapBrandedTemplate($subject, $personalMsg);
+            $res = Mailer::send($rcpt['email'], $subject, $htmlBody, $rcpt['name'], $personalMsg, 'custom', Auth::id(), true);
+            if (!empty($res['success'])) {
+                $sentCount++;
+            } else {
+                $failCount++;
+                $lastErr = $res['message'] ?? 'SMTP error';
+            }
+        }
+
+        Auth::logAudit(Auth::id(), 'SEND_CUSTOM_EMAIL', "Custom email '{$subject}' (mode: {$mode}) -> Sent: {$sentCount}, Failed: {$failCount}");
+
+        if ($sentCount > 0 && $failCount === 0) {
+            Flash::success("Custom email <strong>" . htmlspecialchars($subject) . "</strong> was sent successfully to <strong>{$sentCount}</strong> recipient(s)!");
+        } elseif ($sentCount > 0 && $failCount > 0) {
+            Flash::warning("Sent to <strong>{$sentCount}</strong> recipient(s), but failed for <strong>{$failCount}</strong>: " . htmlspecialchars($lastErr));
+        } else {
+            Flash::error("Failed to send custom email: " . htmlspecialchars($lastErr));
+        }
+
+        header("Location: index.php?page=admin_email_settings");
+        exit;
     }
 
     /**
@@ -2732,7 +2971,7 @@ class AdminController {
             </div>
         </div>";
 
-        $res = Mailer::send($targetEmail, $subject, $html, 'Portal Administrator');
+        $res = Mailer::send($targetEmail, $subject, $html, 'Portal Administrator', '', 'test', Auth::id(), true);
         if ($res['success']) {
             Auth::logAudit(Auth::id(), 'TEST_EMAIL_SUCCESS', "Sent test email to $targetEmail via SMTP");
             Flash::success("Awesome! Test email was successfully sent to <strong>" . htmlspecialchars($targetEmail) . "</strong>. Please check your inbox!");
@@ -2742,6 +2981,55 @@ class AdminController {
         }
 
         header("Location: index.php?page=admin_email_settings");
+        exit;
+    }
+
+    /**
+     * Resend an email directly from the Email History log
+     */
+    public function resendEmailLog(): void {
+        Csrf::checkOrAbort();
+        $logId = (int)($_POST['log_id'] ?? 0);
+        $logRow = EmailSettings::getLogById($logId);
+
+        if (!$logRow || empty($logRow['html_body']) || !filter_var($logRow['recipient_email'], FILTER_VALIDATE_EMAIL)) {
+            Flash::error("This log entry cannot be resent (missing valid email address or stored message body).");
+            header("Location: index.php?page=admin_email_settings#emailHistorySection");
+            exit;
+        }
+
+        $res = Mailer::send(
+            $logRow['recipient_email'],
+            $logRow['subject'],
+            $logRow['html_body'],
+            $logRow['recipient_name'] ?? '',
+            '',
+            $logRow['email_type'] ?: 'custom',
+            Auth::id(),
+            true
+        );
+
+        if (!empty($res['success'])) {
+            Auth::logAudit(Auth::id(), 'RESEND_EMAIL_SUCCESS', "Resent email log #$logId to {$logRow['recipient_email']}");
+            Flash::success("Email successfully resent to <strong>" . htmlspecialchars($logRow['recipient_email']) . "</strong>.");
+        } else {
+            Auth::logAudit(Auth::id(), 'RESEND_EMAIL_FAILED', "Failed resending email log #$logId: " . ($res['message'] ?? 'SMTP error'));
+            Flash::error("Resend failed: " . htmlspecialchars($res['message'] ?? 'Unknown error'));
+        }
+
+        header("Location: index.php?page=admin_email_settings#emailHistorySection");
+        exit;
+    }
+
+    /**
+     * Clear Email Send History
+     */
+    public function clearEmailLogs(): void {
+        Csrf::checkOrAbort();
+        EmailSettings::clearLogs();
+        Auth::logAudit(Auth::id(), 'CLEAR_EMAIL_LOGS', 'Cleared email delivery history logs.');
+        Flash::info("Email delivery history has been cleared.");
+        header("Location: index.php?page=admin_email_settings#emailHistorySection");
         exit;
     }
 }
