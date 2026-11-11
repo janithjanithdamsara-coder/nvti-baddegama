@@ -2934,6 +2934,9 @@ class AdminController {
                 $failCount++;
                 $lastErr = $res['message'] ?? 'SMTP error';
             }
+            if (count($unique) > 1) {
+                usleep(200000);
+            }
         }
 
         Auth::logAudit(Auth::id(), 'SEND_CUSTOM_EMAIL', "Custom email '{$subject}' (mode: {$mode}) -> Sent: {$sentCount}, Failed: {$failCount}");
@@ -2959,22 +2962,22 @@ class AdminController {
 
         if (empty($targetEmail) || !filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
             Flash::error("Please provide a valid destination email address for the test.");
-            header("Location: index.php?page=admin_email_settings");
+            header("Location: index.php?page=admin_email_settings&tab=settings");
             exit;
         }
 
-        $subject = "Brevo SMTP Test Connection - " . APP_NAME;
+        $subject = "SMTP Delivery Check - " . APP_NAME;
         $html = "
         <div style='background-color: #f1f5f9; padding: 30px 15px; font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;'>
             <div style='max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 10px; padding: 25px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);'>
-                <h2 style='color: #10b981; margin-top: 0;'>&#x2705; SMTP Mailer Working Perfectly!</h2>
-                <p style='color: #334155;'>Congratulations! Your SMTP email configuration is functioning 100% properly on <strong>" . APP_NAME . "</strong>.</p>
-                <div style='background: #f8fafc; border-left: 4px solid #10b981; padding: 12px 16px; margin: 18px 0; font-size: 13px; color: #475569;'>
+                <h2 style='color: #7A1418; margin-top: 0;'>SMTP Mailer Verification</h2>
+                <p style='color: #334155;'>Your portal email delivery configuration is working as expected on <strong>" . APP_NAME . "</strong>.</p>
+                <div style='background: #f8fafc; border-left: 4px solid #7A1418; padding: 12px 16px; margin: 18px 0; font-size: 13px; color: #475569;'>
                     <strong>Server:</strong> " . SMTP_HOST . ":" . SMTP_PORT . "<br>
                     <strong>Sender:</strong> " . MAIL_FROM_NAME . " &lt;" . MAIL_FROM_EMAIL . "&gt;<br>
                     <strong>Timestamp:</strong> " . date('Y-m-d H:i:s') . "
                 </div>
-                <p style='font-size: 13px; color: #64748b; margin-bottom: 0;'>Your NVTI Baddegama National Diploma Portal can now securely dispatch password resets, student welcome emails, and study material notifications.</p>
+                <p style='font-size: 13px; color: #64748b; margin-bottom: 0;'>NVTI Baddegama ICT Department &bull; Academic Portal Diagnostics</p>
             </div>
         </div>";
 

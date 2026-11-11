@@ -177,8 +177,12 @@ class Mailer {
         }
 
         // 2. EHLO
-        $clientHost = gethostname() ?: 'localhost';
-        if (!$sendCommand("EHLO {$clientHost}", '250')) {
+        $senderDomain = substr(strrchr($fromEmail, '@') ?: '', 1) ?: 'nvtibaddegama.site';
+        $httpHost = preg_replace('/:\d+$/', '', (string)($_SERVER['HTTP_HOST'] ?? ''));
+        $ehloHost = (!empty($httpHost) && strpos($httpHost, '.') !== false && $httpHost !== '127.0.0.1')
+            ? $httpHost
+            : $senderDomain;
+        if (!$sendCommand("EHLO {$ehloHost}", '250')) {
             fclose($socket);
             return ['success' => false, 'message' => self::$lastError];
         }
@@ -195,7 +199,7 @@ class Mailer {
                 self::$lastError = "Failed to establish TLS encryption with SMTP server.";
                 return ['success' => false, 'message' => self::$lastError];
             }
-            if (!$sendCommand("EHLO {$clientHost}", '250')) {
+            if (!$sendCommand("EHLO {$ehloHost}", '250')) {
                 fclose($socket);
                 return ['success' => false, 'message' => self::$lastError];
             }
@@ -237,27 +241,42 @@ class Mailer {
             return ['success' => false, 'message' => self::$lastError];
         }
 
-        // 10. Construct Headers & Body
+        // 10. Construct Headers & Multipart Body (Plain Text + HTML reduces spam score)
         $recipientHeader = !empty($toName) ? "=?UTF-8?B?" . base64_encode($toName) . "?= <{$toEmail}>" : "<{$toEmail}>";
         $senderHeader    = "=?UTF-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>";
         $subjectHeader   = "=?UTF-8?B?" . base64_encode($subject) . "?=";
         $dateHeader      = date('r');
-        $msgId           = '<' . md5(uniqid(microtime(), true)) . '@' . ($clientHost ?: 'nvtibaddegama.site') . '>';
+        $msgId           = '<' . bin2hex(random_bytes(16)) . '@' . $senderDomain . '>';
+        $boundary        = 'b1_' . bin2hex(random_bytes(12));
+
+        $plainFallback = trim($plainText) !== '' ? $plainText : self::htmlToPlainText($htmlBody);
 
         $headers = [
             "Date: {$dateHeader}",
             "From: {$senderHeader}",
+            "Reply-To: {$senderHeader}",
             "To: {$recipientHeader}",
             "Subject: {$subjectHeader}",
             "Message-ID: {$msgId}",
-            "X-Mailer: NVTI-Baddegama-Diploma-Mailer",
             "MIME-Version: 1.0",
-            "Content-Type: text/html; charset=UTF-8",
-            "Content-Transfer-Encoding: base64"
+            "Content-Type: multipart/alternative; boundary=\"{$boundary}\""
         ];
 
-        $encodedBody = chunk_split(base64_encode($htmlBody));
-        $fullPayload = implode("\r\n", $headers) . "\r\n\r\n" . $encodedBody . "\r\n.";
+        $parts = [
+            "--{$boundary}",
+            "Content-Type: text/plain; charset=UTF-8",
+            "Content-Transfer-Encoding: base64",
+            "",
+            rtrim(chunk_split(base64_encode($plainFallback), 76, "\r\n")),
+            "--{$boundary}",
+            "Content-Type: text/html; charset=UTF-8",
+            "Content-Transfer-Encoding: base64",
+            "",
+            rtrim(chunk_split(base64_encode($htmlBody), 76, "\r\n")),
+            "--{$boundary}--"
+        ];
+
+        $fullPayload = implode("\r\n", $headers) . "\r\n\r\n" . implode("\r\n", $parts) . "\r\n.";
 
         fputs($socket, $fullPayload . "\r\n");
         $dataRes = $readResponse();
@@ -292,6 +311,10 @@ class Mailer {
                 'name'  => $fromName,
                 'email' => $fromEmail
             ],
+            'replyTo' => [
+                'name'  => $fromName,
+                'email' => $fromEmail
+            ],
             'to' => [
                 [
                     'email' => $toEmail,
@@ -299,7 +322,8 @@ class Mailer {
                 ]
             ],
             'subject'     => $subject,
-            'htmlContent' => $htmlBody
+            'htmlContent' => $htmlBody,
+            'textContent' => self::htmlToPlainText($htmlBody)
         ];
 
         $ch = curl_init('https://api.brevo.com/v3/smtp/email');
@@ -510,7 +534,7 @@ class Mailer {
 
                     <!-- Footer -->
                     <div style='background: #f8fafc; padding: 14px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;'>
-                        Sent automatically by NVTI Baddegama National Diploma Notification Service &bull; Do not reply to this email.
+                        NVTI Baddegama ICT Department &bull; Official Student Portal Notification
                     </div>
                 </div>
             </div>";
@@ -519,6 +543,7 @@ class Mailer {
             if ($res['success']) {
                 $notifiedCount++;
             }
+            usleep(200000);
         }
 
         return $notifiedCount;
@@ -632,7 +657,7 @@ class Mailer {
 
                     <!-- Footer -->
                     <div style='background: #f8fafc; padding: 14px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;'>
-                        Sent automatically by NVTI Baddegama National Diploma Notification Service &bull; Do not reply to this email.
+                        NVTI Baddegama ICT Department &bull; Official Student Portal Notification
                     </div>
                 </div>
             </div>";
@@ -641,8 +666,22 @@ class Mailer {
             if ($res['success']) {
                 $notifiedCount++;
             }
+            usleep(200000);
         }
 
         return $notifiedCount;
+    }
+
+    /**
+     * Convert HTML email body into a clean plain-text alternative
+     */
+    public static function htmlToPlainText(string $html): string {
+        $text = preg_replace('/<\s*br\s*\/?>/i', "\n", $html);
+        $text = preg_replace('/<\/\s*(p|div|tr|li|h1|h2|h3|h4|h5|h6)\s*>/i', "\n", $text);
+        $text = strip_tags($text);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace("/[ \t]+\n/", "\n", $text);
+        $text = preg_replace("/\n{3,}/", "\n\n", $text);
+        return trim($text);
     }
 }
