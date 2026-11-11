@@ -275,7 +275,7 @@ function getPaperTheme($paper, $palettes) {
                 $cardBorderAccent = 'border-top: 3px solid #059669;';
             }
           ?>
-            <div class="col-12 col-md-6 col-xl-4 col-xxl-3">
+            <div class="col-12 col-md-6 col-xl-4">
               <div class="card border-0 rounded-4 shadow-sm h-100 bg-white overflow-hidden g-classroom-card transition-hover position-relative d-flex flex-column" style="min-height: 295px; <?= $cardBorderAccent ?>">
                 
                 <!-- Google Classroom Style Top Banner Header -->
@@ -336,8 +336,8 @@ function getPaperTheme($paper, $palettes) {
                     </p>
                   </div>
 
-                  <!-- Card Footer: Stats & Separated Action Buttons (Clean & Well-Spaced) -->
-                  <div class="d-flex justify-content-between align-items-center" style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #edf2f7;">
+                  <!-- Card Footer: Stats & Separated Action Buttons (Clean & Always Visible) -->
+                  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2" style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #edf2f7;">
                     <div class="d-flex align-items-center">
                       <span class="badge rounded-pill px-2.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 font-monospace" style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; font-size: 0.73rem;">
                         <i class="bi bi-file-earmark-pdf-fill text-danger fs-6"></i>
@@ -346,9 +346,9 @@ function getPaperTheme($paper, $palettes) {
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="d-flex align-items-center gap-1.5" style="position: relative; z-index: 6;">
+                    <div class="d-flex align-items-center gap-1.5 flex-wrap" style="position: relative; z-index: 6;">
                       <!-- View Button -->
-                      <button type="button" onclick="previewPaper(<?= $paperId ?>, '<?= addslashes(e($paper['title'])) ?>', 'index.php?page=view_paper&id=<?= $paperId ?>')" class="btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-white shadow-xs d-inline-flex align-items-center gap-1" style="font-size: 0.78rem; background: #7A1418; border: 1px solid #7A1418;">
+                      <button type="button" onclick="previewPaper(<?= $paperId ?>, <?= htmlspecialchars(json_encode($paper['title']), ENT_QUOTES, 'UTF-8') ?>, 'index.php?page=view_paper&id=<?= $paperId ?>')" class="btn btn-sm rounded-pill px-2.5 py-1 fw-bold text-white shadow-xs d-inline-flex align-items-center gap-1" style="font-size: 0.76rem; background: #7A1418; border: 1px solid #7A1418;">
                         <i class="bi bi-eye-fill"></i> View
                       </button>
 
@@ -358,13 +358,22 @@ function getPaperTheme($paper, $palettes) {
                       </a>
 
                       <!-- Edit Button -->
-                      <button type="button" onclick="openEditPaperModal(<?= htmlspecialchars(json_encode($paper), ENT_QUOTES, 'UTF-8') ?>)" class="btn btn-sm btn-light border text-primary rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs" title="Edit Paper Details" style="width: 32px; height: 32px;">
+                      <button type="button"
+                              data-paper="<?= htmlspecialchars(json_encode($paper), ENT_QUOTES, 'UTF-8') ?>"
+                              onclick="openEditPaperModal(this)"
+                              class="btn btn-sm bg-primary-subtle border border-primary-subtle text-primary rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs"
+                              title="Edit &amp; Change Paper"
+                              style="width: 32px; height: 32px;">
                         <i class="bi bi-pencil-fill" style="font-size: 0.82rem;"></i>
                       </button>
 
                       <!-- Delete Button -->
-                      <button type="button" onclick="confirmDeletePaper(<?= $paperId ?>, '<?= addslashes(e($paper['title'])) ?>', <?= (int)$paper['semester'] ?>)" class="btn btn-sm btn-light border text-danger rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs hover-del-btn" title="Delete Paper" style="width: 32px; height: 32px;">
-                        <i class="bi bi-trash3" style="font-size: 0.82rem;"></i>
+                      <button type="button"
+                              onclick="confirmDeletePaper(<?= $paperId ?>, <?= htmlspecialchars(json_encode($paper['title']), ENT_QUOTES, 'UTF-8') ?>, <?= (int)$paper['semester'] ?>)"
+                              class="btn btn-sm bg-danger-subtle border border-danger-subtle text-danger rounded-circle d-inline-flex align-items-center justify-content-center shadow-xs hover-del-btn"
+                              title="Delete Paper"
+                              style="width: 32px; height: 32px;">
+                        <i class="bi bi-trash3-fill" style="font-size: 0.82rem;"></i>
                       </button>
                     </div>
                   </div>
@@ -573,19 +582,25 @@ function getPaperTheme($paper, $palettes) {
             </div>
           </div>
 
-          <!-- Row 2: Module Selection -->
-          <div class="mb-3">
-            <label class="form-label fw-bold text-dark small mb-1">Curriculum Module / Subject <span class="text-danger">*</span></label>
-            <select name="module_select" id="editModuleSelect" class="form-select" required onchange="syncEditModuleDetails()">
-              <option value="">-- Choose Module from NVTI Curriculum --</option>
-              <?php foreach ($curriculumModules as $m): ?>
-                <option value="<?= e($m['module_code']) ?>" data-title="<?= e($m['module_title']) ?>" data-sem="<?= (int)$m['semester'] ?>">
-                  [Sem <?= (int)$m['semester'] ?>] <?= e($m['module_code']) ?> &bull; <?= e($m['module_title']) ?>
-                </option>
-              <?php endforeach; ?>
-            </select>
-            <input type="hidden" name="module_code" id="editModuleCode" value="">
-            <input type="hidden" name="subject_title" id="editSubjectTitle" value="">
+          <!-- Row 2: Module Selection + Editable Subject Title -->
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-bold text-dark small mb-1">Curriculum Module / Subject <span class="text-danger">*</span></label>
+              <select name="module_select" id="editModuleSelect" class="form-select" required onchange="syncEditModuleDetails()">
+                <option value="">-- Choose Module from NVTI Curriculum --</option>
+                <?php foreach ($curriculumModules as $m): ?>
+                  <option value="<?= e($m['module_code']) ?>" data-title="<?= e($m['module_title']) ?>" data-sem="<?= (int)$m['semester'] ?>">
+                    [Sem <?= (int)$m['semester'] ?>] <?= e($m['module_code']) ?> &bull; <?= e($m['module_title']) ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+              <input type="hidden" name="module_code" id="editModuleCode" value="">
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-bold text-dark small mb-1">Subject / Module Display Title <span class="text-danger">*</span></label>
+              <input type="text" name="subject_title" id="editSubjectTitle" class="form-control" placeholder="e.g. Database Management Systems" required>
+            </div>
           </div>
 
           <!-- Row 3: Title -->
@@ -602,10 +617,17 @@ function getPaperTheme($paper, $palettes) {
 
           <!-- Row 5: Replace File (Optional) -->
           <div class="p-3 rounded-3" style="background: #f8fafc; border: 1px dashed #cbd5e1;">
-            <label class="form-label fw-bold text-dark small mb-1">
-              <i class="bi bi-file-earmark-arrow-up text-primary me-1"></i> Replace Document File (Optional)
-            </label>
-            <div class="text-muted small mb-2" id="editCurrentFileInfo">Current file: Attached PDF</div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+              <label class="form-label fw-bold text-dark small mb-0">
+                <i class="bi bi-file-earmark-arrow-up text-primary me-1"></i> Replace Document File (Optional)
+              </label>
+              <a href="#" id="editPreviewCurrentFileLink" target="_blank" class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-0.5 small">
+                <i class="bi bi-eye me-1"></i>View Current File
+              </a>
+            </div>
+            <div class="text-muted small mb-2">
+              Current file: <strong id="editCurrentFileName" class="text-dark">Attached document</strong>
+            </div>
             <input type="file" name="paper_file" class="form-control form-control-sm" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx">
             <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">Leave empty if you do NOT want to change the existing file.</small>
           </div>
@@ -623,8 +645,13 @@ function getPaperTheme($paper, $palettes) {
 </div>
 
 <script>
-function openEditPaperModal(paper) {
-  document.getElementById('editPaperId').value = paper.id;
+function openEditPaperModal(triggerEl) {
+  let paper = triggerEl;
+  if (triggerEl && triggerEl.getAttribute) {
+    paper = JSON.parse(triggerEl.getAttribute('data-paper') || '{}');
+  }
+
+  document.getElementById('editPaperId').value = paper.id || '';
   document.getElementById('editPaperTitle').value = paper.title || '';
   document.getElementById('editSemester').value = paper.semester || 1;
   document.getElementById('editPaperType').value = paper.paper_type || 'past_paper';
@@ -632,11 +659,22 @@ function openEditPaperModal(paper) {
   document.getElementById('editDescription').value = paper.description || '';
   document.getElementById('editModuleCode').value = paper.module_code || '';
   document.getElementById('editSubjectTitle').value = paper.subject_title || '';
-  document.getElementById('editCurrentFileInfo').innerHTML = `Current file: <strong>${paper.original_filename || paper.file_path || 'Attached document'}</strong>`;
+  document.getElementById('editCurrentFileName').textContent = paper.original_filename || paper.file_path || 'Attached document';
+  document.getElementById('editPreviewCurrentFileLink').href = 'index.php?page=view_paper&id=' + encodeURIComponent(paper.id || '');
 
   const select = document.getElementById('editModuleSelect');
   if (select) {
-    select.value = paper.module_code || '';
+    const modCode = paper.module_code || '';
+    let hasOption = Array.from(select.options).some(opt => opt.value === modCode);
+    if (modCode && !hasOption) {
+      const customOpt = document.createElement('option');
+      customOpt.value = modCode;
+      customOpt.textContent = `[Sem ${paper.semester || 1}] ${modCode} • ${paper.subject_title || modCode}`;
+      customOpt.setAttribute('data-title', paper.subject_title || modCode);
+      customOpt.setAttribute('data-sem', String(paper.semester || 1));
+      select.appendChild(customOpt);
+    }
+    select.value = modCode;
   }
   filterEditModuleDropdownBySemester();
 
@@ -664,14 +702,13 @@ function syncEditModuleDetails() {
 function filterEditModuleDropdownBySemester() {
   const semVal = document.getElementById('editSemester').value;
   const select = document.getElementById('editModuleSelect');
+  const currentVal = select.value;
   for (let i = 1; i < select.options.length; i++) {
     const opt = select.options[i];
     const optSem = opt.getAttribute('data-sem');
-    if (!semVal || optSem === semVal) {
-      opt.style.display = '';
-    } else {
-      opt.style.display = 'none';
-    }
+    const keepVisible = (!semVal || optSem === semVal || opt.value === currentVal);
+    opt.hidden = !keepVisible;
+    opt.disabled = !keepVisible;
   }
 }
 function syncModuleDetails() {

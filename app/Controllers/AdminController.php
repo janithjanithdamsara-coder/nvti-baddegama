@@ -2541,6 +2541,9 @@ class AdminController {
         $title = trim($_POST['title'] ?? '');
         $semester = (int)($_POST['semester'] ?? 1);
         $moduleCode = trim($_POST['module_code'] ?? '');
+        if ($moduleCode === '') {
+            $moduleCode = trim($_POST['module_select'] ?? '');
+        }
         $subjectTitle = trim($_POST['subject_title'] ?? '');
         $paperType = trim($_POST['paper_type'] ?? 'past_paper');
         $examYear = (int)($_POST['exam_year'] ?? date('Y'));
@@ -2590,7 +2593,7 @@ class AdminController {
                 exit;
             }
             $filePath = $uploadRes['filename'];
-            $originalFilename = $uploadRes['original_name'];
+            $originalFilename = $uploadRes['original_filename'] ?? $uploadRes['filename'];
             $fileSizeBytes = (int)$uploadRes['size'];
         } else {
             Flash::error("Please select a PDF or Image file for the paper.");
@@ -2634,6 +2637,9 @@ class AdminController {
         $title = trim($_POST['title'] ?? '');
         $semester = (int)($_POST['semester'] ?? 1);
         $moduleCode = trim($_POST['module_code'] ?? '');
+        if ($moduleCode === '') {
+            $moduleCode = trim($_POST['module_select'] ?? '');
+        }
         $subjectTitle = trim($_POST['subject_title'] ?? '');
         $paperType = trim($_POST['paper_type'] ?? 'past_paper');
         $examYear = (int)($_POST['exam_year'] ?? date('Y'));
@@ -2685,7 +2691,7 @@ class AdminController {
             }
 
             $filePath = $uploadRes['filename'];
-            $originalFilename = $uploadRes['original_name'];
+            $originalFilename = $uploadRes['original_filename'] ?? $uploadRes['filename'];
             $fileSizeBytes = (int)$uploadRes['size'];
         }
 
