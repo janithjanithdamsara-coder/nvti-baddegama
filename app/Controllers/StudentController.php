@@ -158,8 +158,9 @@ class StudentController {
             JOIN subjects s ON cs.subject_id = s.id
             LEFT JOIN teacher_assignments ta ON ta.class_subject_id = cs.id
             LEFT JOIN users u ON ta.teacher_id = u.id
+            LEFT JOIN curriculum_modules cm ON UPPER(TRIM(s.subject_code)) = UPPER(TRIM(cm.module_code))
             WHERE cs.class_id = ?
-            ORDER BY s.id ASC
+            ORDER BY COALESCE(cm.semester, 99) ASC, COALESCE(cm.module_no, 999) ASC, s.id ASC
         ");
         $subStmt->execute([$classId]);
         $subjects = $subStmt->fetchAll();

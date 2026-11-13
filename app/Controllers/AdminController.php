@@ -1583,8 +1583,9 @@ class AdminController {
                 JOIN classes c ON cs.class_id = c.id
                 LEFT JOIN teacher_assignments ta ON cs.id = ta.class_subject_id
                 LEFT JOIN users u ON ta.teacher_id = u.id
+                LEFT JOIN curriculum_modules cm ON UPPER(TRIM(s.subject_code)) = UPPER(TRIM(cm.module_code))
                 WHERE cs.class_id = ?
-                ORDER BY s.id ASC
+                ORDER BY COALESCE(cm.semester, 99) ASC, COALESCE(cm.module_no, 999) ASC, s.id ASC
             ");
             $classroomsStmt->execute([$classId]);
             $classrooms = $classroomsStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -2427,6 +2428,8 @@ class AdminController {
         ];
 
         $addedCount = 0;
+        $createdSubMap = [];
+
         foreach ($modules as $m) {
             $code = trim($m['module_code']);
             $title = trim($m['module_title']);
@@ -2446,7 +2449,13 @@ class AdminController {
                 $ins = $db->prepare("INSERT INTO subjects (subject_code, subject_name, description, color_theme, icon, credits, status) VALUES (?, ?, ?, ?, ?, 4, 'active')");
                 $ins->execute([$code, $title, $desc, $theme, $icon]);
                 $subjectId = (int)$db->lastInsertId();
+            } else {
+                // Keep title, description, and styling up to date with official curriculum
+                $up = $db->prepare("UPDATE subjects SET subject_name = ?, description = ?, color_theme = ?, icon = ? WHERE id = ?");
+                $up->execute([$title, $desc, $theme, $icon, $subjectId]);
             }
+
+            $createdSubMap[$code] = $subjectId;
 
             // Check if linked to this class in class_subjects
             $csFind = $db->prepare("SELECT id FROM class_subjects WHERE class_id = ? AND subject_id = ? LIMIT 1");
@@ -2468,8 +2477,39 @@ class AdminController {
             }
         }
 
-        Auth::logAudit(Auth::id(), 'SYNC_CURRICULUM_MODULES', "Synced all 18 NVQ modules for class ID $classId ($addedCount new additions)");
-        Flash::success("Successfully synced all 18 NVQ Curriculum Modules for this batch! ({$addedCount} new modules linked)");
+        // Seamlessly migrate materials & assignments from legacy Competency Units to official 18 Modules
+        $legacyUnitMap = [
+            'K72T001U01' => 'K72T001M01',
+            'K72T001U02' => 'K72T001M02',
+            'K72T001U03' => 'K72T001M11',
+            'K72T001U04' => 'K72T001M05',
+            'K72T001U05' => 'K72T001M08',
+            'K72T001U06' => 'K72T001M12',
+            'K72T001U07' => 'K72T001M07',
+            'K72T001U08' => 'K72T001M13',
+            'K72T001U09' => 'K72T001M15',
+            'K72T001U10' => 'K72T001M14',
+            'EMPU01'     => 'EMPM01',
+            'EMPU02'     => 'EMPM02',
+            'EMPU03'     => 'EMPM03'
+        ];
+
+        foreach ($legacyUnitMap as $oldUnitCode => $newModCode) {
+            $oldSubId = (int)$db->query("SELECT id FROM subjects WHERE UPPER(TRIM(subject_code)) = " . $db->quote($oldUnitCode))->fetchColumn();
+            $newSubId = $createdSubMap[$newModCode] ?? (int)$db->query("SELECT id FROM subjects WHERE UPPER(TRIM(subject_code)) = " . $db->quote($newModCode))->fetchColumn();
+
+            if ($oldSubId > 0 && $newSubId > 0 && $oldSubId !== $newSubId) {
+                // Re-link study materials and past notes to new official module
+                $db->prepare("UPDATE materials SET subject_id = ? WHERE subject_id = ?")->execute([$newSubId, $oldSubId]);
+                // Re-link coursework assignments to new official module
+                $db->prepare("UPDATE assignments SET subject_id = ? WHERE subject_id = ?")->execute([$newSubId, $oldSubId]);
+                // Remove legacy unit entry from class_subjects so only 18 clean modules display
+                $db->prepare("DELETE FROM class_subjects WHERE subject_id = ? AND class_id = ?")->execute([$oldSubId, $classId]);
+            }
+        }
+
+        Auth::logAudit(Auth::id(), 'SYNC_CURRICULUM_MODULES', "Cleanly synced all 18 NVQ modules and migrated legacy unit cards for class ID $classId");
+        Flash::success("Successfully structured all 18 NVQ Curriculum Modules for this batch! Any past lecture notes have been automatically migrated into their respective modules.");
         header("Location: " . $this->buildMaterialsRedirectUrl($classId));
         exit;
     }
