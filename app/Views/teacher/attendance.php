@@ -320,8 +320,8 @@ $activeTab = $tab ?? 'daily';
                   </a>
 
                   <!-- View / Hide List Toggle Button -->
-                  <button class="btn btn-outline-dark rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#dailyRollCallCollapse" aria-expanded="false" aria-controls="dailyRollCallCollapse" id="btnToggleRollCall">
-                    <i class="bi bi-person-lines-fill text-primary"></i>
+                  <button class="btn btn-outline-dark rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#dailyRollCallCollapse" aria-expanded="false" aria-controls="dailyRollCallCollapse" id="btnToggleRollCall">
+                    <i class="bi bi-person-lines-fill text-primary" id="iconToggleRollCall"></i>
                     <span id="lblToggleRollCall">View Name List (ලැයිස්තුව බලන්න)</span>
                   </button>
 
@@ -331,7 +331,7 @@ $activeTab = $tab ?? 'daily';
                       <?= Csrf::field() ?>
                       <input type="hidden" name="class_id" value="<?= (int)$classId ?>">
                       <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
-                      <button type="submit" class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs bg-white" title="Unlock and re-mark">
+                      <button type="submit" class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs" title="Unlock and re-mark">
                         <i class="bi bi-unlock-fill"></i>
                         <span>Unlock Sheet</span>
                       </button>
@@ -447,7 +447,15 @@ $activeTab = $tab ?? 'daily';
                   <strong class="text-dark"><i class="bi bi-people-fill text-primary me-2"></i>Class Roll Call (<?= count($students) ?> Students)</strong>
                   <span class="text-muted small ms-2">&bull; Date: <?= date('l, d F Y', strtotime($selectedDate)) ?></span>
                 </div>
-                <div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <?php if (empty($isBatchArchived) && !$isVerifiedOfficial && !$holiday): ?>
+                    <button type="button" class="btn btn-outline-success btn-sm fw-semibold rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('present')">
+                      <i class="bi bi-check-all me-1"></i> All Present
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm fw-semibold rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('absent')">
+                      <i class="bi bi-x-circle me-1"></i> All Absent
+                    </button>
+                  <?php endif; ?>
                   <?php if (!empty($isBatchArchived)): ?>
                     <span class="badge bg-secondary text-white rounded-pill px-3 py-1.5 fw-bold">
                       <i class="bi bi-archive-fill me-1"></i> Archived Record (Read-Only)
@@ -1025,15 +1033,26 @@ document.addEventListener('DOMContentLoaded', function () {
   const rollCollapse = document.getElementById('dailyRollCallCollapse');
   const lblToggle = document.getElementById('lblToggleRollCall');
   const btnToggle = document.getElementById('btnToggleRollCall');
+  const iconToggle = document.getElementById('iconToggleRollCall');
 
-  if (rollCollapse && lblToggle) {
+  if (rollCollapse && lblToggle && btnToggle) {
     rollCollapse.addEventListener('show.bs.collapse', function () {
       lblToggle.textContent = 'Hide Name List (ලැයිස්තුව සඟවන්න)';
-      if (btnToggle) btnToggle.classList.replace('btn-outline-dark', 'btn-dark');
+      btnToggle.classList.remove('btn-outline-dark');
+      btnToggle.classList.add('btn-dark', 'text-white');
+      if (iconToggle) {
+        iconToggle.classList.remove('text-primary');
+        iconToggle.classList.add('text-white');
+      }
     });
     rollCollapse.addEventListener('hide.bs.collapse', function () {
       lblToggle.textContent = 'View Name List (ලැයිස්තුව බලන්න)';
-      if (btnToggle) btnToggle.classList.replace('btn-dark', 'btn-outline-dark');
+      btnToggle.classList.remove('btn-dark', 'text-white');
+      btnToggle.classList.add('btn-outline-dark');
+      if (iconToggle) {
+        iconToggle.classList.remove('text-white');
+        iconToggle.classList.add('text-primary');
+      }
     });
   }
 });

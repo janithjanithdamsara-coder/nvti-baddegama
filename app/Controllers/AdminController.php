@@ -1450,6 +1450,14 @@ class AdminController {
         // Fetch all categories for material uploads
         $categories = $db->query("SELECT * FROM categories ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
 
+        // Fetch all 18 official curriculum modules for quick selection
+        $curriculumModules = [];
+        try {
+            $curriculumModules = $db->query("SELECT * FROM curriculum_modules ORDER BY semester ASC, module_no ASC")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            $curriculumModules = [];
+        }
+
         // Fetch all teachers for dropdowns
         $teachers = $db->query("SELECT id, name, email FROM users WHERE role = 'teacher' ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
@@ -2370,6 +2378,98 @@ class AdminController {
 
         Auth::logAudit(Auth::id(), 'CREATE_CLASSROOM_MODULE', "Created new classroom module: $subjectName ($subjectCode)");
         Flash::success("New class module '{$subjectName}' created successfully and added to Google Classroom Hub!");
+        header("Location: " . $this->buildMaterialsRedirectUrl($classId));
+        exit;
+    }
+
+    /**
+     * Admin Sync All 18 NVQ Curriculum Modules for a Batch
+     */
+    public function syncAllCurriculumModules(): void {
+        Csrf::checkOrAbort();
+        AdminAccess::requireMainAdmin(true);
+        $db = Database::getConnection();
+
+        $classId = $this->resolveMaterialsClassId($db, isset($_POST['class_id']) ? (int)$_POST['class_id'] : null);
+        $teacherId = (int)($_POST['teacher_id'] ?? 2);
+        if ($teacherId <= 0) {
+            $tFirst = $db->query("SELECT id FROM users WHERE role = 'teacher' ORDER BY id ASC LIMIT 1")->fetchColumn();
+            $teacherId = $tFirst ? (int)$tFirst : 2;
+        }
+
+        $modules = $db->query("SELECT * FROM curriculum_modules ORDER BY semester ASC, module_no ASC")->fetchAll(PDO::FETCH_ASSOC);
+        if (empty($modules)) {
+            Flash::warning("No modules found in curriculum_modules table.");
+            header("Location: " . $this->buildMaterialsRedirectUrl($classId));
+            exit;
+        }
+
+        // Palette and icon mapping for NVTI Diploma modules
+        $modulePresets = [
+            'K72T001M01' => ['theme' => 'blue', 'icon' => 'bi-file-earmark-check-fill'],
+            'K72T001M02' => ['theme' => 'indigo', 'icon' => 'bi-diagram-3-fill'],
+            'K72T001M03' => ['theme' => 'teal', 'icon' => 'bi-calculator-fill'],
+            'K72T001M04' => ['theme' => 'dark', 'icon' => 'bi-cpu-fill'],
+            'K72T001M05' => ['theme' => 'maroon', 'icon' => 'bi-code-slash'],
+            'K72T001M06' => ['theme' => 'blue', 'icon' => 'bi-bezier2'],
+            'K72T001M07' => ['theme' => 'charcoal', 'icon' => 'bi-globe-americas'],
+            'K72T001M08' => ['theme' => 'amber', 'icon' => 'bi-brush-fill'],
+            'EMPM02'     => ['theme' => 'purple', 'icon' => 'bi-chat-quote-fill'],
+            'K72T001M09' => ['theme' => 'dark', 'icon' => 'bi-check-all'],
+            'K72T001M10' => ['theme' => 'blue', 'icon' => 'bi-laptop-fill'],
+            'K72T001M11' => ['theme' => 'indigo', 'icon' => 'bi-database-fill-gear'],
+            'K72T001M12' => ['theme' => 'maroon', 'icon' => 'bi-camera-reels-fill'],
+            'K72T001M13' => ['theme' => 'teal', 'icon' => 'bi-hdd-network-fill'],
+            'K72T001M14' => ['theme' => 'dark', 'icon' => 'bi-shield-lock-fill'],
+            'K72T001M15' => ['theme' => 'blue', 'icon' => 'bi-phone-fill'],
+            'EMPM01'     => ['theme' => 'purple', 'icon' => 'bi-info-circle-fill'],
+            'EMPM03'     => ['theme' => 'amber', 'icon' => 'bi-calendar-range-fill']
+        ];
+
+        $addedCount = 0;
+        foreach ($modules as $m) {
+            $code = trim($m['module_code']);
+            $title = trim($m['module_title']);
+            $sem = (int)$m['semester'];
+            $desc = "Semester {$sem} • " . ($m['module_type'] ?? 'Technical') . " Module";
+
+            $preset = $modulePresets[$code] ?? ['theme' => 'blue', 'icon' => 'bi-mortarboard-fill'];
+            $theme = $preset['theme'];
+            $icon = $preset['icon'];
+
+            // Check if subject exists in subjects table
+            $sFind = $db->prepare("SELECT id FROM subjects WHERE UPPER(TRIM(subject_code)) = UPPER(?) LIMIT 1");
+            $sFind->execute([$code]);
+            $subjectId = (int)$sFind->fetchColumn();
+
+            if ($subjectId <= 0) {
+                $ins = $db->prepare("INSERT INTO subjects (subject_code, subject_name, description, color_theme, icon, credits, status) VALUES (?, ?, ?, ?, ?, 4, 'active')");
+                $ins->execute([$code, $title, $desc, $theme, $icon]);
+                $subjectId = (int)$db->lastInsertId();
+            }
+
+            // Check if linked to this class in class_subjects
+            $csFind = $db->prepare("SELECT id FROM class_subjects WHERE class_id = ? AND subject_id = ? LIMIT 1");
+            $csFind->execute([$classId, $subjectId]);
+            $csId = (int)$csFind->fetchColumn();
+
+            if ($csId <= 0) {
+                $csIns = $db->prepare("INSERT INTO class_subjects (class_id, subject_id) VALUES (?, ?)");
+                $csIns->execute([$classId, $subjectId]);
+                $csId = (int)$db->lastInsertId();
+                $addedCount++;
+            }
+
+            // Ensure teacher assignment
+            $taFind = $db->prepare("SELECT id FROM teacher_assignments WHERE class_subject_id = ? LIMIT 1");
+            $taFind->execute([$csId]);
+            if (!$taFind->fetchColumn() && $teacherId > 0) {
+                $db->prepare("INSERT INTO teacher_assignments (teacher_id, class_subject_id) VALUES (?, ?)")->execute([$teacherId, $csId]);
+            }
+        }
+
+        Auth::logAudit(Auth::id(), 'SYNC_CURRICULUM_MODULES', "Synced all 18 NVQ modules for class ID $classId ($addedCount new additions)");
+        Flash::success("Successfully synced all 18 NVQ Curriculum Modules for this batch! ({$addedCount} new modules linked)");
         header("Location: " . $this->buildMaterialsRedirectUrl($classId));
         exit;
     }

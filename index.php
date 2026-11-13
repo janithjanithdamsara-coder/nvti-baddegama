@@ -231,6 +231,9 @@ switch ($page) {
     case 'admin_create_classroom':
         (new AdminController())->createClassroom();
         break;
+    case 'admin_sync_curriculum_modules':
+        (new AdminController())->syncAllCurriculumModules();
+        break;
     case 'admin_delete_classroom':
         (new AdminController())->deleteClassroom();
         break;

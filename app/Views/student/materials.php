@@ -39,16 +39,29 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
       <!-- ============================================================== -->
       <?php if ($activeTab === 'classroom'): ?>
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-          <div>
-            <h5 class="fw-bold mb-0 text-dark">Enrolled Subject Classes</h5>
-            <small class="text-muted">Click any class to explore lecture notes and resources</small>
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div>
+              <h5 class="fw-bold mb-0 text-dark">Enrolled Subject Classes</h5>
+              <small class="text-muted">Click any class to explore lecture notes and resources</small>
+            </div>
+            <div class="btn-group btn-group-sm rounded-pill p-1 bg-white border shadow-xs" role="group">
+              <button type="button" class="btn btn-dark rounded-pill px-3 fw-semibold active-filter-btn" onclick="filterStudentClassrooms('all', this)">
+                All Modules (<?= count($subjects) ?>)
+              </button>
+              <button type="button" class="btn btn-light rounded-pill px-3 fw-semibold text-secondary" onclick="filterStudentClassrooms('sem1', this)">
+                Semester 1
+              </button>
+              <button type="button" class="btn btn-light rounded-pill px-3 fw-semibold text-secondary" onclick="filterStudentClassrooms('sem2', this)">
+                Semester 2
+              </button>
+            </div>
           </div>
           <span class="badge bg-light text-dark border rounded-pill px-3 py-1.5 fw-semibold">
-            <?= count($subjects) ?> Subjects Active
+            <?= count($subjects) ?> Modules Active
           </span>
         </div>
 
-        <div class="row g-4 mb-4">
+        <div class="row g-4 mb-4" id="studentClassroomGridRow">
           <?php 
             $themePalettes = [
               'blue'     => ['bg' => 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', 'icon' => 'bi-database-fill-gear', 'avatar_color' => '#334155'],
@@ -82,8 +95,17 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
               $initial = strtoupper(substr($teacherName, 0, 1));
               $matCount = (int)($sb['materials_count'] ?? 0);
               $asgCount = (int)($sb['assignments_count'] ?? 0);
+
+              $cCode = strtoupper(trim($sb['subject_code']));
+              $semNum = 0;
+              if (str_contains(strtolower($cardSubtitle), 'semester 1') || preg_match('/M0[1-8]/i', $cCode) || $cCode === 'EMPM02') {
+                $semNum = 1;
+              } elseif (str_contains(strtolower($cardSubtitle), 'semester 2') || preg_match('/M(09|1[0-5])/i', $cCode) || in_array($cCode, ['EMPM01', 'EMPM03'])) {
+                $semNum = 2;
+              }
+              $semTag = ($semNum === 1) ? 'sem1' : (($semNum === 2) ? 'sem2' : 'other');
           ?>
-            <div class="col-12 col-md-6 col-xl-4 col-xxl-3">
+            <div class="col-12 col-md-6 col-xl-4 col-xxl-3 student-classroom-grid-item" data-sem="<?= $semTag ?>">
               <div class="card border-0 rounded-4 shadow-sm h-100 bg-white overflow-hidden g-classroom-card transition-hover position-relative d-flex flex-column" style="min-height: 290px;">
                 <!-- Top Colorful Banner Header (Matching Admin Classroom Hub) -->
                 <div class="position-relative text-white overflow-hidden d-flex flex-column justify-content-between" style="background: <?= $cardBg ?>; min-height: 150px; padding: 22px 22px 18px 22px; border-top-left-radius: 1rem; border-top-right-radius: 1rem;">
@@ -730,6 +752,31 @@ document.getElementById('materialViewerModal').addEventListener('hidden.bs.modal
   document.getElementById('modalVideoIframe').src = '';
   document.getElementById('modalPreviewImage').src = '';
 });
+
+function filterStudentClassrooms(filter, btn) {
+  const gridRow = document.getElementById('studentClassroomGridRow');
+  if (!gridRow) return;
+
+  const btnGroup = btn.closest('.btn-group');
+  if (btnGroup) {
+    btnGroup.querySelectorAll('button').forEach(b => {
+      b.classList.remove('btn-dark', 'active-filter-btn');
+      b.classList.add('btn-light', 'text-secondary');
+    });
+    btn.classList.remove('btn-light', 'text-secondary');
+    btn.classList.add('btn-dark', 'active-filter-btn');
+  }
+
+  const items = gridRow.querySelectorAll('.student-classroom-grid-item');
+  items.forEach(item => {
+    if (filter === 'all') {
+      item.style.display = '';
+    } else {
+      const sem = item.getAttribute('data-sem');
+      item.style.display = (sem === filter) ? '' : 'none';
+    }
+  });
+}
 </script>
 
 <?php require_once __DIR__ . '/../layouts/footer.php'; ?>

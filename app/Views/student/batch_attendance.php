@@ -85,19 +85,26 @@ require_once __DIR__ . '/../layouts/navbar.php';
       <!-- 3. Marked Directly by Admin Banner -->
       <?php if (!empty($markedByAdmin) && empty($holiday)): ?>
         <div class="alert border-0 shadow-sm rounded-4 p-4 mb-4 text-dark" style="background: linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%); border-left: 5px solid #7A1418 !important;">
-          <div class="d-flex align-items-center gap-3">
-            <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0" style="background: #7A1418; width: 50px; height: 50px;">
-              <i class="bi bi-shield-check fs-3"></i>
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0" style="background: #7A1418; width: 50px; height: 50px;">
+                <i class="bi bi-shield-check fs-3"></i>
+              </div>
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <span class="badge text-white fw-bold rounded-pill px-3 py-1" style="background: #7A1418; font-size: 0.74rem;">
+                    <i class="bi bi-check-all me-1"></i> MARKED &amp; FINALIZED BY ADMINISTRATOR
+                  </span>
+                  <span class="text-danger fw-semibold small">&bull; Official Record Finalized</span>
+                </div>
+                <h5 class="fw-bold mb-1 text-dark">Today's Attendance marked &amp; finalized by NVTI Admin (<?= e($dayLock['marked_by_name'] ?? 'System Administrator') ?>)</h5>
+                <p class="text-secondary small mb-0">The Administrator has directly marked and locked the official attendance sheet for <strong><?= date('l, d F Y', strtotime($selectedDate)) ?></strong>. Class monitors do not need to submit attendance today. The sheet is officially closed.</p>
+              </div>
             </div>
             <div>
-              <div class="d-flex align-items-center gap-2 mb-1">
-                <span class="badge text-white fw-bold rounded-pill px-3 py-1" style="background: #7A1418; font-size: 0.74rem;">
-                  <i class="bi bi-check-all me-1"></i> MARKED &amp; FINALIZED BY ADMINISTRATOR
-                </span>
-                <span class="text-danger fw-semibold small">&bull; Official Record Finalized</span>
-              </div>
-              <h5 class="fw-bold mb-1 text-dark">Today's Attendance marked &amp; finalized by NVTI Admin (<?= e($dayLock['marked_by_name'] ?? 'System Administrator') ?>)</h5>
-              <p class="text-secondary small mb-0">The Administrator has directly marked and locked the official attendance sheet for <strong><?= date('l, d F Y', strtotime($selectedDate)) ?></strong>. Class monitors do not need to submit attendance today. The sheet is officially closed.</p>
+              <button class="btn btn-outline-danger rounded-pill px-3.5 py-2 fw-semibold shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#monitorRollCallCollapse">
+                <i class="bi bi-person-lines-fill me-1"></i> View Submitted List
+              </button>
             </div>
           </div>
         </div>
@@ -148,7 +155,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                 </div>
               </div>
               <div>
-                <button class="btn btn-outline-warning text-dark rounded-pill px-3.5 py-2 fw-semibold shadow-xs bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#monitorRollCallCollapse">
+                <button class="btn btn-outline-warning text-dark rounded-pill px-3.5 py-2 fw-semibold shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#monitorRollCallCollapse">
                   <i class="bi bi-person-lines-fill me-1"></i> View Submitted List
                 </button>
               </div>
@@ -171,7 +178,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
                 </div>
               </div>
               <div>
-                <button class="btn btn-outline-secondary rounded-pill px-3.5 py-2 fw-semibold shadow-xs bg-white" type="button" data-bs-toggle="collapse" data-bs-target="#monitorRollCallCollapse">
+                <button class="btn btn-outline-secondary rounded-pill px-3.5 py-2 fw-semibold shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#monitorRollCallCollapse">
                   <i class="bi bi-person-lines-fill me-1"></i> View Submitted List
                 </button>
               </div>
@@ -195,10 +202,10 @@ require_once __DIR__ . '/../layouts/navbar.php';
             </div>
           </div>
           <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold bg-white shadow-xs" onclick="markAllStatus('present')">
+            <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold shadow-xs" onclick="markAllStatus('present')">
               <i class="bi bi-check-all me-1"></i> All Present
             </button>
-            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold bg-white shadow-xs" onclick="markAllStatus('absent')">
+            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold shadow-xs" onclick="markAllStatus('absent')">
               <i class="bi bi-x-circle me-1"></i> All Absent
             </button>
           </div>
@@ -213,14 +220,24 @@ require_once __DIR__ . '/../layouts/navbar.php';
         <input type="hidden" name="date" value="<?= e($selectedDate) ?>">
 
         <div class="card border rounded-4 shadow-sm bg-white overflow-hidden mb-4">
-          <div class="card-header bg-light py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+          <div class="card-header bg-light py-3 px-4 d-flex justify-content-between align-items-center border-bottom flex-wrap gap-2">
             <div class="d-flex align-items-center gap-2">
               <i class="bi bi-table text-primary"></i>
               <strong class="text-dark">Class Roll Call Grid (<?= count($students) ?> Students)</strong>
             </div>
-            <span class="badge bg-white text-secondary border px-2.5 py-1">
-              Date: <?= e($selectedDate) ?>
-            </span>
+            <div class="d-flex align-items-center gap-2">
+              <?php if (!$isLocked && !$isVerified): ?>
+                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-2.5 fw-semibold shadow-xs" onclick="markAllStatus('present')">
+                  <i class="bi bi-check-all me-1"></i> All Present
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 fw-semibold shadow-xs" onclick="markAllStatus('absent')">
+                  <i class="bi bi-x-circle me-1"></i> All Absent
+                </button>
+              <?php endif; ?>
+              <span class="badge bg-white text-secondary border px-2.5 py-1">
+                Date: <?= e($selectedDate) ?>
+              </span>
+            </div>
           </div>
 
           <div class="table-responsive">

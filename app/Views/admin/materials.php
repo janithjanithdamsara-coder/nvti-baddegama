@@ -73,6 +73,16 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                     <span>Batch Visibility &amp; Copy Hub</span>
                   </button>
 
+                  <!-- 1-Click Sync All 18 NVQ Curriculum Modules -->
+                  <form action="index.php?page=admin_sync_curriculum_modules" method="POST" class="d-inline m-0" onsubmit="return confirm('Sync and register all 18 NVQ Curriculum Modules into this batch? Any missing modules will be automatically linked.');">
+                    <?= Csrf::field() ?>
+                    <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
+                    <button type="submit" class="btn btn-outline-success btn-sm rounded-pill px-3.5 py-2 fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs" title="Sync all 18 NVQ Level 5 Modules for this cohort">
+                      <i class="bi bi-arrow-repeat fs-6 text-success"></i>
+                      <span>Sync All 18 Modules</span>
+                    </button>
+                  </form>
+
                   <button type="button" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2" style="background: #7A1418; border-color: #7A1418;" data-bs-toggle="modal" data-bs-target="#createClassModal">
                     <i class="bi bi-plus-lg fs-6"></i>
                     <span>+ Create Class Module</span>
@@ -120,8 +130,49 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
           </div>
         <?php endif; ?>
 
+        <?php if (count($classrooms ?? []) < 18): ?>
+          <!-- Helpful 1-Click Sync Banner for 18 NVQ Modules -->
+          <div class="alert border-0 rounded-4 p-3 mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-xs" style="background: #eff6ff; border-left: 5px solid #2563eb !important;">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle p-2 bg-white text-primary shadow-xs d-flex align-items-center justify-content-center flex-shrink-0" style="width: 42px; height: 42px;">
+                <i class="bi bi-mortarboard-fill fs-5 text-primary"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0.5 text-dark">NVTI Diploma Curriculum Has 18 Modules (දැනට මොඩියුල <?= count($classrooms ?? []) ?>/18 ක් සම්බන්ධ කර ඇත)</h6>
+                <small class="text-secondary">මෙම කණ්ඩායම (Batch) සඳහා ඉතිරි සියලුම නිල මොඩියුල 18 (Semester 1 &amp; Semester 2) එක ක්ලික් එකකින් Classroom Hub එකට එක් කර ගන්න.</small>
+              </div>
+            </div>
+            <form action="index.php?page=admin_sync_curriculum_modules" method="POST" class="m-0 flex-shrink-0" onsubmit="return confirm('Sync and register all 18 NVQ Curriculum Modules for this batch?');">
+              <?= Csrf::field() ?>
+              <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
+              <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3.5 py-2 fw-bold text-nowrap shadow-sm d-inline-flex align-items-center gap-1.5" style="background: #2563eb; border-color: #2563eb;">
+                <i class="bi bi-magic"></i>
+                <span>Sync All 18 Modules Now</span>
+              </button>
+            </form>
+          </div>
+        <?php endif; ?>
+
+        <!-- Quick Semester Filter & Count Bar -->
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <div class="btn-group btn-group-sm rounded-pill p-1 bg-white border shadow-xs" role="group">
+            <button type="button" class="btn btn-dark rounded-pill px-3 fw-semibold active-filter-btn" onclick="filterClassroomGrid('all', this)">
+              All Modules (<?= count($classrooms ?? []) ?>)
+            </button>
+            <button type="button" class="btn btn-light rounded-pill px-3 fw-semibold text-secondary" onclick="filterClassroomGrid('sem1', this)">
+              Semester 1
+            </button>
+            <button type="button" class="btn btn-light rounded-pill px-3 fw-semibold text-secondary" onclick="filterClassroomGrid('sem2', this)">
+              Semester 2
+            </button>
+          </div>
+          <div class="small text-muted d-none d-md-block">
+            <i class="bi bi-info-circle text-primary me-1"></i> Official NVTI 18 NVQ Level 5 Diploma Modules (M01 - M15 + EMPM01 - EMPM03)
+          </div>
+        </div>
+
         <!-- Classroom Cards Grid (Synced with Student Portal Modules) -->
-        <div class="row g-4 mb-4">
+        <div class="row g-4 mb-4" id="classroomGridRow">
           <?php 
             $themePalettes = [
               'blue'     => ['bg' => 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', 'icon' => 'bi-database-fill-gear', 'avatar_color' => '#334155'],
@@ -154,8 +205,17 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
 
               $teacherName = $c['teacher_name'] ?: 'U.G.P.K. Nishantha';
               $avatarLetter = strtoupper(substr($teacherName, 0, 1));
+
+              $cCode = strtoupper(trim($c['subject_code']));
+              $semNum = 0;
+              if (str_contains(strtolower($cardSubtitle), 'semester 1') || preg_match('/M0[1-8]/i', $cCode) || $cCode === 'EMPM02') {
+                $semNum = 1;
+              } elseif (str_contains(strtolower($cardSubtitle), 'semester 2') || preg_match('/M(09|1[0-5])/i', $cCode) || in_array($cCode, ['EMPM01', 'EMPM03'])) {
+                $semNum = 2;
+              }
+              $semTag = ($semNum === 1) ? 'sem1' : (($semNum === 2) ? 'sem2' : 'other');
           ?>
-            <div class="col-12 col-md-6 col-xl-4 col-xxl-3">
+            <div class="col-12 col-md-6 col-xl-4 col-xxl-3 classroom-grid-item" data-sem="<?= $semTag ?>">
               <div class="card border-0 rounded-4 shadow-sm h-100 bg-white overflow-hidden g-classroom-card transition-hover position-relative d-flex flex-column" style="min-height: 290px;">
                 <!-- Top Colorful Banner Header -->
                 <div class="position-relative text-white overflow-hidden d-flex flex-column justify-content-between" style="background: <?= $cardBg ?>; min-height: 150px; padding: 22px 22px 18px 22px; border-top-left-radius: 1rem; border-top-right-radius: 1rem;">
@@ -1088,6 +1148,39 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
         </div>
 
         <div class="modal-body p-4 custom-theme-picker">
+          <!-- Preset Picker from 18 NVQ Curriculum Modules -->
+          <div class="mb-3.5 p-3 bg-light rounded-3 border">
+            <label class="form-label fw-bold text-dark small mb-1.5 d-flex align-items-center justify-content-between">
+              <span><i class="bi bi-magic text-danger me-1"></i> Auto-Fill from Official 18 NVQ Modules (ප්‍රතීතනය ලත් මොඩියුල 18න් තෝරන්න)</span>
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill" style="font-size: 0.68rem;">18 NVQ Modules</span>
+            </label>
+            <select id="curriculumModulePresetSelect" class="form-select form-select-sm fw-medium shadow-xs" onchange="applyModulePreset(this)">
+              <option value="">-- Choose an NVQ Module to Auto-Fill Title, Code &amp; Details --</option>
+              <optgroup label="Semester 1 (Modules 1 - 9)">
+                <?php foreach (($curriculumModules ?? []) as $cm): if ((int)$cm['semester'] === 1): ?>
+                  <option value="<?= e($cm['module_code']) ?>" 
+                          data-title="<?= e($cm['module_title']) ?>" 
+                          data-code="<?= e($cm['module_code']) ?>" 
+                          data-desc="<?= e("Semester 1 • " . ($cm['module_type'] ?? 'Technical') . " Module") ?>"
+                          data-type="<?= e($cm['module_type']) ?>">
+                    <?= e($cm['module_code']) ?> &bull; <?= e($cm['module_title']) ?>
+                  </option>
+                <?php endif; endforeach; ?>
+              </optgroup>
+              <optgroup label="Semester 2 (Modules 10 - 18)">
+                <?php foreach (($curriculumModules ?? []) as $cm): if ((int)$cm['semester'] === 2): ?>
+                  <option value="<?= e($cm['module_code']) ?>" 
+                          data-title="<?= e($cm['module_title']) ?>" 
+                          data-code="<?= e($cm['module_code']) ?>" 
+                          data-desc="<?= e("Semester 2 • " . ($cm['module_type'] ?? 'Technical') . " Module") ?>"
+                          data-type="<?= e($cm['module_type']) ?>">
+                    <?= e($cm['module_code']) ?> &bull; <?= e($cm['module_title']) ?>
+                  </option>
+                <?php endif; endforeach; ?>
+              </optgroup>
+            </select>
+          </div>
+
           <!-- Section 1: Module Information -->
           <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
             <span class="badge rounded-circle p-1 bg-danger text-white d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; font-size: 0.72rem; background: #7A1418 !important;">1</span>
@@ -1701,6 +1794,67 @@ function submitBulk(action) {
   }
   document.getElementById('bulkActionInput').value = action;
   document.getElementById('bulkMaterialsForm').submit();
+}
+
+function applyModulePreset(sel) {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) return;
+  const title = opt.getAttribute('data-title') || '';
+  const code = opt.getAttribute('data-code') || '';
+  const desc = opt.getAttribute('data-desc') || '';
+
+  const modal = document.getElementById('createClassModal');
+  if (!modal) return;
+
+  const titleInput = modal.querySelector('input[name="subject_name"]');
+  const codeInput = modal.querySelector('input[name="subject_code"]');
+  const descInput = modal.querySelector('input[name="description"]');
+
+  if (titleInput) titleInput.value = title;
+  if (codeInput) codeInput.value = code;
+  if (descInput) descInput.value = desc;
+
+  // Smart color theme selection based on module code
+  const codeUp = code.toUpperCase();
+  let themeId = 'ct_blue';
+  if (codeUp === 'K72T001M04' || codeUp === 'K72T001M09' || codeUp === 'K72T001M14') themeId = 'ct_dark';
+  else if (codeUp === 'K72T001M05' || codeUp === 'K72T001M12') themeId = 'ct_maroon';
+  else if (codeUp === 'K72T001M02' || codeUp === 'K72T001M11') themeId = 'ct_indigo';
+  else if (codeUp === 'K72T001M03' || codeUp === 'K72T001M13') themeId = 'ct_teal';
+  else if (codeUp === 'K72T001M08' || codeUp === 'EMPM03') themeId = 'ct_amber';
+  else if (codeUp === 'EMPM01' || codeUp === 'EMPM02') themeId = 'ct_purple';
+
+  const themeRadio = modal.querySelector('#' + themeId);
+  if (themeRadio) themeRadio.checked = true;
+
+  // Reset icon to auto-detect
+  const icAuto = modal.querySelector('#ic_auto');
+  if (icAuto) icAuto.checked = true;
+}
+
+function filterClassroomGrid(filter, btn) {
+  const gridRow = document.getElementById('classroomGridRow');
+  if (!gridRow) return;
+
+  const btnGroup = btn.closest('.btn-group');
+  if (btnGroup) {
+    btnGroup.querySelectorAll('button').forEach(b => {
+      b.classList.remove('btn-dark', 'active-filter-btn');
+      b.classList.add('btn-light', 'text-secondary');
+    });
+    btn.classList.remove('btn-light', 'text-secondary');
+    btn.classList.add('btn-dark', 'active-filter-btn');
+  }
+
+  const items = gridRow.querySelectorAll('.classroom-grid-item');
+  items.forEach(item => {
+    if (filter === 'all') {
+      item.style.display = '';
+    } else {
+      const sem = item.getAttribute('data-sem');
+      item.style.display = (sem === filter) ? '' : 'none';
+    }
+  });
 }
 </script>
 
