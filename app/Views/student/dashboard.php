@@ -16,11 +16,10 @@ require_once __DIR__ . '/../layouts/navbar.php';
           <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
             <span class="badge bg-success-subtle text-success fw-bold px-3 py-1.5 rounded-pill"><i class="bi bi-mortarboard-fill me-1"></i> Student Portal</span>
             <?php if (!empty($profile['mis_number'])): ?>
-              <span class="badge bg-primary text-white font-monospace px-2.5 py-1 rounded-pill fw-bold">
-                <i class="bi bi-person-badge-fill me-1"></i><?= e($profile['mis_number']) ?>
+              <span class="badge bg-primary text-white font-monospace px-3 py-1.5 rounded-pill fw-bold" style="background: #7A1418 !important;">
+                <i class="bi bi-person-badge-fill me-1"></i>MIS: <?= e($profile['mis_number']) ?>
               </span>
             <?php endif; ?>
-            <span class="badge bg-light text-dark border fw-bold rounded-pill"><?= e($profile['student_code'] ?? 'NVTI-ST') ?></span>
           </div>
           <h3 class="fw-bold mb-1 text-dark">Hello, <?= e(Auth::name()) ?>!</h3>
           <p class="mb-0 text-muted small"><?= e($profile['course_name'] ?? 'National Diploma in ICT') ?> &bull; <?= e($profile['class_name'] ?? 'NVTI Baddegama') ?></p>

@@ -28,13 +28,10 @@ $photo = !empty($student['profile_image']) ? $student['profile_image'] : '';
               <h3 class="fw-bold mb-1 text-dark"><?= e($student['name']) ?></h3>
               <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-sm-start gap-1.5 mt-1">
                 <?php if (!empty($student['mis_number'])): ?>
-                  <span class="badge bg-primary text-white font-monospace px-2.5 py-1 rounded-pill fw-bold">
-                    <i class="bi bi-person-badge-fill me-1"></i><?= e($student['mis_number']) ?>
+                  <span class="badge bg-primary text-white font-monospace px-3 py-1 rounded-pill fw-bold" style="background: #7A1418 !important;">
+                    <i class="bi bi-person-badge-fill me-1"></i>MIS: <?= e($student['mis_number']) ?>
                   </span>
                 <?php endif; ?>
-                <span class="badge bg-light text-dark border font-monospace px-2.5 py-1 rounded-pill">
-                  <?= e($student['student_code'] ?? 'NVTI-ST') ?>
-                </span>
                 <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 rounded-pill">
                   <?= e($student['nvq_level'] ?? 'NVQ Level 5') ?>
                 </span>
@@ -84,8 +81,8 @@ $photo = !empty($student['profile_image']) ? $student['profile_image'] : '';
                       <strong class="text-primary font-monospace"><?= e($student['mis_number'] ?? 'Not Assigned') ?></strong>
                     </div>
                     <div class="mb-2.5">
-                      <span class="text-muted small d-block">Student System ID</span>
-                      <strong class="text-dark font-monospace"><?= e($student['student_code']) ?></strong>
+                      <span class="text-muted small d-block">National Identity Card (NIC)</span>
+                      <strong class="text-dark font-monospace"><?= e($student['nic'] ?? 'N/A') ?></strong>
                     </div>
                     <div class="mb-2.5">
                       <span class="text-muted small d-block">Course of Study</span>

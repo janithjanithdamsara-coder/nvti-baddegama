@@ -257,7 +257,7 @@ $search = trim($_GET['search'] ?? '');
             <thead class="table-light">
               <tr style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px;">
                 <th class="ps-3 py-3">Student Details</th>
-                <th class="py-3">Official Codes</th>
+                <th class="py-3">MIS Number</th>
                 <th class="py-3">Contact Info</th>
                 <th class="py-3">Cohort / Batch</th>
                 <th class="py-3">Enrollment Status</th>
@@ -288,10 +288,10 @@ $search = trim($_GET['search'] ?? '');
                         </div>
                         <div>
                           <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 0.92rem;">
-                            <a href="javascript:void(0)" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['student_code'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')" class="text-dark text-decoration-none" title="Click to view documents">
+                            <a href="javascript:void(0)" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['mis_number'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')" class="text-dark text-decoration-none" title="Click to view documents">
                               <?= e($st['name']) ?>
                             </a>
-                            <button type="button" class="btn btn-xs rounded-pill px-2 py-0.5 text-primary border border-primary-subtle bg-primary-subtle" style="font-size: 0.68rem; font-weight: 600;" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['student_code'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')" title="View Verification Documents">
+                            <button type="button" class="btn btn-xs rounded-pill px-2 py-0.5 text-primary border border-primary-subtle bg-primary-subtle" style="font-size: 0.68rem; font-weight: 600;" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['mis_number'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')" title="View Verification Documents">
                               <i class="bi bi-file-earmark-check me-0.5"></i> Docs
                             </button>
                           </div>
@@ -300,10 +300,10 @@ $search = trim($_GET['search'] ?? '');
                       </div>
                     </td>
 
-                    <!-- Codes -->
+                    <!-- MIS Number -->
                     <td class="py-3">
-                      <span class="badge bg-light text-dark border font-monospace fw-bold px-2 py-1" style="font-size: 0.74rem;">
-                        <?= e($st['student_code'] ?? 'NVTI-ST-TEMP') ?>
+                      <span class="badge bg-light text-dark border font-monospace fw-bold px-2.5 py-1" style="font-size: 0.76rem; letter-spacing: 0.3px;">
+                        <i class="bi bi-person-badge text-primary me-1"></i><?= e($st['mis_number'] ?? 'N/A') ?>
                       </span>
                     </td>
 
@@ -368,7 +368,7 @@ $search = trim($_GET['search'] ?? '');
                           </button>
                           <ul class="dropdown-menu dropdown-menu-end shadow border rounded-3" style="z-index: 1060;">
                             <li>
-                              <button type="button" class="dropdown-item py-1.5 fw-semibold text-primary" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['student_code'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')">
+                              <button type="button" class="dropdown-item py-1.5 fw-semibold text-primary" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['mis_number'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')">
                                 <i class="bi bi-file-earmark-check me-2"></i>Verification Docs
                               </button>
                             </li>

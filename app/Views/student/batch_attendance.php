@@ -270,13 +270,12 @@ require_once __DIR__ . '/../layouts/navbar.php';
                           </div>
                           <div>
                             <div class="fw-bold text-dark mb-0 text-truncate" style="max-width: 240px;"><?= e($st['name']) ?></div>
-                            <small class="text-muted font-monospace"><?= e($st['student_code']) ?></small>
+                            <small class="text-muted font-monospace"><i class="bi bi-person-vcard text-secondary me-1"></i>NIC: <?= e($st['nic'] ?? 'N/A') ?></small>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span class="badge bg-light text-dark border font-monospace"><?= e($st['mis_number'] ?? 'N/A') ?></span>
-                        <div class="text-muted" style="font-size: 0.72rem;"><?= e($st['nic'] ?? '') ?></div>
+                        <span class="badge bg-light text-dark border font-monospace fw-bold px-2 py-1"><i class="bi bi-person-badge text-primary me-1"></i><?= e($st['mis_number'] ?? 'N/A') ?></span>
                       </td>
                       <td class="text-center">
                         <div class="attendance-pill-group" role="group">
