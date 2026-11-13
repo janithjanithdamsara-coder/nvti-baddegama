@@ -282,10 +282,14 @@ $search = trim($_GET['search'] ?? '');
                     <!-- Name & Avatar -->
                     <td class="ps-3 py-3">
                       <div class="d-flex align-items-center gap-2.5">
-                        <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" 
-                             style="width: 38px; height: 38px; font-size: 0.85rem; background: <?= ($st['class_status'] === 'archived') ? '#475569' : 'linear-gradient(135deg, #7A1418, #90161b)' ?>;">
-                          <?= strtoupper(substr($st['name'], 0, 1)) ?>
-                        </div>
+                        <?php if (!empty($st['profile_image'])): ?>
+                          <img src="<?= e($st['profile_image']) ?>" alt="<?= e($st['name']) ?>" class="rounded-circle border shadow-xs flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;">
+                        <?php else: ?>
+                          <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" 
+                               style="width: 38px; height: 38px; font-size: 0.85rem; background: <?= ($st['class_status'] === 'archived') ? '#475569' : 'linear-gradient(135deg, #7A1418, #90161b)' ?>;">
+                            <?= strtoupper(substr($st['name'], 0, 1)) ?>
+                          </div>
+                        <?php endif; ?>
                         <div>
                           <div class="fw-bold text-dark d-flex align-items-center gap-2" style="font-size: 0.92rem;">
                             <a href="javascript:void(0)" onclick="loadStudentDocs(<?= $st['id'] ?>, '<?= e(addslashes($st['name'])) ?>', '<?= e($st['mis_number'] ?? '') ?>', '<?= e($st['class_name'] ?? '') ?>')" class="text-dark text-decoration-none" title="Click to view documents">

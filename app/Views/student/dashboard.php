@@ -12,17 +12,29 @@ require_once __DIR__ . '/../layouts/navbar.php';
 
       <!-- Welcome Banner -->
       <div class="card border rounded-4 mb-4 p-3 p-md-4 bg-white shadow-sm">
-        <div>
-          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-            <span class="badge bg-success-subtle text-success fw-bold px-3 py-1.5 rounded-pill"><i class="bi bi-mortarboard-fill me-1"></i> Student Portal</span>
-            <?php if (!empty($profile['mis_number'])): ?>
-              <span class="badge bg-primary text-white font-monospace px-3 py-1.5 rounded-pill fw-bold" style="background: #7A1418 !important;">
-                <i class="bi bi-person-badge-fill me-1"></i>MIS: <?= e($profile['mis_number']) ?>
-              </span>
-            <?php endif; ?>
+        <div class="d-flex align-items-center gap-3">
+          <?php 
+            $userPhoto = !empty($profile['profile_image']) ? $profile['profile_image'] : ($_SESSION['user_image'] ?? ($_SESSION['user']['profile_image'] ?? ''));
+          ?>
+          <?php if (!empty($userPhoto)): ?>
+            <img src="<?= e($userPhoto) ?>" alt="Profile" class="rounded-circle border shadow-sm flex-shrink-0" style="width: 58px; height: 58px; object-fit: cover;">
+          <?php else: ?>
+            <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0 shadow-sm" style="width: 58px; height: 58px; font-size: 1.35rem; background: linear-gradient(135deg, #7A1418, #90161b);">
+              <?= strtoupper(substr(Auth::name(), 0, 1)) ?>
+            </div>
+          <?php endif; ?>
+          <div class="flex-grow-1">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+              <span class="badge bg-success-subtle text-success fw-bold px-3 py-1 rounded-pill"><i class="bi bi-mortarboard-fill me-1"></i> Student Portal</span>
+              <?php if (!empty($profile['mis_number'])): ?>
+                <span class="badge bg-primary text-white font-monospace px-3 py-1 rounded-pill fw-bold" style="background: #7A1418 !important;">
+                  <i class="bi bi-person-badge-fill me-1"></i>MIS: <?= e($profile['mis_number']) ?>
+                </span>
+              <?php endif; ?>
+            </div>
+            <h3 class="fw-bold mb-0 text-dark">Hello, <?= e(Auth::name()) ?>!</h3>
+            <p class="mb-0 text-muted small"><?= e($profile['course_name'] ?? 'National Diploma in ICT') ?> &bull; <?= e($profile['class_name'] ?? 'NVTI Baddegama') ?></p>
           </div>
-          <h3 class="fw-bold mb-1 text-dark">Hello, <?= e(Auth::name()) ?>!</h3>
-          <p class="mb-0 text-muted small"><?= e($profile['course_name'] ?? 'National Diploma in ICT') ?> &bull; <?= e($profile['class_name'] ?? 'NVTI Baddegama') ?></p>
         </div>
       </div>
 

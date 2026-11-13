@@ -41,6 +41,7 @@ $pageDisplayName = match ($currentPage) {
 $userFullName = Auth::name();
 $userEmail = Auth::user()['email'] ?? '';
 $userInitial = !empty($userFullName) ? strtoupper(substr($userFullName, 0, 1)) : 'U';
+$userAvatar = $_SESSION['user_image'] ?? ($_SESSION['user']['profile_image'] ?? null);
 ?>
 
 <?php if (!$isLoggedIn || $isPublicPage): ?>
@@ -134,9 +135,13 @@ $userInitial = !empty($userFullName) ? strtoupper(substr($userFullName, 0, 1)) :
       <!-- User Profile Dropdown -->
       <div class="dropdown">
         <button class="btn btn-light border-0 p-1 pe-2 rounded-pill d-inline-flex align-items-center gap-2 shadow-none" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: #f8fafc; border: 1px solid #e2e8f0 !important;" title="Account Menu">
-          <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 30px; height: 30px; font-size: 0.8rem; background: linear-gradient(135deg, #7A1418, #90161b); box-shadow: 0 2px 4px rgba(122, 20, 24, 0.2);">
-            <?= $userInitial ?>
-          </div>
+          <?php if (!empty($userAvatar)): ?>
+            <img src="<?= e($userAvatar) ?>" alt="Avatar" class="rounded-circle border flex-shrink-0" style="width: 30px; height: 30px; object-fit: cover;">
+          <?php else: ?>
+            <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 30px; height: 30px; font-size: 0.8rem; background: linear-gradient(135deg, #7A1418, #90161b); box-shadow: 0 2px 4px rgba(122, 20, 24, 0.2);">
+              <?= $userInitial ?>
+            </div>
+          <?php endif; ?>
           <span class="fw-semibold text-dark small d-none d-md-inline text-truncate" style="max-width: 160px;">
             <?= e($userFullName) ?>
           </span>
@@ -145,10 +150,21 @@ $userInitial = !empty($userFullName) ? strtoupper(substr($userFullName, 0, 1)) :
 
         <ul class="dropdown-menu dropdown-menu-end shadow border py-2 mt-1" style="min-width: 230px; border-radius: 12px; border-color: #e2e8f0;">
           <li class="px-3 py-2 mb-1">
-            <span class="badge text-uppercase fw-bold mb-1" style="font-size: 0.65rem; background: #fef2f2; color: #7A1418; border: 1px solid #fecaca;">
-              ROLE: <?= strtoupper($role) ?>
-            </span>
-            <div class="fw-bold text-dark small text-truncate"><?= e($userFullName) ?></div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <?php if (!empty($userAvatar)): ?>
+                <img src="<?= e($userAvatar) ?>" alt="Avatar" class="rounded-circle border flex-shrink-0" style="width: 38px; height: 38px; object-fit: cover;">
+              <?php else: ?>
+                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 38px; height: 38px; font-size: 0.9rem; background: linear-gradient(135deg, #7A1418, #90161b);">
+                  <?= $userInitial ?>
+                </div>
+              <?php endif; ?>
+              <div class="overflow-hidden">
+                <span class="badge text-uppercase fw-bold mb-0.5" style="font-size: 0.65rem; background: #fef2f2; color: #7A1418; border: 1px solid #fecaca;">
+                  ROLE: <?= strtoupper($role) ?>
+                </span>
+                <div class="fw-bold text-dark small text-truncate"><?= e($userFullName) ?></div>
+              </div>
+            </div>
             <div class="text-muted font-monospace text-truncate" style="font-size: 0.72rem;"><?= e($userEmail) ?></div>
           </li>
           <li><hr class="dropdown-divider my-1"></li>

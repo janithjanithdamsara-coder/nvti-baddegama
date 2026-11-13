@@ -94,7 +94,7 @@ class AdminController {
 
         // Query students based on batch status tab and optional class filter
         $sql = "
-            SELECT u.id, u.name, u.email, u.status, u.created_at, 
+            SELECT u.id, u.name, u.email, u.status, u.profile_image, u.created_at, 
                    sp.student_code, sp.mis_number, sp.phone, sp.nic, sp.class_id,
                    c.class_name, c.status as class_status, c.academic_year, 
                    co.course_name

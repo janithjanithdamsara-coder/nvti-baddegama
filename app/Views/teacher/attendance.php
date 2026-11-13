@@ -500,9 +500,13 @@ $activeTab = $tab ?? 'daily';
                           <td class="text-center text-muted fw-bold"><?= $idx++ ?></td>
                           <td>
                             <div class="d-flex align-items-center gap-2.5">
-                              <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center text-primary fw-bold flex-shrink-0" style="width: 36px; height: 36px; font-size: 0.82rem;">
-                                <?= strtoupper(substr($st['name'], 0, 1)) ?>
-                              </div>
+                              <?php if (!empty($st['profile_image'])): ?>
+                                <img src="<?= e($st['profile_image']) ?>" alt="Avatar" class="rounded-circle border flex-shrink-0" style="width: 36px; height: 36px; object-fit: cover;">
+                              <?php else: ?>
+                                <div class="rounded-circle bg-light border d-flex align-items-center justify-content-center text-primary fw-bold flex-shrink-0" style="width: 36px; height: 36px; font-size: 0.82rem;">
+                                  <?= strtoupper(substr($st['name'], 0, 1)) ?>
+                                </div>
+                              <?php endif; ?>
                               <div>
                                 <div class="fw-bold text-dark mb-0 text-truncate" style="max-width: 230px;"><?= e($st['name']) ?></div>
                                 <small class="text-muted font-monospace"><i class="bi bi-person-vcard text-secondary me-1"></i>NIC: <?= e($st['nic'] ?? 'N/A') ?></small>

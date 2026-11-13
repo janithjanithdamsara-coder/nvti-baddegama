@@ -41,8 +41,9 @@ class StudentController {
 
         // Student Profile & Enrolled Class
         $stmt = $db->prepare("
-            SELECT sp.*, c.class_name, co.course_name, co.course_code
+            SELECT sp.*, u.profile_image, c.class_name, co.course_name, co.course_code
             FROM student_profiles sp
+            JOIN users u ON sp.user_id = u.id
             LEFT JOIN classes c ON sp.class_id = c.id
             LEFT JOIN courses co ON sp.course_id = co.id
             WHERE sp.user_id = ?
@@ -567,11 +568,13 @@ class StudentController {
                 $uStmt = $db->prepare("UPDATE users SET name = ?, profile_image = ? WHERE id = ?");
                 $uStmt->execute([$name, $profileImage, $studentId]);
                 $_SESSION['user']['profile_image'] = $profileImage;
+                $_SESSION['user_image'] = $profileImage;
             } else {
                 $uStmt = $db->prepare("UPDATE users SET name = ? WHERE id = ?");
                 $uStmt->execute([$name, $studentId]);
             }
             $_SESSION['user']['name'] = $name;
+            $_SESSION['user_name'] = $name;
 
             // Update student_profiles
             $spStmt = $db->prepare("
