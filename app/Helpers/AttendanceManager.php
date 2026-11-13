@@ -33,10 +33,16 @@ class AttendanceManager {
 
     /**
      * Ensure all active curriculum subjects are linked to a batch (class_subjects)
+     * Filters out legacy competency units (U01-U10, EMPU) so only official NVQ Level 5 modules are attached.
      */
     public static function syncBatchSubjects(PDO $db, int $classId): void {
         if ($classId <= 0) return;
-        $subjIds = $db->query("SELECT id FROM subjects WHERE status = 'active'")->fetchAll(PDO::FETCH_COLUMN);
+        $subjIds = $db->query("
+            SELECT id FROM subjects 
+            WHERE status = 'active' 
+              AND subject_code NOT REGEXP '^K72T001U[0-9]+$' 
+              AND subject_code NOT LIKE 'EMPU%'
+        ")->fetchAll(PDO::FETCH_COLUMN);
         if (!empty($subjIds)) {
             $ins = $db->prepare("INSERT IGNORE INTO class_subjects (class_id, subject_id) VALUES (?, ?)");
             foreach ($subjIds as $sid) {
