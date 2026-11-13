@@ -1583,12 +1583,28 @@ class AdminController {
                 JOIN classes c ON cs.class_id = c.id
                 LEFT JOIN teacher_assignments ta ON cs.id = ta.class_subject_id
                 LEFT JOIN users u ON ta.teacher_id = u.id
-                LEFT JOIN curriculum_modules cm ON UPPER(TRIM(s.subject_code)) = UPPER(TRIM(cm.module_code))
                 WHERE cs.class_id = ?
-                ORDER BY COALESCE(cm.semester, 99) ASC, COALESCE(cm.module_no, 999) ASC, s.id ASC
+                ORDER BY s.id ASC
             ");
             $classroomsStmt->execute([$classId]);
             $classrooms = $classroomsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Sort classrooms cleanly in PHP to avoid cross-table SQL collation mismatch (general_ci vs unicode_ci)
+            $moduleOrderMap = [];
+            foreach (($curriculumModules ?? []) as $cm) {
+                $codeKey = strtoupper(trim($cm['module_code']));
+                $moduleOrderMap[$codeKey] = ((int)$cm['semester'] * 100) + (int)$cm['module_no'];
+            }
+            usort($classrooms, function ($a, $b) use ($moduleOrderMap) {
+                $codeA = strtoupper(trim($a['subject_code']));
+                $codeB = strtoupper(trim($b['subject_code']));
+                $orderA = $moduleOrderMap[$codeA] ?? 9999;
+                $orderB = $moduleOrderMap[$codeB] ?? 9999;
+                if ($orderA !== $orderB) {
+                    return $orderA <=> $orderB;
+                }
+                return (int)$a['subject_id'] <=> (int)$b['subject_id'];
+            });
 
             // Total statistics scoped to the selected batch
             $totMatStmt = $db->prepare("SELECT COUNT(*) FROM materials WHERE class_id = ?");

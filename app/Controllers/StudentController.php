@@ -158,12 +158,32 @@ class StudentController {
             JOIN subjects s ON cs.subject_id = s.id
             LEFT JOIN teacher_assignments ta ON ta.class_subject_id = cs.id
             LEFT JOIN users u ON ta.teacher_id = u.id
-            LEFT JOIN curriculum_modules cm ON UPPER(TRIM(s.subject_code)) = UPPER(TRIM(cm.module_code))
             WHERE cs.class_id = ?
-            ORDER BY COALESCE(cm.semester, 99) ASC, COALESCE(cm.module_no, 999) ASC, s.id ASC
+            ORDER BY s.id ASC
         ");
         $subStmt->execute([$classId]);
         $subjects = $subStmt->fetchAll();
+
+        // Sort subjects cleanly in PHP in official curriculum order
+        try {
+            $cMods = $db->query("SELECT module_code, semester, module_no FROM curriculum_modules")->fetchAll();
+            $modOrder = [];
+            foreach ($cMods as $cm) {
+                $modOrder[strtoupper(trim($cm['module_code']))] = ((int)$cm['semester'] * 100) + (int)$cm['module_no'];
+            }
+            usort($subjects, function ($a, $b) use ($modOrder) {
+                $codeA = strtoupper(trim($a['subject_code']));
+                $codeB = strtoupper(trim($b['subject_code']));
+                $ordA = $modOrder[$codeA] ?? 9999;
+                $ordB = $modOrder[$codeB] ?? 9999;
+                if ($ordA !== $ordB) {
+                    return $ordA <=> $ordB;
+                }
+                return (int)$a['id'] <=> (int)$b['id'];
+            });
+        } catch (\Throwable $e) {
+            // Keep default order on error
+        }
 
         // Query materials (Students only see unhidden / active materials)
         $sql = "
