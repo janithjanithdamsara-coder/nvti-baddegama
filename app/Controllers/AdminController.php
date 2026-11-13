@@ -2524,6 +2524,13 @@ class AdminController {
             }
         }
 
+        // Purge any remaining old subjects from this class so ONLY the 18 official curriculum modules remain
+        $officialSubIds = array_values($createdSubMap);
+        if (!empty($officialSubIds)) {
+            $inClause = implode(',', array_map('intval', $officialSubIds));
+            $db->exec("DELETE FROM class_subjects WHERE class_id = " . (int)$classId . " AND subject_id NOT IN ($inClause)");
+        }
+
         Auth::logAudit(Auth::id(), 'SYNC_CURRICULUM_MODULES', "Cleanly synced all 18 NVQ modules and migrated legacy unit cards for class ID $classId");
         Flash::success("Successfully structured all 18 NVQ Curriculum Modules for this batch! Any past lecture notes have been automatically migrated into their respective modules.");
         header("Location: " . $this->buildMaterialsRedirectUrl($classId));

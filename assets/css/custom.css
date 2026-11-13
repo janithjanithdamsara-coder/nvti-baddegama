@@ -1263,4 +1263,84 @@ html, body {
   }
 }
 
+/* ==========================================================================
+   ATTENDANCE QUICK ACTION & ROLL CALL TOGGLE BUTTONS - HIGH CONTRAST
+   ========================================================================== */
+.btn-att-present {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+  border: 1.5px solid #10b981 !important;
+  font-weight: 600 !important;
+  transition: all 0.18s ease !important;
+}
+.btn-att-present i {
+  color: #059669 !important;
+}
+.btn-att-present:hover,
+.btn-att-present:focus,
+.btn-att-present:active {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+  box-shadow: 0 3px 8px rgba(5, 150, 105, 0.28) !important;
+}
+.btn-att-present:hover i,
+.btn-att-present:focus i,
+.btn-att-present:active i {
+  color: #ffffff !important;
+}
+
+.btn-att-absent {
+  background-color: #fef2f2 !important;
+  color: #991b1b !important;
+  border: 1.5px solid #ef4444 !important;
+  font-weight: 600 !important;
+  transition: all 0.18s ease !important;
+}
+.btn-att-absent i {
+  color: #dc2626 !important;
+}
+.btn-att-absent:hover,
+.btn-att-absent:focus,
+.btn-att-absent:active {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.28) !important;
+}
+.btn-att-absent:hover i,
+.btn-att-absent:focus i,
+.btn-att-absent:active i {
+  color: #ffffff !important;
+}
+
+/* Roll Call Name List Toggle Button */
+.btn-toggle-rollcall {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  border: 1.5px solid #334155 !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+.btn-toggle-rollcall i {
+  color: #7A1418 !important;
+  transition: color 0.2s ease !important;
+}
+.btn-toggle-rollcall:hover,
+.btn-toggle-rollcall:focus {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #0f172a !important;
+}
+.btn-toggle-rollcall.is-expanded,
+.btn-toggle-rollcall[aria-expanded="true"] {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: #1e293b !important;
+}
+.btn-toggle-rollcall.is-expanded i,
+.btn-toggle-rollcall[aria-expanded="true"] i {
+  color: #ffffff !important;
+}
+
 

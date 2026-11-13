@@ -188,10 +188,10 @@ $activeTab = $tab ?? 'daily';
                 <?php endif; ?>
 
                 <?php if (!$holiday && !$isVerifiedOfficial): ?>
-                  <button type="button" class="btn btn-outline-success btn-sm fw-semibold rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('present')">
+                  <button type="button" class="btn btn-att-present btn-sm rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('present')">
                     <i class="bi bi-check-all me-1"></i> All Present
                   </button>
-                  <button type="button" class="btn btn-outline-danger btn-sm fw-semibold rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('absent')">
+                  <button type="button" class="btn btn-att-absent btn-sm rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('absent')">
                     <i class="bi bi-x-circle me-1"></i> All Absent
                   </button>
                 <?php endif; ?>
@@ -320,8 +320,8 @@ $activeTab = $tab ?? 'daily';
                   </a>
 
                   <!-- View / Hide List Toggle Button -->
-                  <button class="btn btn-outline-dark rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#dailyRollCallCollapse" aria-expanded="false" aria-controls="dailyRollCallCollapse" id="btnToggleRollCall">
-                    <i class="bi bi-person-lines-fill text-primary" id="iconToggleRollCall"></i>
+                  <button class="btn btn-toggle-rollcall rounded-pill px-3.5 py-2 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs" type="button" data-bs-toggle="collapse" data-bs-target="#dailyRollCallCollapse" aria-expanded="false" aria-controls="dailyRollCallCollapse" id="btnToggleRollCall">
+                    <i class="bi bi-person-lines-fill" id="iconToggleRollCall"></i>
                     <span id="lblToggleRollCall">View Name List (ලැයිස්තුව බලන්න)</span>
                   </button>
 
@@ -449,10 +449,10 @@ $activeTab = $tab ?? 'daily';
                 </div>
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                   <?php if (empty($isBatchArchived) && !$isVerifiedOfficial && !$holiday): ?>
-                    <button type="button" class="btn btn-outline-success btn-sm fw-semibold rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('present')">
+                    <button type="button" class="btn btn-att-present btn-sm rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('present')">
                       <i class="bi bi-check-all me-1"></i> All Present
                     </button>
-                    <button type="button" class="btn btn-outline-danger btn-sm fw-semibold rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('absent')">
+                    <button type="button" class="btn btn-att-absent btn-sm rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('absent')">
                       <i class="bi bi-x-circle me-1"></i> All Absent
                     </button>
                   <?php endif; ?>
@@ -1033,26 +1033,17 @@ document.addEventListener('DOMContentLoaded', function () {
   const rollCollapse = document.getElementById('dailyRollCallCollapse');
   const lblToggle = document.getElementById('lblToggleRollCall');
   const btnToggle = document.getElementById('btnToggleRollCall');
-  const iconToggle = document.getElementById('iconToggleRollCall');
 
   if (rollCollapse && lblToggle && btnToggle) {
     rollCollapse.addEventListener('show.bs.collapse', function () {
       lblToggle.textContent = 'Hide Name List (ලැයිස්තුව සඟවන්න)';
-      btnToggle.classList.remove('btn-outline-dark');
-      btnToggle.classList.add('btn-dark', 'text-white');
-      if (iconToggle) {
-        iconToggle.classList.remove('text-primary');
-        iconToggle.classList.add('text-white');
-      }
+      btnToggle.classList.add('is-expanded');
+      btnToggle.setAttribute('aria-expanded', 'true');
     });
     rollCollapse.addEventListener('hide.bs.collapse', function () {
       lblToggle.textContent = 'View Name List (ලැයිස්තුව බලන්න)';
-      btnToggle.classList.remove('btn-dark', 'text-white');
-      btnToggle.classList.add('btn-outline-dark');
-      if (iconToggle) {
-        iconToggle.classList.remove('text-white');
-        iconToggle.classList.add('text-primary');
-      }
+      btnToggle.classList.remove('is-expanded');
+      btnToggle.setAttribute('aria-expanded', 'false');
     });
   }
 });

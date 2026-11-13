@@ -202,10 +202,10 @@ require_once __DIR__ . '/../layouts/navbar.php';
             </div>
           </div>
           <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold shadow-xs" onclick="markAllStatus('present')">
+            <button type="button" class="btn btn-sm btn-att-present rounded-pill px-3 shadow-xs" onclick="markAllStatus('present')">
               <i class="bi bi-check-all me-1"></i> All Present
             </button>
-            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold shadow-xs" onclick="markAllStatus('absent')">
+            <button type="button" class="btn btn-sm btn-att-absent rounded-pill px-3 shadow-xs" onclick="markAllStatus('absent')">
               <i class="bi bi-x-circle me-1"></i> All Absent
             </button>
           </div>
@@ -227,10 +227,10 @@ require_once __DIR__ . '/../layouts/navbar.php';
             </div>
             <div class="d-flex align-items-center gap-2">
               <?php if (!$isLocked && !$isVerified): ?>
-                <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-2.5 fw-semibold shadow-xs" onclick="markAllStatus('present')">
+                <button type="button" class="btn btn-sm btn-att-present rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('present')">
                   <i class="bi bi-check-all me-1"></i> All Present
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2.5 fw-semibold shadow-xs" onclick="markAllStatus('absent')">
+                <button type="button" class="btn btn-sm btn-att-absent rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('absent')">
                   <i class="bi bi-x-circle me-1"></i> All Absent
                 </button>
               <?php endif; ?>
