@@ -672,6 +672,47 @@ class StudentController {
         $monthlyRate = $monthTotal > 0 ? round(($monthPresent / max(1, $monthTotal)) * 100, 1) : 100.0;
         $weeklyRate = $weekTotal > 0 ? round(($weekPresent / max(1, $weekTotal)) * 100, 1) : 100.0;
 
+        // Group all logs by Month (Y-m) descending for Monthly Reports
+        $monthlyBreakdown = [];
+        foreach ($attendanceLogs as $log) {
+            $mKey = date('Y-m', strtotime($log['date']));
+            if (!isset($monthlyBreakdown[$mKey])) {
+                $monthlyBreakdown[$mKey] = [
+                    'key'         => $mKey,
+                    'name'        => date('F Y', strtotime($log['date'])),
+                    'short'       => date('M Y', strtotime($log['date'])),
+                    'month_num'   => date('m', strtotime($log['date'])),
+                    'year'        => date('Y', strtotime($log['date'])),
+                    'total'       => 0,
+                    'present'     => 0,
+                    'late'        => 0,
+                    'absent'      => 0,
+                    'excused'     => 0,
+                    'logs'        => []
+                ];
+            }
+            $monthlyBreakdown[$mKey]['total']++;
+            if ($log['status'] === 'present') {
+                $monthlyBreakdown[$mKey]['present']++;
+            } elseif ($log['status'] === 'late') {
+                $monthlyBreakdown[$mKey]['late']++;
+            } elseif ($log['status'] === 'absent') {
+                $monthlyBreakdown[$mKey]['absent']++;
+            } elseif ($log['status'] === 'excused') {
+                $monthlyBreakdown[$mKey]['excused']++;
+            }
+            $monthlyBreakdown[$mKey]['logs'][] = $log;
+        }
+
+        foreach ($monthlyBreakdown as &$mb) {
+            $score = $mb['present'] + ($mb['late'] * 0.8) + $mb['excused'];
+            $mb['rate'] = $mb['total'] > 0 ? round(($score / $mb['total']) * 100, 1) : 100.0;
+            $mb['is_eligible'] = ($mb['rate'] >= 80.0);
+        }
+        unset($mb);
+
+        $selectedMonth = trim($_GET['month'] ?? '');
+
         $pageTitle = "Attendance Tracking & Eligibility";
         require_once __DIR__ . '/../Views/student/attendance.php';
     }
