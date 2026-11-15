@@ -266,14 +266,52 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
                               <a href="index.php?page=download_material&id=<?= (int)$post['id'] ?>" class="btn btn-sm btn-light border rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 fw-medium">
                                 <i data-lucide="download" style="width: 14px; height: 14px;"></i> Download
                               </a>
-                            <?php elseif ($post['material_type'] === 'youtube'): ?>
-                              <button type="button" onclick="previewMaterial(<?= (int)$post['id'] ?>, '<?= addslashes(e($post['title'])) ?>', 'youtube', '<?= e($post['external_url']) ?>')" class="btn btn-sm btn-danger rounded-pill px-3 py-1 text-white d-inline-flex align-items-center gap-1.5 fw-medium">
-                                <i data-lucide="play-circle" style="width: 14px; height: 14px;"></i> Watch Lecture
-                              </button>
                             <?php else: ?>
-                              <a href="<?= e($post['external_url']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-info text-white rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 fw-medium">
-                                <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Open Resource
-                              </a>
+                              <?php 
+                                $matLinks = parseMaterialLinks($post['external_url'] ?? '', $post['material_type'] ?? 'youtube', $post['title'] ?? '');
+                              ?>
+                              <?php if (count($matLinks) > 1): ?>
+                                <div class="mt-2.5 mb-1 d-flex flex-column gap-2 w-100">
+                                  <?php foreach ($matLinks as $idx => $lk): 
+                                    $isYt = ($lk['type'] === 'youtube' || strpos($lk['url'], 'youtu') !== false);
+                                    $lkTitle = !empty($lk['title']) ? $lk['title'] : ($isYt ? ('Video Lecture #' . ($idx + 1)) : ('Reference Link #' . ($idx + 1)));
+                                  ?>
+                                    <div class="p-2.5 rounded-3 border bg-light d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                      <div class="d-flex align-items-center gap-2 text-truncate me-auto" style="max-width: 75%;">
+                                        <span class="badge <?= $isYt ? 'bg-danger text-white' : 'bg-info-subtle text-info border' ?> rounded-pill px-2.5 py-1">
+                                          <i class="bi <?= $isYt ? 'bi-youtube' : 'bi-link-45deg' ?>"></i> <?= $isYt ? 'YouTube' : 'Web Link' ?>
+                                        </span>
+                                        <span class="fw-semibold text-dark small text-truncate" title="<?= e($lkTitle) ?>"><?= e($lkTitle) ?></span>
+                                      </div>
+                                      <div>
+                                        <?php if ($isYt): ?>
+                                          <button type="button" onclick="previewMaterial(<?= (int)$post['id'] ?>, '<?= addslashes(e($lkTitle)) ?>', 'youtube', '<?= e($lk['url']) ?>')" class="btn btn-sm btn-danger rounded-pill px-3 py-1 text-white d-inline-flex align-items-center gap-1.5 fw-medium shadow-xs">
+                                            <i data-lucide="play-circle" style="width: 14px; height: 14px;"></i> Watch Video
+                                          </button>
+                                        <?php else: ?>
+                                          <a href="<?= e($lk['url']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-info text-white rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 fw-medium shadow-xs">
+                                            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Open Resource
+                                          </a>
+                                        <?php endif; ?>
+                                      </div>
+                                    </div>
+                                  <?php endforeach; ?>
+                                </div>
+                              <?php elseif (count($matLinks) === 1): 
+                                $sLk = $matLinks[0];
+                                $isYt = ($sLk['type'] === 'youtube' || strpos($sLk['url'], 'youtu') !== false);
+                                $sTitle = !empty($sLk['title']) ? $sLk['title'] : $post['title'];
+                              ?>
+                                <?php if ($isYt): ?>
+                                  <button type="button" onclick="previewMaterial(<?= (int)$post['id'] ?>, '<?= addslashes(e($sTitle)) ?>', 'youtube', '<?= e($sLk['url']) ?>')" class="btn btn-sm btn-danger rounded-pill px-3 py-1 text-white d-inline-flex align-items-center gap-1.5 fw-medium">
+                                    <i data-lucide="play-circle" style="width: 14px; height: 14px;"></i> Watch Lecture
+                                  </button>
+                                <?php else: ?>
+                                  <a href="<?= e($sLk['url']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-info text-white rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 fw-medium">
+                                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Open Resource
+                                  </a>
+                                <?php endif; ?>
+                              <?php endif; ?>
                             <?php endif; ?>
                           <?php else: ?>
                             <a href="index.php?page=student_assignments" class="btn btn-sm btn-primary rounded-pill px-3 py-1 d-inline-flex align-items-center gap-1.5 fw-medium">
@@ -455,14 +493,42 @@ $selectedSubjectId = (int)($_GET['subject_id'] ?? 0);
                           <i data-lucide="download" style="width: 14px; height: 14px;"></i>
                         </a>
                       </div>
-                    <?php elseif ($m['material_type'] === 'youtube'): ?>
-                      <button type="button" onclick="previewMaterial(<?= (int)$m['id'] ?>, '<?= addslashes(e($m['title'])) ?>', 'youtube', '<?= e($m['external_url']) ?>')" class="btn btn-danger btn-sm w-100 fw-semibold text-white rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5">
-                        <i data-lucide="play-circle" style="width: 16px; height: 16px;"></i> Watch Video Lecture
-                      </button>
                     <?php else: ?>
-                      <a href="<?= e($m['external_url']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-info btn-sm w-100 fw-semibold text-white rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5">
-                        <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Open External Resource
-                      </a>
+                      <?php 
+                        $gridLinks = parseMaterialLinks($m['external_url'] ?? '', $m['material_type'] ?? 'youtube', $m['title'] ?? '');
+                      ?>
+                      <?php if (count($gridLinks) > 1): ?>
+                        <div class="d-flex flex-column gap-1.5 w-100">
+                          <?php foreach ($gridLinks as $gIdx => $gLk): 
+                            $isYt = ($gLk['type'] === 'youtube' || strpos($gLk['url'], 'youtu') !== false);
+                            $gTitle = !empty($gLk['title']) ? $gLk['title'] : ($isYt ? ('Video #' . ($gIdx + 1)) : ('Link #' . ($gIdx + 1)));
+                          ?>
+                            <?php if ($isYt): ?>
+                              <button type="button" onclick="previewMaterial(<?= (int)$m['id'] ?>, '<?= addslashes(e($gTitle)) ?>', 'youtube', '<?= e($gLk['url']) ?>')" class="btn btn-danger btn-sm w-100 fw-semibold text-white rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5 shadow-xs py-1" style="font-size: 0.78rem;">
+                                <i data-lucide="play-circle" style="width: 14px; height: 14px;"></i> <?= e($gTitle) ?>
+                              </button>
+                            <?php else: ?>
+                              <a href="<?= e($gLk['url']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-info btn-sm w-100 fw-semibold text-white rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5 shadow-xs py-1" style="font-size: 0.78rem;">
+                                <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> <?= e($gTitle) ?>
+                              </a>
+                            <?php endif; ?>
+                          <?php endforeach; ?>
+                        </div>
+                      <?php elseif (count($gridLinks) === 1): 
+                        $sLk = $gridLinks[0];
+                        $isYt = ($sLk['type'] === 'youtube' || strpos($sLk['url'], 'youtu') !== false);
+                        $sTitle = !empty($sLk['title']) ? $sLk['title'] : $m['title'];
+                      ?>
+                        <?php if ($isYt): ?>
+                          <button type="button" onclick="previewMaterial(<?= (int)$m['id'] ?>, '<?= addslashes(e($sTitle)) ?>', 'youtube', '<?= e($sLk['url']) ?>')" class="btn btn-danger btn-sm w-100 fw-semibold text-white rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5">
+                            <i data-lucide="play-circle" style="width: 16px; height: 16px;"></i> Watch Video Lecture
+                          </button>
+                        <?php else: ?>
+                          <a href="<?= e($sLk['url']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-info btn-sm w-100 fw-semibold text-white rounded-pill d-inline-flex align-items-center justify-content-center gap-1.5">
+                            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Open External Resource
+                          </a>
+                        <?php endif; ?>
+                      <?php endif; ?>
                     <?php endif; ?>
                   </div>
                 </div>

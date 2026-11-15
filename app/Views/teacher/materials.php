@@ -98,9 +98,32 @@ require_once __DIR__ . '/../layouts/navbar.php';
                             <i class="bi bi-download"></i>
                           </a>
                         <?php else: ?>
-                          <a href="<?= e($m['external_url']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info" title="Open Link">
-                            <i class="bi bi-box-arrow-up-right"></i>
-                          </a>
+                          <?php 
+                            $tLinks = parseMaterialLinks($m['external_url'] ?? '', $m['material_type'] ?? 'youtube', $m['title'] ?? '');
+                          ?>
+                          <?php if (count($tLinks) > 1): ?>
+                            <div class="dropdown d-inline">
+                              <button class="btn btn-sm btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="View Links">
+                                <i class="bi bi-collection-play me-1"></i> <?= count($tLinks) ?>
+                              </button>
+                              <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size: 0.82rem;">
+                                <?php foreach ($tLinks as $tl): 
+                                  $tIsYt = ($tl['type'] === 'youtube' || strpos($tl['url'], 'youtu') !== false);
+                                ?>
+                                  <li>
+                                    <a class="dropdown-item d-flex align-items-center gap-2" href="<?= e($tl['url']) ?>" target="_blank" rel="noopener noreferrer">
+                                      <i class="bi <?= $tIsYt ? 'bi-youtube text-danger' : 'bi-link-45deg text-info' ?>"></i>
+                                      <span class="text-truncate" style="max-width: 180px;"><?= e(!empty($tl['title']) ? $tl['title'] : $tl['url']) ?></span>
+                                    </a>
+                                  </li>
+                                <?php endforeach; ?>
+                              </ul>
+                            </div>
+                          <?php else: ?>
+                            <a href="<?= e($tLinks[0]['url'] ?? $m['external_url']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-info" title="Open Link">
+                              <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                          <?php endif; ?>
                         <?php endif; ?>
 
                         <form action="index.php?page=teacher_delete_material" method="POST" onsubmit="return confirm('Delete this study material?');" class="d-inline">
@@ -179,10 +202,37 @@ require_once __DIR__ . '/../layouts/navbar.php';
               <small class="text-muted">Allowed types: PDF, Word, PowerPoint, ZIP, SQL, Images. Max 25MB.</small>
             </div>
 
-            <!-- External Link Input (Conditional) -->
+            <!-- External Links Repeater (Conditional) -->
             <div class="col-12 d-none" id="urlInputContainer">
-              <label class="form-label fw-semibold small text-secondary">External URL / YouTube Link *</label>
-              <input type="url" name="external_url" id="urlInputField" class="form-control" placeholder="https://www.youtube.com/watch?v=... or https://...">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <label class="form-label fw-semibold small text-secondary mb-0">Attached Resource Links &amp; Videos *</label>
+                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-2.5 py-0.5 fw-bold shadow-xs" style="font-size: 0.75rem;" onclick="teacherAddNewLinkRow()">
+                  <i class="bi bi-plus-circle me-1"></i> Add Another Link
+                </button>
+              </div>
+              <div id="teacherLinksContainer" class="d-flex flex-column gap-2">
+                <div class="teacher-link-row p-2.5 rounded-3 border bg-light shadow-xs" data-row-idx="0">
+                  <div class="row g-2 align-items-center">
+                    <div class="col-md-3">
+                      <select name="links[0][type]" class="form-select form-select-sm">
+                        <option value="youtube">YouTube Video</option>
+                        <option value="url">Web Link / Docs</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <input type="text" name="links[0][title]" class="form-control form-control-sm" placeholder="Title (e.g. Part 1)">
+                    </div>
+                    <div class="col-md-4">
+                      <input type="url" name="links[0][url]" class="form-control form-control-sm teacher-link-url" placeholder="https://...">
+                    </div>
+                    <div class="col-md-1 text-end">
+                      <button type="button" class="btn btn-outline-danger btn-sm rounded-circle p-1 btn-remove-teacher-link" style="width: 26px; height: 26px;" disabled onclick="teacherRemoveLinkRow(this)">
+                        <i class="bi bi-x-lg" style="font-size: 0.7rem;"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="col-12">
@@ -216,23 +266,76 @@ require_once __DIR__ . '/../layouts/navbar.php';
 </div>
 
 <script>
+let teacherLinkRowIdx = 1;
+
 function toggleUploadType(type) {
   const fileContainer = document.getElementById('fileUploadContainer');
   const urlContainer  = document.getElementById('urlInputContainer');
   const fileInput     = document.getElementById('fileUploadInput');
-  const urlInput      = document.getElementById('urlInputField');
 
   if (type === 'file') {
     fileContainer.classList.remove('d-none');
     urlContainer.classList.add('d-none');
     fileInput.required = true;
-    urlInput.required = false;
+    document.querySelectorAll('.teacher-link-url').forEach(i => i.required = false);
   } else {
     fileContainer.classList.add('d-none');
     urlContainer.classList.remove('d-none');
     fileInput.required = false;
-    urlInput.required = true;
+    const firstUrl = document.querySelector('.teacher-link-url');
+    if (firstUrl) firstUrl.required = true;
   }
+}
+
+function teacherAddNewLinkRow() {
+  const container = document.getElementById('teacherLinksContainer');
+  if (!container) return;
+
+  const newRow = document.createElement('div');
+  newRow.className = 'teacher-link-row p-2.5 rounded-3 border bg-light shadow-xs';
+  newRow.setAttribute('data-row-idx', teacherLinkRowIdx);
+  newRow.innerHTML = `
+    <div class="row g-2 align-items-center">
+      <div class="col-md-3">
+        <select name="links[${teacherLinkRowIdx}][type]" class="form-select form-select-sm">
+          <option value="youtube">YouTube Video</option>
+          <option value="url">Web Link / Docs</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <input type="text" name="links[${teacherLinkRowIdx}][title]" class="form-control form-control-sm" placeholder="Title (e.g. Part ${teacherLinkRowIdx + 1})">
+      </div>
+      <div class="col-md-4">
+        <input type="url" name="links[${teacherLinkRowIdx}][url]" class="form-control form-control-sm teacher-link-url" placeholder="https://..." required>
+      </div>
+      <div class="col-md-1 text-end">
+        <button type="button" class="btn btn-outline-danger btn-sm rounded-circle p-1 btn-remove-teacher-link" style="width: 26px; height: 26px;" onclick="teacherRemoveLinkRow(this)">
+          <i class="bi bi-x-lg" style="font-size: 0.7rem;"></i>
+        </button>
+      </div>
+    </div>
+  `;
+  container.appendChild(newRow);
+  teacherLinkRowIdx++;
+  updateTeacherLinkRowStates();
+}
+
+function teacherRemoveLinkRow(btn) {
+  const row = btn.closest('.teacher-link-row');
+  if (row) {
+    row.remove();
+    updateTeacherLinkRowStates();
+  }
+}
+
+function updateTeacherLinkRowStates() {
+  const rows = document.querySelectorAll('#teacherLinksContainer .teacher-link-row');
+  rows.forEach(r => {
+    const removeBtn = r.querySelector('.btn-remove-teacher-link');
+    if (removeBtn) {
+      removeBtn.disabled = (rows.length <= 1);
+    }
+  });
 }
 </script>
 

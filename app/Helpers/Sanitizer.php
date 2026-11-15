@@ -49,3 +49,49 @@ class Sanitizer {
 function e(?string $str): string {
     return Sanitizer::e($str);
 }
+
+/**
+ * Global helper to parse material external_url field supporting both legacy single URLs
+ * and new multi-link JSON arrays (Google Classroom style multi-resource posts).
+ */
+function parseMaterialLinks(mixed $rawUrl, string $defaultType = 'youtube', string $defaultTitle = ''): array {
+    if (empty($rawUrl)) {
+        return [];
+    }
+    if (is_array($rawUrl)) {
+        return $rawUrl;
+    }
+    $raw = trim((string)$rawUrl);
+    if (empty($raw)) {
+        return [];
+    }
+    // Check if JSON format
+    if ($raw[0] === '[' || $raw[0] === '{') {
+        $decoded = json_decode($raw, true);
+        if (is_array($decoded) && !empty($decoded)) {
+            $cleaned = [];
+            foreach ($decoded as $link) {
+                if (is_array($link) && !empty($link['url'])) {
+                    $u = trim((string)$link['url']);
+                    $type = in_array($link['type'] ?? '', ['youtube', 'url']) ? $link['type'] : (strpos($u, 'youtu') !== false ? 'youtube' : 'url');
+                    $cleaned[] = [
+                        'type'  => $type,
+                        'title' => trim((string)($link['title'] ?? '')),
+                        'url'   => $u
+                    ];
+                }
+            }
+            if (!empty($cleaned)) {
+                return $cleaned;
+            }
+        }
+    }
+    // Fallback: Legacy single URL
+    return [
+        [
+            'type'  => $defaultType,
+            'title' => $defaultTitle,
+            'url'   => $raw
+        ]
+    ];
+}

@@ -182,11 +182,50 @@ class TeacherController {
             $origName = $uploadRes['original_filename'];
             $fileSize = $uploadRes['size'];
         } elseif ($materialType === 'youtube' || $materialType === 'url') {
-            $url = trim($_POST['external_url'] ?? '');
-            if (empty($url) || !filter_var($url, FILTER_VALIDATE_URL)) {
-                Flash::error("Please provide a valid URL.");
+            $links = [];
+            if (!empty($_POST['links']) && is_array($_POST['links'])) {
+                foreach ($_POST['links'] as $itemLink) {
+                    $u = trim((string)($itemLink['url'] ?? ''));
+                    if (!empty($u) && filter_var($u, FILTER_VALIDATE_URL)) {
+                        $lType = in_array($itemLink['type'] ?? '', ['youtube', 'url']) ? $itemLink['type'] : (strpos($u, 'youtu') !== false ? 'youtube' : 'url');
+                        $links[] = [
+                            'type'  => $lType,
+                            'title' => trim((string)($itemLink['title'] ?? '')),
+                            'url'   => $u
+                        ];
+                    }
+                }
+            }
+
+            // Fallback for single external_url if $_POST['links'] was empty
+            if (empty($links)) {
+                $singleUrl = trim($_POST['external_url'] ?? '');
+                if (!empty($singleUrl) && filter_var($singleUrl, FILTER_VALIDATE_URL)) {
+                    $lType = in_array($materialType, ['youtube', 'url']) ? $materialType : (strpos($singleUrl, 'youtu') !== false ? 'youtube' : 'url');
+                    $links[] = [
+                        'type'  => $lType,
+                        'title' => '',
+                        'url'   => $singleUrl
+                    ];
+                }
+            }
+
+            if (empty($links)) {
+                Flash::error("Please provide at least one valid URL address.");
                 header('Location: index.php?page=teacher_materials');
                 exit;
+            }
+
+            if (count($links) === 1 && empty($links[0]['title'])) {
+                $url = $links[0]['url'];
+                $materialType = $links[0]['type'];
+            } else {
+                $url = json_encode($links, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                $hasYt = false;
+                foreach ($links as $l) {
+                    if ($l['type'] === 'youtube') { $hasYt = true; break; }
+                }
+                $materialType = $hasYt ? 'youtube' : 'url';
             }
         }
 

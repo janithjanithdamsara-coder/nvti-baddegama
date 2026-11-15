@@ -723,6 +723,32 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                             </p>
                           <?php endif; ?>
 
+                          <!-- Multi-Link Attached Resources (Google Classroom Style) -->
+                          <?php if ($isMaterial && $item['material_type'] !== 'file'): 
+                            $matLinks = parseMaterialLinks($item['external_url'] ?? '', $item['material_type'], $item['title']);
+                          ?>
+                            <?php if (!empty($matLinks)): ?>
+                              <div class="mt-2.5 mb-2 d-flex flex-column gap-2">
+                                <?php foreach ($matLinks as $idx => $lk): 
+                                  $isYt = ($lk['type'] === 'youtube' || strpos($lk['url'], 'youtu') !== false);
+                                  $lkTitle = !empty($lk['title']) ? $lk['title'] : ($isYt ? ('Video Lecture #' . ($idx + 1)) : ('Reference Link #' . ($idx + 1)));
+                                ?>
+                                  <div class="p-2.5 rounded-3 border bg-light d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                                    <div class="d-flex align-items-center gap-2 text-truncate me-auto" style="max-width: 80%;">
+                                      <span class="badge <?= $isYt ? 'bg-danger text-white' : 'bg-info-subtle text-info border' ?> rounded-pill px-2.5 py-1">
+                                        <i class="bi <?= $isYt ? 'bi-youtube' : 'bi-link-45deg' ?>"></i> <?= $isYt ? 'YouTube' : 'Web Link' ?>
+                                      </span>
+                                      <span class="fw-semibold text-dark small text-truncate" title="<?= e($lkTitle) ?>"><?= e($lkTitle) ?></span>
+                                    </div>
+                                    <a href="<?= e($lk['url']) ?>" target="_blank" rel="noopener noreferrer" class="btn <?= $isYt ? 'btn-outline-danger' : 'btn-outline-info' ?> btn-sm rounded-pill px-3 py-1 fw-bold d-inline-flex align-items-center gap-1 shadow-xs">
+                                      <i class="bi <?= $isYt ? 'bi-play-circle-fill' : 'bi-box-arrow-up-right' ?>"></i> <?= $isYt ? 'Watch' : 'Open Link' ?>
+                                    </a>
+                                  </div>
+                                <?php endforeach; ?>
+                              </div>
+                            <?php endif; ?>
+                          <?php endif; ?>
+
                           <!-- Attachment / Resource Bar -->
                           <?php if ($isAssignment): ?>
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2 pt-2 border-top">
@@ -782,9 +808,18 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
                                     <i class="bi bi-download"></i> Download
                                   </a>
                                 <?php else: ?>
-                                  <a href="<?= e($item['external_url']) ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1">
-                                    <i class="bi bi-box-arrow-up-right"></i> Open Link
-                                  </a>
+                                  <?php 
+                                    $actionLinks = parseMaterialLinks($item['external_url'] ?? '', $item['material_type'], $item['title']);
+                                  ?>
+                                  <?php if (count($actionLinks) > 1): ?>
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3 py-1.5 fw-bold">
+                                      <i class="bi bi-collection-play-fill me-1"></i> <?= count($actionLinks) ?> Resource Links
+                                    </span>
+                                  <?php elseif (count($actionLinks) === 1): ?>
+                                    <a href="<?= e($actionLinks[0]['url']) ?>" target="_blank" rel="noopener noreferrer" class="btn <?= ($actionLinks[0]['type'] === 'youtube') ? 'btn-outline-danger' : 'btn-outline-info' ?> btn-sm rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1">
+                                      <i class="bi <?= ($actionLinks[0]['type'] === 'youtube') ? 'bi-play-circle-fill' : 'bi-box-arrow-up-right' ?>"></i> <?= ($actionLinks[0]['type'] === 'youtube') ? 'Watch Video' : 'Open Link' ?>
+                                    </a>
+                                  <?php endif; ?>
                                 <?php endif; ?>
                               </div>
                             </div>
@@ -881,50 +916,94 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
   </div>
 </div>
 
-<!-- ================= MODAL 2: ADD YOUTUBE / WEB LINK ================= -->
+<!-- ================= MODAL 2: ADD YOUTUBE / WEB LINK (MULTI-LINK POST) ================= -->
 <div class="modal fade" id="addLinkModal" tabindex="-1" aria-labelledby="addLinkModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content border-0 rounded-4 shadow">
-      <form action="index.php?page=admin_upload_material" method="POST">
+      <form action="index.php?page=admin_upload_material" method="POST" id="adminAddLinksForm">
         <?= Csrf::field() ?>
         <input type="hidden" name="subject_id" value="<?= (int)($currentSubject['id'] ?? 0) ?>">
         <input type="hidden" name="class_id" value="<?= (int)$activeClassId ?>">
         <input type="hidden" name="category_id" value="6"> <!-- Video Lessons -->
+        <input type="hidden" name="material_type" value="youtube">
 
         <div class="modal-header border-bottom py-3 px-4 bg-light">
-          <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-link-45deg text-info fs-4"></i>
-            <h6 class="modal-title fw-bold text-dark mb-0" id="addLinkModalLabel">Add YouTube Video or External Link</h6>
+          <div class="d-flex align-items-center gap-2.5">
+            <div class="rounded-circle p-2 bg-info-subtle text-info d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+              <i class="bi bi-collection-play-fill fs-5"></i>
+            </div>
+            <div>
+              <h6 class="modal-title fw-bold text-dark mb-0" id="addLinkModalLabel">Add YouTube Videos &amp; Resource Links</h6>
+              <small class="text-muted" style="font-size: 0.76rem;">Attach one or multiple video lessons &amp; reference links to a single classroom post</small>
+            </div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
         <div class="modal-body p-4">
+          <!-- Main Post Title -->
           <div class="mb-3">
-            <label class="form-label fw-bold text-dark small">Title <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" name="title" placeholder="e.g. Complete PHP 8 & MySQL Tutorial Series" required>
+            <label class="form-label fw-bold text-dark small">Post / Lesson Title <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-sm" name="title" placeholder="e.g. Complete PHP 8 &amp; MySQL Tutorial Series" required>
           </div>
 
+          <!-- Description -->
           <div class="mb-3">
-            <label class="form-label fw-bold text-dark small">Resource Type <span class="text-danger">*</span></label>
-            <select name="material_type" class="form-select" required>
-              <option value="youtube">YouTube Video / Playlist</option>
-              <option value="url">External Documentation / Website</option>
-            </select>
+            <label class="form-label fw-bold text-dark small">Description / Directions</label>
+            <textarea class="form-control form-control-sm" name="description" rows="2" placeholder="Video summary or directions for students..."></textarea>
           </div>
 
+          <!-- Multi-Link Repeater Section -->
           <div class="mb-3">
-            <label class="form-label fw-bold text-dark small">URL Address <span class="text-danger">*</span></label>
-            <input type="url" class="form-control" name="external_url" placeholder="https://www.youtube.com/watch?v=..." required>
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <label class="form-label fw-bold text-dark small mb-0">
+                <i class="bi bi-link-45deg text-info me-1 fs-6"></i> Attached Resource Links &amp; Videos <span class="text-danger">*</span>
+              </label>
+              <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1" id="adminLinkCounterBadge">1 Link</span>
+            </div>
+
+            <div id="adminLinksContainer" class="d-flex flex-column gap-2.5">
+              <!-- Row 0 (Default Initial Row) -->
+              <div class="admin-link-item-row p-3 rounded-3 border bg-light shadow-xs" data-row-idx="0">
+                <div class="row g-2 align-items-center">
+                  <div class="col-12 col-md-3">
+                    <label class="small text-muted fw-semibold d-block mb-1" style="font-size: 0.72rem;">Resource Type</label>
+                    <select name="links[0][type]" class="form-select form-select-sm">
+                      <option value="youtube">YouTube Video / Playlist</option>
+                      <option value="url">External Website / Docs</option>
+                    </select>
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <label class="small text-muted fw-semibold d-block mb-1" style="font-size: 0.72rem;">Link Title / Label</label>
+                    <input type="text" name="links[0][title]" class="form-control form-control-sm" placeholder="e.g. Part 1: Introduction">
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <label class="small text-muted fw-semibold d-block mb-1" style="font-size: 0.72rem;">URL Address <span class="text-danger">*</span></label>
+                    <input type="url" name="links[0][url]" class="form-control form-control-sm" placeholder="https://www.youtube.com/watch?v=..." required>
+                  </div>
+                  <div class="col-12 col-md-1 text-end pt-md-3">
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-circle p-1 d-inline-flex align-items-center justify-content-center btn-remove-admin-link" title="Remove Link" style="width: 28px; height: 28px;" disabled onclick="adminRemoveLinkRow(this)">
+                      <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Add Another Link Button Bar -->
+            <div class="mt-2.5 d-flex align-items-center justify-content-between flex-wrap gap-2 pt-1">
+              <button type="button" class="btn btn-outline-info btn-sm rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs" onclick="adminAddNewLinkRow()">
+                <i class="bi bi-plus-circle-fill"></i> Add Another Link / Video
+              </button>
+              <small class="text-muted" style="font-size: 0.74rem;">
+                <i class="bi bi-info-circle me-1"></i>You can add as many video &amp; documentation links as needed.
+              </small>
+            </div>
           </div>
 
-          <div class="mb-3">
-            <label class="form-label fw-bold text-dark small">Description</label>
-            <textarea class="form-control" name="description" rows="2" placeholder="Video summary or directions..."></textarea>
-          </div>
-
+          <!-- Email notification switch -->
           <input type="hidden" name="email_prompt_present" value="1">
-          <div class="form-check form-switch bg-light border rounded-3 px-3 py-2.5 d-flex align-items-center justify-content-between">
+          <div class="form-check form-switch bg-light border rounded-3 px-3 py-2.5 d-flex align-items-center justify-content-between mt-3">
             <div>
               <label class="form-check-label fw-semibold text-dark small mb-0" for="adminMaterialLinkNotifyEmail">
                 <i class="bi bi-envelope-check text-primary me-1"></i> Notify enrolled students via Email
@@ -939,8 +1018,8 @@ $isSubjectView = isset($currentSubject) && !empty($currentSubject);
 
         <div class="modal-footer bg-light border-top px-4 py-2.5">
           <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-info btn-sm rounded-pill px-4 fw-bold text-white">
-            <i class="bi bi-plus-circle me-1"></i> Add Resource Link
+          <button type="submit" class="btn btn-info btn-sm rounded-pill px-4 fw-bold text-white shadow-sm">
+            <i class="bi bi-cloud-arrow-up-fill me-1"></i> Post Resource Links
           </button>
         </div>
       </form>
@@ -1853,6 +1932,67 @@ function filterClassroomGrid(filter, btn) {
     } else {
       const sem = item.getAttribute('data-sem');
       item.style.display = (sem === filter) ? '' : 'none';
+    }
+  });
+}
+
+// Multi-Link Dynamic Repeater Logic (Google Classroom Style)
+let adminLinkRowIndex = 1;
+
+function adminAddNewLinkRow() {
+  const container = document.getElementById('adminLinksContainer');
+  if (!container) return;
+
+  const newRow = document.createElement('div');
+  newRow.className = 'admin-link-item-row p-3 rounded-3 border bg-light shadow-xs';
+  newRow.setAttribute('data-row-idx', adminLinkRowIndex);
+  newRow.innerHTML = `
+    <div class="row g-2 align-items-center">
+      <div class="col-12 col-md-3">
+        <label class="small text-muted fw-semibold d-block mb-1" style="font-size: 0.72rem;">Resource Type</label>
+        <select name="links[${adminLinkRowIndex}][type]" class="form-select form-select-sm">
+          <option value="youtube">YouTube Video / Playlist</option>
+          <option value="url">External Website / Docs</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="small text-muted fw-semibold d-block mb-1" style="font-size: 0.72rem;">Link Title / Label</label>
+        <input type="text" name="links[${adminLinkRowIndex}][title]" class="form-control form-control-sm" placeholder="e.g. Part ${adminLinkRowIndex + 1}: Details">
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="small text-muted fw-semibold d-block mb-1" style="font-size: 0.72rem;">URL Address <span class="text-danger">*</span></label>
+        <input type="url" name="links[${adminLinkRowIndex}][url]" class="form-control form-control-sm" placeholder="https://..." required>
+      </div>
+      <div class="col-12 col-md-1 text-end pt-md-3">
+        <button type="button" class="btn btn-outline-danger btn-sm rounded-circle p-1 d-inline-flex align-items-center justify-content-center btn-remove-admin-link" title="Remove Link" style="width: 28px; height: 28px;" onclick="adminRemoveLinkRow(this)">
+          <i class="bi bi-x-lg" style="font-size: 0.75rem;"></i>
+        </button>
+      </div>
+    </div>
+  `;
+  container.appendChild(newRow);
+  adminLinkRowIndex++;
+  adminUpdateLinkRowStates();
+}
+
+function adminRemoveLinkRow(btn) {
+  const row = btn.closest('.admin-link-item-row');
+  if (row) {
+    row.remove();
+    adminUpdateLinkRowStates();
+  }
+}
+
+function adminUpdateLinkRowStates() {
+  const rows = document.querySelectorAll('#adminLinksContainer .admin-link-item-row');
+  const badge = document.getElementById('adminLinkCounterBadge');
+  if (badge) {
+    badge.textContent = rows.length + (rows.length === 1 ? ' Link' : ' Links');
+  }
+  rows.forEach(r => {
+    const removeBtn = r.querySelector('.btn-remove-admin-link');
+    if (removeBtn) {
+      removeBtn.disabled = (rows.length <= 1);
     }
   });
 }
