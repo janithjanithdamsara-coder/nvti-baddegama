@@ -688,6 +688,13 @@ class TeacherController {
         }
 
         $date = trim($_POST['date'] ?? date('Y-m-d'));
+        $dayOfWeek = (int)date('N', strtotime($date));
+        if ($dayOfWeek >= 6) {
+            Flash::error("Attendance cannot be marked on weekends (Saturday / Sunday). Regular NVTI academic days are Monday to Friday.");
+            header("Location: index.php?page=teacher_attendance&class_id=" . $classId . "&date=" . urlencode($date));
+            exit;
+        }
+
         $attendanceData = $_POST['attendance'] ?? [];
 
         if (empty($attendanceData) || !is_array($attendanceData)) {

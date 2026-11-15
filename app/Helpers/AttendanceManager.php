@@ -290,9 +290,27 @@ class AttendanceManager {
      * Checks if locked. If locked and user is a student, aborts to prevent duplicate marking.
      */
     public static function saveBatchAttendance(int $classId, string $date, array $attendanceData, int $userId, string $userRole): array {
+        // 1. Strict Weekend Validation (Saturday / Sunday cannot be marked)
+        $dayOfWeek = (int)date('N', strtotime($date));
+        if ($dayOfWeek >= 6) {
+            return [
+                'success' => false,
+                'error' => "Attendance cannot be marked on weekends (Saturday / Sunday). NVTI Baddegama regular academic sessions run Monday through Friday."
+            ];
+        }
+
         $db = Database::getConnection();
 
-        // Check lock status
+        // 2. Official Holiday Validation
+        $holiday = self::getHoliday($date, $classId);
+        if ($holiday) {
+            return [
+                'success' => false,
+                'error' => "Attendance cannot be marked on declared holidays (" . htmlspecialchars($holiday['holiday_name']) . ")."
+            ];
+        }
+
+        // 3. Check lock status
         $lock = self::getDayLock($classId, $date);
         if ($lock && (int)$lock['is_locked'] === 1 && $userRole === 'student') {
             return [

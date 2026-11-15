@@ -173,6 +173,10 @@ $activeTab = $tab ?? 'daily';
                   <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1.5 fw-bold">
                     <i class="bi bi-calendar-x-fill me-1"></i> Holiday / Closed Day
                   </span>
+                <?php elseif ($isWeekend): ?>
+                  <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-1.5 fw-bold">
+                    <i class="bi bi-calendar-week-fill me-1"></i> Weekend / නිවාඩු දිනයකි
+                  </span>
                 <?php elseif ($isVerifiedOfficial): ?>
                   <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 fw-bold">
                     <i class="bi bi-check-circle-fill me-1"></i> Roll Call Marked &amp; Locked
@@ -187,7 +191,7 @@ $activeTab = $tab ?? 'daily';
                   </span>
                 <?php endif; ?>
 
-                <?php if (!$holiday && !$isVerifiedOfficial): ?>
+                <?php if (!$holiday && !$isWeekend && !$isVerifiedOfficial): ?>
                   <button type="button" class="btn btn-att-present btn-sm rounded-pill px-2.5 shadow-xs" onclick="markAllStatus('present')">
                     <i class="bi bi-check-all me-1"></i> All Present
                   </button>
@@ -196,9 +200,11 @@ $activeTab = $tab ?? 'daily';
                   </button>
                 <?php endif; ?>
 
+                <?php if (!$isWeekend): ?>
                 <button type="button" class="btn btn-outline-warning text-dark btn-sm fw-semibold rounded-pill px-2.5 shadow-xs" data-bs-toggle="modal" data-bs-target="#declareHolidayModal">
                   <i class="bi bi-calendar2-x-fill text-warning me-1"></i> <?= $holiday ? 'Update Holiday' : 'Mark Closed / Holiday' ?>
                 </button>
+                <?php endif; ?>
               </div>
             </div>
           </div>
@@ -230,26 +236,33 @@ $activeTab = $tab ?? 'daily';
               </form>
             </div>
           </div>
-        <?php endif; ?>
-
-        <!-- Weekend Alert Notice (NVTI Diploma 5 Days / Week) -->
-        <?php if ($isWeekend && !$holiday): ?>
-          <div class="alert border-0 shadow-sm rounded-4 p-3 mb-4 text-dark" style="background: #f8fafc; border-left: 5px solid #64748b !important;">
-            <div class="d-flex align-items-center gap-3">
-              <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-secondary bg-white shadow-sm flex-shrink-0" style="width: 44px; height: 44px;">
-                <i class="bi bi-calendar-week fs-4"></i>
-              </div>
-              <div>
-                <span class="badge bg-secondary text-white fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">WEEKEND (SATURDAY / SUNDAY)</span>
-                <h6 class="fw-bold mb-0 text-dark">Weekend Session &bull; NVTI Baddegama Regular Academic Days are Monday to Friday (5 Days)</h6>
-                <small class="text-secondary">Official diploma attendance runs Monday through Friday. If you held a special weekend revision or lab session, you may mark roll call below.</small>
-              </div>
+        <?php elseif ($isWeekend): ?>
+          <!-- Weekend Official Holiday Banner -->
+          <div class="card border-0 shadow-sm rounded-4 p-4 text-center bg-white mb-4" style="border-top: 5px solid #64748b !important; background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%) !important;">
+            <div class="rounded-circle p-3 mx-auto mb-2 d-flex align-items-center justify-content-center text-secondary bg-white shadow-sm" style="width: 64px; height: 64px;">
+              <i class="bi bi-calendar2-week-fill fs-2 text-secondary"></i>
+            </div>
+            <span class="badge bg-secondary text-white fw-bold rounded-pill px-3 py-1 mb-2">WEEKEND &bull; OFFICIAL ACADEMIC RECESS</span>
+            <h4 class="fw-bold text-dark mb-1">සති අන්ත නිවාඩු දිනයකි (Weekend - <?= date('l', strtotime($selectedDate)) ?>)</h4>
+            <p class="text-secondary small mb-3" style="max-width: 640px; margin: 0 auto; line-height: 1.6;">
+              NVTI බද්දේගම ජාතික ඩිප්ලෝමා පාඨමාලාවේ නිල අධ්‍යයන දින සඳුදා සිට සිකුරාදා (සතියට දින 5) දක්වා පමණක් පැවැත්වේ. සෙනසුරාදා සහ ඉරිදා දිනවලදී ශිෂ්‍ය පැමිණීම (Roll Call) සටහන් කිරීම අක්‍රිය කර ඇත.
+            </p>
+            <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+              <a href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=daily&date=<?= urlencode($nextDate) ?>" class="btn btn-primary btn-sm rounded-pill px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2" style="background: #7A1418; border-color: #7A1418;">
+                <i class="bi bi-calendar-check-fill"></i>
+                <span>Go to Next Academic Day (<?= date('l, M d', strtotime($nextDate)) ?>)</span>
+                <i class="bi bi-arrow-right"></i>
+              </a>
+              <a href="index.php?page=teacher_attendance&class_id=<?= (int)$classId ?>&tab=daily&date=<?= urlencode($prevDate) ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2 fw-semibold shadow-xs d-inline-flex align-items-center gap-1.5">
+                <i class="bi bi-arrow-left"></i>
+                <span>Previous Day (<?= date('D, M d', strtotime($prevDate)) ?>)</span>
+              </a>
             </div>
           </div>
         <?php endif; ?>
 
         <!-- Submission & Verification Status Alert Card -->
-        <?php if (!$holiday): ?>
+        <?php if (!$holiday && !$isWeekend): ?>
           <?php if ($isSubmittedByMonitor): ?>
             <div class="alert border-0 shadow-sm rounded-4 p-3 mb-4 text-dark" style="background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%); border-left: 5px solid #f59e0b !important;">
               <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
@@ -432,7 +445,7 @@ $activeTab = $tab ?? 'daily';
           <?php endif; ?>
         <?php endif; ?>
 
-        <?php if (!$holiday): ?>
+        <?php if (!$holiday && !$isWeekend): ?>
         <!-- Daily Roll Call Container (Collapsed by default if already finalized!) -->
         <div class="<?= $isVerifiedOfficial ? 'collapse' : '' ?>" id="dailyRollCallCollapse">
           <!-- Daily Roll Call Grid Form -->

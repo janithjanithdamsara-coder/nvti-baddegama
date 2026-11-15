@@ -66,24 +66,27 @@ require_once __DIR__ . '/../layouts/navbar.php';
           </p>
         </div>
 
-      <!-- 2. Weekend Notice (Monday to Friday Regular Academic) -->
-      <?php elseif (!empty($isWeekend) && !$isLocked): ?>
-        <div class="alert border-0 shadow-sm rounded-4 p-3 mb-4 text-dark" style="background: #f8fafc; border-left: 5px solid #64748b !important;">
-          <div class="d-flex align-items-center gap-3">
-            <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-secondary bg-white shadow-sm flex-shrink-0" style="width: 44px; height: 44px;">
-              <i class="bi bi-calendar-week fs-4"></i>
-            </div>
-            <div>
-              <span class="badge bg-secondary text-white fw-bold rounded-pill px-2.5 py-0.5" style="font-size: 0.72rem;">WEEKEND (SATURDAY / SUNDAY)</span>
-              <h6 class="fw-bold mb-0 text-dark">Weekend Session &bull; Regular NVTI Classes are Monday to Friday (5 Days)</h6>
-              <small class="text-secondary">Official classes run Monday through Friday. If Sir held an extra weekend class or revision session, you may submit roll call below.</small>
-            </div>
+      <!-- 2. Weekend Holiday Notice -->
+      <?php elseif (!empty($isWeekend)): ?>
+        <div class="card border-0 shadow-sm rounded-4 p-4 text-center bg-white mb-4" style="border-top: 5px solid #64748b !important; background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%) !important;">
+          <div class="rounded-circle p-3 mx-auto mb-2 d-flex align-items-center justify-content-center text-secondary bg-white shadow-sm" style="width: 64px; height: 64px;">
+            <i class="bi bi-calendar2-week-fill fs-2 text-secondary"></i>
+          </div>
+          <span class="badge bg-secondary text-white fw-bold rounded-pill px-3 py-1 mb-2">WEEKEND &bull; ACADEMIC RECESS</span>
+          <h4 class="fw-bold text-dark mb-1">සති අන්ත නිවාඩු දිනයකි (Weekend - <?= date('l', strtotime($selectedDate)) ?>)</h4>
+          <p class="text-secondary small mb-3" style="max-width: 620px; margin: 0 auto; line-height: 1.6;">
+            NVTI බද්දේගම ජාතික ඩිප්ලෝමා පාඨමාලාවේ නිල අධ්‍යයන දින සඳුදා සිට සිකුරාදා (සතියට දින 5) දක්වා පමණක් පැවැත්වේ. සෙනසුරාදා සහ ඉරිදා දිනවලදී Class Monitor විසින් පැමිණීම සටහන් කිරීම අක්‍රිය කර ඇත.
+          </p>
+          <div class="d-flex align-items-center justify-content-center gap-2">
+            <a href="index.php?page=student_batch_attendance&date=<?= urlencode(date('Y-m-d', strtotime('next monday', strtotime($selectedDate)))) ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-4 fw-semibold shadow-xs">
+              <i class="bi bi-calendar-check me-1"></i> Go to Next Academic Day (Monday)
+            </a>
           </div>
         </div>
       <?php endif; ?>
 
       <!-- 3. Marked Directly by Admin Banner -->
-      <?php if (!empty($markedByAdmin) && empty($holiday)): ?>
+      <?php if (!empty($markedByAdmin) && empty($holiday) && empty($isWeekend)): ?>
         <div class="alert border-0 shadow-sm rounded-4 p-4 mb-4 text-dark" style="background: linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%); border-left: 5px solid #7A1418 !important;">
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div class="d-flex align-items-center gap-3">
@@ -110,7 +113,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
         </div>
 
       <!-- 4. Verified & Approved by Instructor (Teacher) -->
-      <?php elseif ($isVerified && empty($holiday)): ?>
+      <?php elseif ($isVerified && empty($holiday) && empty($isWeekend)): ?>
         <div class="alert border-0 shadow-sm rounded-4 p-4 mb-4 text-dark" style="background: linear-gradient(90deg, #f0fdf4 0%, #dcfce7 100%); border-left: 5px solid #10b981 !important;">
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
             <div class="d-flex align-items-center gap-3">
@@ -137,7 +140,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
         </div>
 
       <!-- 5. Submitted by Monitor & Pending Verification -->
-      <?php elseif ($isLocked && empty($holiday)): ?>
+      <?php elseif ($isLocked && empty($holiday) && empty($isWeekend)): ?>
         <?php if ($lockedBySelf): ?>
           <div class="alert border-0 shadow-sm rounded-4 p-3 mb-4 text-dark" style="background: linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%); border-left: 5px solid #f59e0b !important;">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
@@ -187,7 +190,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
         <?php endif; ?>
 
       <!-- 6. Sheet Open for Student Monitor Marking -->
-      <?php elseif (empty($holiday)): ?>
+      <?php elseif (empty($holiday) && empty($isWeekend)): ?>
         <div class="alert alert-info border-0 shadow-sm rounded-4 p-3 mb-4 text-dark d-flex align-items-center justify-content-between gap-3 flex-wrap" style="background: #e0f2fe; border-left: 5px solid #0284c7 !important;">
           <div class="d-flex align-items-center gap-3">
             <div class="rounded-circle p-2 d-flex align-items-center justify-content-center text-info bg-white shadow-sm flex-shrink-0" style="width: 44px; height: 44px;">
@@ -212,7 +215,7 @@ require_once __DIR__ . '/../layouts/navbar.php';
         </div>
       <?php endif; ?>
 
-      <?php if (empty($holiday)): ?>
+      <?php if (empty($holiday) && empty($isWeekend)): ?>
       <div class="<?= ($isLocked || $isVerified) ? 'collapse' : '' ?>" id="monitorRollCallCollapse">
       <!-- Excel-Style Grid Form -->
       <form action="index.php?page=student_batch_attendance_save" method="POST" id="attendanceGridForm">
