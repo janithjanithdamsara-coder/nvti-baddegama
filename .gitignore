@@ -9,4 +9,6 @@ error_log
 
 # Large temporary/test media
 1006_1_oponlw.mp4
+assets/videos/*.mp4
+*.mp4
 *.tmp

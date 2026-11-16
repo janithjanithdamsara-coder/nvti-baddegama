@@ -46,8 +46,10 @@ foreach ($cbtModulesDb as $row) {
 <section class="hero-video-wrapper text-white text-center">
   <!-- Autoplay loop muted video with smooth fade-in once buffer/frame is ready -->
   <video id="heroVideo" class="hero-bg-video" autoplay muted loop playsinline preload="auto" onplaying="this.classList.add('is-loaded')" onloadeddata="this.classList.add('is-loaded')">
-    <source src="1006_1_oponlw.mp4" type="video/mp4">
+    <source src="assets/videos/ict_lvl_05.mp4" type="video/mp4">
+    <source src="ict_lvl_05.mp4" type="video/mp4">
     <source src="assets/videos/1006_1_oponlw.mp4" type="video/mp4">
+    <source src="1006_1_oponlw.mp4" type="video/mp4">
     <source src="https://res.cloudinary.com/dhxfrmepy/video/upload/v1759822024/1006_1_oponlw.mp4" type="video/mp4">
   </video>
   
