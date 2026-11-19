@@ -210,6 +210,18 @@ class AuthController {
     public function checkRegisterDuplicate(): void {
         header('Content-Type: application/json; charset=UTF-8');
 
+        // Rate limiting for enumeration protection (max 25 checks per 60 seconds per session)
+        $now = time();
+        if (!isset($_SESSION['reg_check_window']) || ($now - $_SESSION['reg_check_window']) > 60) {
+            $_SESSION['reg_check_window'] = $now;
+            $_SESSION['reg_check_count'] = 0;
+        }
+        $_SESSION['reg_check_count'] = ($_SESSION['reg_check_count'] ?? 0) + 1;
+        if ($_SESSION['reg_check_count'] > 25) {
+            echo json_encode(['exists' => false, 'message' => 'Too many verification attempts. Please wait a moment.']);
+            exit;
+        }
+
         $field = trim($_GET['field'] ?? $_POST['field'] ?? '');
         $value = trim($_GET['value'] ?? $_POST['value'] ?? '');
 
@@ -481,18 +493,21 @@ class AuthController {
             Auth::logAudit($user['id'], 'PASSWORD_RESET_REQUEST', "Requested password reset token");
             
             // Send Password Reset Email via Brevo / Mailer
-            if (defined('SMTP_PASS') && SMTP_PASS !== 'YOUR_BREVO_MASTER_SMTP_KEY') {
+            if (defined('SMTP_PASS') && SMTP_PASS !== 'YOUR_BREVO_MASTER_SMTP_KEY' && !empty(SMTP_PASS)) {
                 $mailResult = Mailer::sendPasswordReset($email, $user['name'], $token);
                 if ($mailResult['success']) {
                     Flash::success("A password reset link has been dispatched to your email address (<strong>" . htmlspecialchars($email) . "</strong>). Please check your inbox.");
-                } elseif (!empty($mailResult['skipped'])) {
-                    Flash::info("Email notifications are currently paused by the administrator. Your password reset token is: <code>$token</code>");
                 } else {
-                    Flash::warning("Password reset token generated: <code>$token</code>. (Email delivery error: " . htmlspecialchars($mailResult['message']) . ")");
+                    error_log("Password reset mail failed for {$email}: " . ($mailResult['message'] ?? ''));
+                    Flash::info("If an account exists with this email address, password reset instructions have been generated. Please check your inbox or contact the administrator.");
                 }
             } else {
-                // Helpful notice when SMTP credentials have not been configured yet
-                Flash::info("Password reset token generated: <code>$token</code>. (Configure Brevo SMTP in <code>config/config.php</code> to dispatch real emails).");
+                // In non-production local debug mode only:
+                if (PHP_OS_FAMILY !== 'Linux' && getenv('APP_DEBUG') === 'true') {
+                    Flash::info("Debug mode: Password reset token: <code>$token</code>");
+                } else {
+                    Flash::info("If an account exists with this email address, password reset instructions have been generated. Please check your inbox.");
+                }
             }
         } else {
             Flash::info("If an account exists with this email, reset instructions have been generated.");

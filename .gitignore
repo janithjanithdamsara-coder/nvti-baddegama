@@ -1,7 +1,13 @@
+# Environment configuration & secrets
+.env
+.env.local
+.env.*.local
+
 # Operating System files
 .DS_Store
 Thumbs.db
 desktop.ini
+scratch/
 
 # Logs
 storage/logs/*.log

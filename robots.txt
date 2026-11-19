@@ -1,0 +1,17 @@
+User-agent: *
+Disallow: /config/
+Disallow: /database/
+Disallow: /storage/
+Disallow: /app/
+Disallow: /api/
+Disallow: /index.php?page=admin_
+Disallow: /index.php?page=teacher_
+Disallow: /index.php?page=student_
+Disallow: /index.php?page=ajax_
+
+Allow: /
+Allow: /index.php?page=login
+Allow: /index.php?page=register
+Allow: /assets/
+
+Sitemap: https://nvti-baddegamaictdip.duckdns.org/sitemap.xml

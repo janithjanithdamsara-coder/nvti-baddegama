@@ -5,16 +5,37 @@
 # 1. Disable Directory Listing / Directory Browsing
 Options -Indexes
 
-# 2. Block Access to Hidden Files & Sensitive Directories
-<FilesMatch "^\.">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
+# 2. Block Access to Hidden Files, Git Repositories & Sensitive Directories
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Return 404 for git, env, and any hidden dotfiles/dotdirectories
+    RewriteRule (^|/)\.(git|env|htaccess|user\.ini|svn|hg) - [R=404,L,NC]
+</IfModule>
+
+RedirectMatch 404 (^|/)\.git.*
+RedirectMatch 404 (^|/)\.env.*
+
+<IfModule mod_authz_core.c>
+    <FilesMatch "^\.">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "^\.">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
 
 # 3. Block Sensitive File Extensions (.env, .sql, .log, .sh, .bak, .git)
 <FilesMatch "(^#.*#|\.(bak|config|dist|fla|inc|ini|log|psd|sh|sql|sw[op]|env|git.*|md))$">
-    Order allow,deny
-    Deny from all
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
 </FilesMatch>
 
 # 4. Protect Internal Backend Folders from Direct Web Access
@@ -29,6 +50,7 @@ RedirectMatch 403 ^/storage/logs/.*$
     Header set X-XSS-Protection "1; mode=block"
     Header set Referrer-Policy "strict-origin-when-cross-origin"
     Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Header unset X-Powered-By
 </IfModule>
 
 # 6. Request Limit (25 MB max body size)

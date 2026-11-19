@@ -4,6 +4,25 @@
  * NVTI Baddegama National Diploma Portal
  */
 
+// Load environment variables from .env if present
+$envPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';
+if (file_exists($envPath)) {
+    $envLines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($envLines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#')) continue;
+        if (strpos($line, '=') !== false) {
+            [$k, $v] = explode('=', $line, 2);
+            $k = trim($k);
+            $v = trim($v, " \t\n\r\0\x0B\"'");
+            if (!getenv($k)) {
+                putenv("{$k}={$v}");
+                $_ENV[$k] = $v;
+            }
+        }
+    }
+}
+
 // Error Reporting (Hide raw error output in Linux/production, but always log to server logs)
 error_reporting(E_ALL);
 ini_set('log_errors', '1');
@@ -20,6 +39,18 @@ if (!headers_sent()) {
     header("X-XSS-Protection: 1; mode=block");
     header("Referrer-Policy: strict-origin-when-cross-origin");
     header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
+    
+    // Content-Security-Policy (CSP)
+    $csp = "default-src 'self'; " .
+           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://code.jquery.com https://unpkg.com https://www.youtube.com https://s.ytimg.com; " .
+           "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://unpkg.com; " .
+           "font-src 'self' data: https://cdnjs.cloudflare.com https://fonts.gstatic.com; " .
+           "img-src 'self' data: https: blob:; " .
+           "media-src 'self' data: blob: https:; " .
+           "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; " .
+           "connect-src 'self' https:;";
+    header("Content-Security-Policy: " . $csp);
+
     if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
         header("Strict-Transport-Security: max-age=31536000; includeSubDomains; preload");
     }
